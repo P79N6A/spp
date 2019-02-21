@@ -1,0 +1,84 @@
+module AdvertisingPromotion
+{
+    enum MATERIAL_TYPE_DEFINE
+    {
+        MATERIAL_TYPE_PRODUCT = 0,		//商品
+        MATERIAL_TYPE_MUSIC = 5,		//音乐
+        MATERIAL_TYPE_FICTION = 8,		//小说
+        MATERIAL_TYPE_APP = 9,			//APP
+        MATERIAL_TYPE_GAME_APP = 10,	//游戏APP
+        MATERIAL_TYPE_OPERATION = 11,	//运营
+        MATERIAL_TYPE_LIVE = 12,        //直播percyma
+        MATERIAL_TYPE_H5 = 13,          //H5 percyma
+        MATERIAL_TYPE_BIG_H5 = 14,      //大H：全屏
+        MATERIAL_TYPE_BANNER = 15,      //banner条(上banner、下banner、全屏banner都属于banner条)
+        MATERIAL_TYPE_LOTTIE = 16,      //lottie动画
+        MATERIAL_TYPE_PULL_REFRESH = 17,  //下拉刷新
+        MATERIAL_TYPE_ENTER_TIP = 18,     //小黄条(频道页)
+        MATERIAL_TYPE_COMM = 19,          //
+    };
+
+    //页面位置id枚举
+    enum PROMOTION_PAGE_ID              //页面ID
+    {
+        EnumPageStartUp = 1,            //启动页
+        EnumPageChannel = 2,            //频道页
+        EnumPagePersonal = 3,           //个人页
+        EnumPagePlay = 4,               //播放页
+        EnumPageSearch = 5,             //搜索页
+        EnumPageDoki = 6,               //doki页
+        EnumPageStar = 7,               //明星个人主页
+        EnumPageVStore = 8,             //V币商城页
+    };
+
+    //页面下的模块id枚举
+    enum PROMOTION_MOD_ID                               //模块ID
+    {
+        EnumStartUpAdMod = 101,                         //启动页
+
+        EnumChannelSearchAdMod = 201,                   //频道页搜索推广
+        EnumChannelActivityAdMod = 202,                 //频道页活动推广、小黄条(焦点图下方)
+        EnumChannelPullAdMod = 203,                     //频道页下拉推广(频道页下拉loading)
+        EnumChannelPopupLayerAdMod = 204,               //频道新增弹层活动位(支持两种type:全屏banner和大H5)
+        EnumChannelFootBanner = 205,                    //频道页下banner位
+
+        EnumPersonalAdMod = 301,                        //个人页
+
+        EnumPlayRelateAdMod = 401,                      //播放详情页游戏横划模块
+        EnumPlayConmentAdMod = 402,                     //播放详情页评论模块
+        EnumPlayLoadingAdMod = 403,                     //播放详情页loading推广
+        EnumBannerAdMod = 404,                          //现在的banner位
+        EnumPeriphAdMod = 405,                          //现在的周边推荐模块
+        EnumWebFrameAdMod = 406,                        //现在的web框
+
+        EnumSearchAdMod = 501,                          //搜索结果列表推广 percyma
+        EnumSearchKeyFootBanner = 502,                  //搜索关键词推广下banner位
+        EnumSearchKeyLottie = 503,                      //搜索关键词推广lottie动画位
+        EnumSearchKeyPopupLayerAdMod = 504,             //搜索关键词推广弹层活动页(支持两种type:全屏banner和大H5)
+        EnumSearchKeyHeadBanner = 505,                  //搜索关键词推广上banner位
+
+        EnumDokiPullMod = 601,                          //Doki广场页下拉推广
+        EnumDokiPopupLayerAdMod = 602,                  //Doki广场页弹层活动位(支持两种type:全屏banner和大H5)
+        EnumDokiFootBanner = 603,                       //Doki广场页下banner位
+
+        EnumStarPullMod = 701,                          //明星个人主页下拉推广
+        EnumStarFootBanner = 702,                       //明星个人主页下banner推广
+
+        EnumVStorePopupLayerAdMod = 801,                //V币商城弹层活动位(目前只支持:大banner)
+    };
+
+    enum EnumCmd                                          //数据下发服务命令字
+    {
+        EnumCmdQueryAdTasks = 0x100,                      //广告推广查询命令字
+        EnumCmdCreateAdTasks = 0x101,                     //广告推广管理台创建推广任务
+        EnumCmdUpdateAdTasks = 0x102,                     //广告推广管理台更新推广任务
+        EnumCmdQuerySearchKeys = 0x103,                   //查询所有推广的搜索关键词
+        EnumCmdPullAdTasks = 0x104,                       //
+        EnumCmdQueryStartPageAdTasks = 0xeb98,            //启动页闪屏命令字
+    };
+
+    enum EnumTestCmd
+    {
+        EnumTestCmdCreateAdTasks = 0x5000,
+    };
+};

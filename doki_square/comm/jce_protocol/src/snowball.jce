@@ -1,0 +1,10 @@
+module jce
+{
+	// 雪球中转统一的回包接口
+	// 
+	struct stSnowBallRsp
+	{
+		0 optional int errcode;
+		1 optional string errmsg;
+	};
+};

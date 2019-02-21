@@ -1,0 +1,71 @@
+module StarTimeline
+{
+    struct FeedBasicInfo
+    {
+        0 optional string feedId;
+        1 optional long createTime;
+    };
+
+    struct FeedIndex
+    {
+        0 optional vector<FeedBasicInfo> feedIndex;
+    };
+
+    struct StarInfo
+    {
+        0 optional string ftId;
+        1 optional string nick;
+        2 optional string head;
+        3 optional string starId;
+    };
+
+    struct StarInfoList
+    {
+        0 optional vector<StarInfo> starInfos;
+    };
+
+    // 明星榜单数据
+    struct StStarRank
+    {
+        0 optional string       strStarId;
+        1 optional unsigned int uiRankCurWeek  = 4200000000; //默认填一个较大的值，表示未上榜
+        2 optional unsigned int uiRankLastWeek = 4200000000; //默认填一个较大的值，表示未上榜
+        3 optional int          iRankStatus    = 0;          //排名状态，0-平稳  1-上升  2-下降
+    };
+
+    //语音信息
+    struct StVoiceInfo
+	{
+		0 require string strVoiceId;                //音频id
+		1 optional unsigned int dwDuration;         //录音时长
+        2 optional bool bPermanent;
+        3 optional byte cStorageFlag;
+	};
+
+    // 时间显示分类信息
+    enum EnumShowType
+    {
+        eShowType_Null          = 0,
+        eShowType_Settle        = 1,
+        eShowType_Birth         = 2,
+        eShowType_FansIncrease  = 3,
+        eShowType_PopularityTop = 4,
+        eShowType_WeiIns        = 5,
+        eSHowType_GlobalStarCmt = 6,
+    };
+
+    //明星卡片存储redis中的数据结构
+    struct StStarCardEvent
+    {
+        0 optional string strStarId;   //明星id
+        1 optional string strText;     //文案信息
+        2 optional long   llStartTime; //生效时间
+        3 optional long   llEndTime;   //过期时间
+        4 optional string strTitle;    //卡片标题信息（大事件里面的粉丝突破和榜单变动需要用到标题信息）
+        5 optional int    iSubType;    //子分类，同一个事件分类，可能会有子分类，这里存储子分类类别
+        6 optional int    iType = 0;   //事件分类，枚举EnumShowType中取值（读取做优先级判断的时候使用，存储时不填该值）
+        7 optional vector<string> vecPicUrl; //微博ins的信息需要存储下图片
+        8 optional long   llFeedId;
+        9 optional StVoiceInfo stVoice; //语音信息，卡片上只显示一条语音信息
+    };
+};

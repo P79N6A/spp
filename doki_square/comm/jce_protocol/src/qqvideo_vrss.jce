@@ -1,0 +1,83 @@
+#include "qqvideo_common.jce"
+module jce
+{	
+	//订阅号
+	struct ONAVRSSFeed
+	{
+		0 require VRSSItem rssItem;    			//头像名称（playCount作为订阅人数）
+		1 optional string rankFlag;   			//排行
+		2 require vector<Poster> posterList;	//视频列表，只支持整行跳转使用poster内action
+	};
+	
+	//订阅分组
+	struct ONAVRSSGroup
+	{
+		0 require vector<ONAVRSSFeed> rssFeeds; 	//头像名称（约定3的倍数）
+		1 optional string groupTitle;   			//分组名称
+		2 optional string reportParams;				//整个模块的曝光上报参数
+		3 optional vector<MarkLabel> markLabelList;	//脚标列表，对主标题起作用
+		4 optional Action titleAction;			//点击分组的跳转
+		5 optional string subTitle;				//右侧标题
+		6 optional string reportKey;			//上报参数
+	};
+	
+	//V+主页数据请求
+	struct VRSSHomeRequest
+	{
+		0 require string rssId;		//订阅号的id
+		1 optional string pageContext;
+		2 optional int requestType; //请求场景 0默认 1VN个人页请求
+	};
+	
+	struct VRSSHomeResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional VRSSItem rssItem;						//订阅号的详细信息
+		2 optional vector<TempletLine>	uiData;				//用来显示的数据
+		3 optional map<string,CoverDataList> coverDataMap;	//专辑类数据集合（往期，推荐等）[这个字段的处理规则同详情页]
+		4 optional map<string,ActorList> actorDataMap;		//相关明星列表数据集合
+		5 optional ShareItem shareItem;                     //分享的数据
+		6 optional string pageContext;						//下一页的pageContext
+		7 optional bool isHaveNextPage;			            //是否还有下一页
+		8 optional vector<LiveTabModuleInfo> tabModuleList;     // tab列表
+		9 optional int rollIndex;                           // 进入个人页需要滚动到第几个位置索引（650是滚动到第一个专辑位置）
+	};
+	
+	//V+订阅
+	struct VRssSubscribeRequest
+	{
+		0 require byte   option;    //操作类型  0 表示查询 ，1 表示订阅， 2 取消订阅
+		1 optional ONAVRSSFeed vRssFeed;
+	};
+	struct VRssSubscribeResponse
+	{
+	  0 require int retCode;        		//0 成功，非0失败 
+		1 optional ONAVRSSFeed vRssFeed;
+	};
+	
+	//获取订阅列表
+	struct GetVRssSubscribeRequest
+	{
+		0 optional long dataVersionReq;
+		1 optional long dataVersionAccount;
+		2 optional long dataVersionVideo;
+	};
+	
+	struct GetVRssSubscribeResponse
+	{
+	  0 require int retCode;        		//0 成功，非0失败 
+	  1 optional long dataVersionReq;
+		2 optional long dataVersionAccount;
+		3 optional long dataVersionVideo;
+		4 optional int updateFlag;
+		5 optional vector<ONAVRSSFeed> gvRssFeedList;   
+	};
+	
+	
+	//订阅号
+	struct ONAVRSSInfoFeed
+	{
+		0 require int uiType;		   			//0订阅样式（点击在订阅和取消订阅之间切换） 1总数样式（点击后跳转） 
+		1 optional ONAVRSSFeed feed;            //feed信息
+	};
+};

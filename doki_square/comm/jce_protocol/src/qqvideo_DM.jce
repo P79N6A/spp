@@ -1,0 +1,491 @@
+#include "qqvideo_common.jce"
+#include "qqvideo_user_info.jce"
+module jce
+{
+	//DMContentKey目前定义为
+	//targetid=1029350394&type=1
+	//type=1代表直播，type=2代表点播,该key,app端无需关心
+
+    // 跟影视圈同步相关的拓展数据
+    struct DMVCInfo
+    {
+        0 optional string   strTitle ;    // 视频的标题，前端从详情页获取该数据
+        1 optional string   strPosterUrl; // 视频的海报图，影视圈Feed的视频信息需要
+    } ;
+
+
+    // 道具相关信息
+    struct DMGiftInfo
+    {
+        0 optional int    dwStarAccountType ; // 明星（受赠者）账号类型 0：vuid 1：qq 2：微信
+        1 optional string strStarAccountId ;  // 明星账号
+        2 optional string strGiftId ;         // 道具ID
+        3 optional int    dwToolPrice ;       // 道具价值
+        4 optional string strEffectId ;       // 特效ID
+        5 optional string strStarHeadUrl ;    // 明星头像
+        6 optional string strStarNick ;       // 明星昵称
+        7 optional string strGiftName ;       // 道具名称
+        8 optional int    dwToolCount;        // 道具个数
+        9 optional string strToolUnit;        // 道具单位，例如朵，个
+        10 optional string strSpecialEffects; //道具特效文案
+    };
+    // 弹幕中被引用评论相关信息
+    struct DMParentCommentInfo
+    {
+    	0 require CommentParentInfoExtra parentUserInfo;			//作者信息
+	1 optional string content;            // 评论文本
+	2 optional int                         mediaContentType;  // 多媒体数据类型 按位标记，1文本，2音频，4图片，8小视频，16引用类型，32活动类型
+	3 optional vector<ApolloVoiceData>     vecVoiceData;        // 语音数据
+	4 optional vector<CircleMsgImageUrl>   vecImageData;        // 图片数据
+    };
+
+    // 弹幕中活动通告信息
+    struct DMCommentActionInfo
+    {
+	0 require KVActionBarItem actionItem;
+    	1 optional VideoAttentItem attentItem;  //关注信息，当dwDanmuContentType=32时使用
+    };
+	//弹幕的消息
+	struct DMComment
+	{
+		0 optional long ddwCommentId;          // 弹幕消息id, 全局唯一
+        1 optional long ddwTargetId;           // 视频/直播流 通过评论注册接口返回的主贴id
+        2 optional string sContent;            // 评论文本
+        3 optional long ddwUin;                // 发表者的uin
+        4 optional int dwIsFriend;             // 是否是好友,此字段暂时没有启用
+        5 optional int dwIsOp;                 // 是否是运营号,0普通弹幕,1运营号弹幕,2代表明星弹幕,3内部的rtx发表,4道具弹幕,5表示外团,6表示不可控明星,7系统公告弹幕,8导播弹幕
+        6 optional int dwIsSelf;               // 是否自己,1表示自己
+        7 optional int dwTimePoint;            // 发表时的播放时间点, 秒为单位
+        8 optional int dwUpCount;              // 被赞次数
+        9 optional long ddwPostTime;           // 发表时间, unix时间戳
+
+		//运营号信息
+		//当dwIsOp=1|2时，这两个字段填充对应数据
+		10 optional string strNickName;        //昵称
+		11 optional string strHeadUrl;         //头像url
+
+
+		//当是自己发表的弹幕时，即dwIsSelf=1,通过此字段返回用户头像
+		12 optional string strQQHeadUrl;     
+
+		//当dwIsOp=4时，填充为道具图片的url
+		13 optional string strGiftUrl;
+
+		14 optional int dwFirstTag;       //表示是否是首次拉取的第一条特殊弹幕，0不是，1是
+		15 optional string highlightColor;      //高亮颜色
+
+		 //气泡弹幕新增字段
+        16 optional string strHlwLevelPic;  //好莱坞会员级别图片
+        17 optional string strBubbleId;     //弹幕气泡id; richIdType取值为1时，本字段为应援明星配置supportConfigId;产品确认应援弹幕与气泡弹幕互斥;取值为2时，本字段为角色弹幕配置roleConfigId;
+        18 optional string strDanmuBackPic; //弹幕背景图片
+		19 optional string strDanmuBackColor;   //弹幕气泡背景色
+        20 optional string strDanmuBackHeadPic; //弹幕背景人物头像图片url; richIdType取值为2时，本字段为角色弹幕的headUrl，角色弹幕的图片根据VIP级别一共8张图，由后台根据用户VIP等级筛选好以后下发
+        21 optional int    dwHoldTime; //导播弹幕停留时间，目前只有企鹅直播录制端使用
+        22 optional DMGiftInfo stGiftInfo ;       // 道具相关信息
+        // 20161116更新，新增四个字段支持大V账号发表富媒体类型弹幕的需求
+        23 optional vector<ApolloVoiceData>     vecVoiceData;        // 语音数据
+        24 optional vector<CircleMsgImageUrl>   vecImageData;        // 图片数据
+        25 optional vector<CircleShortVideoUrl> vecVideoData;        // 小视频数据
+        26 optional int                         dwDanmuContentType;  // 按位标记，1文本，2音频，4图片，8小视频，16引用类型，32活动类型，64明星跳转
+		27 optional int  dwPriority; //0表示非必须，1表示必须展现
+	//V561新增，新增用于明星预告弹幕、明星直播、引用类型弹幕 所需的数据
+	28 optional DMParentCommentInfo parentComment;   // 当dwDanmuContentType=16时用到
+	29 optional DMCommentActionInfo actionInfo;   // 当dwDanmuContentType=32时用到，目前用于明星直播预告、明星直播活动信息;当dwDanmuContentType=64时，用于点击明星头像或昵称跳转
+		30 optional string strColorInfoJson;          // 单个彩色弹幕信息Json
+		31 optional int richIdType;   //富媒体ID类型， 取值0：strBubbleId内容为弹幕气泡ID; 1：strBubbleId内容为应援明星配置id；2：strBubbleId内容为角色弹幕id。
+		32 optional int hotType;      //弹幕热门类型，取值0：普通弹幕，取值1：热门弹幕
+		33 optional int userVipDegree;   //vip等级（LV7用户发表的弹幕需要展示星星动画）
+	};
+	
+	//发表弹幕相关
+	//cmd:0xe8a9
+	struct DMPostCommentRequest
+    {  
+        0 require string DMContentKey;		//弹幕相关的业务key
+        1 optional string sContent;        	//评论文本(如果有表情应该是“[<emojiCode>]”的形式)
+        2 optional long dwTimePoint;         // 发表时的播放时间点, 秒为单位
+        3 optional string strRichId; 		//弹幕富媒体id，richIdType为0时：弹幕气泡ID; 为1时：应援明星配置id；为2时：角色弹幕id
+        4 optional int    dwLiveWatchBack;  //直播回看标志
+		5 optional STStarInfo stStarInfo;	//明星数据
+        6 optional DMVCInfo stVCInfo;       //跟影视圈同步有关的拓展数据
+		7 optional string strColorInfoJson; //单个彩色弹幕信息Json，注意：这里Json要带position和colorConfigId
+		8 optional int richIdType;   //富媒体ID类型， 取值0：strRichId内容为弹幕气泡ID; 1：strRichId内容为应援明星配置id。2：strRichId内容为角色弹幕id
+		9 optional int userVipDegree; //发表弹幕用户的VIP级别
+    };
+
+    struct DMPostCommentResponse
+    {  
+    	0 require int errCode;				//业务错误码
+        1 require DMComment stComment;		//发表的消息体
+    }; 
+    
+    //弹幕赞动作
+	//cmd:0xe8aa
+    struct DMLikeRequest
+    {
+        0 require string DMContentKey;			//弹幕相关的业务key
+        1 require long ddwCommentId;			// 弹幕消息id
+    };
+    
+    struct DMLikeResponse
+    {
+    	0 require int errCode;			//业务错误码
+        1 require DMComment stComment;	//发表的消息体
+    };
+	
+	struct StarSupportInfo
+	{
+		0 require string dataKey;     // 明星应援活动Key
+		1 optional long startTime;    // 明星应援活动开始时间，单位为秒
+		2 optional long endTime;      // 明星应援活动结束时间，单位为秒
+	};
+    
+    //请求弹幕的消息列表
+	//cmd(点播):0xe8a8,(直播)0xe8fd
+    struct DMCommentListRequest
+    {
+    	0 require string DMContentKey;	//弹幕相关的业务key，由服务器下发，客户端原封不动透传即可；
+    	1 require long dwStartTime;		//1）点播场景下，为当前视频播放的时间点；2）直播场景下，服务器上一次请求返回的时间戳，第一次请求请填写1,int型将来会不够表达时间戳的长度，建议改成long
+
+		//是否首次拉取，需要返回特殊弹幕，0否，1是,如果需要返回特殊弹幕，那么回包中第一条就是
+		2 optional int dwFirstReq;     
+		3 optional int dwDMRowOfNormal;	//普通弹幕轨道数
+		4 optional int dwDWRowOfSpacer; //间隙弹幕轨道数
+		5 optional string strSessionKey;//用来保证直播运营消息必现，首次调用时传空，其他情况下将svr上次回包对应字段填充即可
+        6 optional int dwVersion ;      // 版本号，0x72表示企鹅直播
+		7 optional int dwStyle;         // 0横屏弹幕，1竖屏弹幕(491)
+        8 optional int dwLiveWatchBack; // 直播回看标志
+    };
+   struct DMEmojiAnimateInfo
+	{
+		0 require string emojiAnimateId;//表情包特效Lottie地址
+		1 require string emojiLottieUrl;//表情包特效Lottie地址
+		2 optional long emojiTimeStamp;//表情包动画时间，当前播放器播放进度时间（单位为秒）
+		3 optional long emojiIntervalTime;//表情包动画频控间隔时间（单位为秒）
+	};
+    
+    struct DMCommentListResponse
+    {
+    	0 require int errCode;						//业务错误码
+    	1 require int dwNextTimeDur;				//下次请求时间间隔,点播用到的字段
+    	2 optional vector<DMComment> commentList;	//返回的消息列表
+		3 optional long ddwLastStamp;    //直播需要该字段,点播不需要关心该字段；下一次请求填充的时间戳，用于填写dwStartTime参数；
+		4 optional int dwLoopInterval;   //直播需要该字段，下一次的轮询的时间间隔;点播无需关心
+		5 optional int bContinued;         //app是否可以继续拉取直播弹幕，0表示可以继续，1表示停止隐藏开关，2表示停止关闭开关,该字段暂未启用
+		6 optional string strSessionKey; // 保证直播运营消息必现字段，app无需关系具体含义
+		7 optional StarSupportInfo starSupportInfo;  //明星应援直播弹幕需要该字段，明星应援活动信息
+		8 optional vector<DMEmojiAnimateInfo> emojiAnimateList;  //表情特效列表
+	};
+    
+    //弹幕获取用户的开关信息
+	//cmd:0xe8ab
+    struct DMGetUserCfgRequest
+    {
+    	0 require string DMContentKey;
+    	1 require int optionType;		//操作类型 0 表示查询，1 表示设置
+    	2 require int userStaus;		//用户当前的弹幕状态  1 表示开启， 0 表示关闭
+    };
+    
+    struct DMGetUserCfgResponse
+    {
+    	0 require int errCode;
+		1 optional short wUserStaus;//该视频弹幕对单个uin的开启状态，1表示开启，0表示关闭，用户级别的行为
+		2 optional int dwPresentArea;    //展示范围，取值10-80，默认40
+		3 optional int dwFontSize;   //字号，取值24-72，默认36
+		4 optional int dwSpeed;         //速度，取值4-12，默认8
+		5 optional int dwAlpha; // 不透明度，取值10-100，默认100
+	};
+
+
+	//为app新增一条协议，批量换取targetid
+	//0xe927
+	struct DMRegistExtData
+	{
+		0 optional string strCid;
+		1 optional string strLid;
+	};
+
+	struct DMRegistTargetIdMoreRequest
+	{
+		0 require int wRegistType;//注册类型，1代表直播，2代表点播
+		1 require vector<string> vecIdList;//要拉取的id列表
+        2 optional int wSpeSource ; // Special source, 1 for whyme, 0 for other
+        3 optional map<string,DMRegistExtData> mapExtData; //key为vid
+        4 optional int bIsGetUserCfg ;// 是否获取用户配置信息
+	};
+
+	//cdnUrl里包含vid和mask版本号信息，再加上帧率和分片时间点，可以下载到Mask数据文件，示例如下：<cdnUrl>/8/0；表示为帧率8情况下的0秒的数据
+	//cdnUrl取到的Mask数据文件为Json格式，示例如下：
+	//{
+	//	"version": 1,
+	//	"picFormat": "png",
+	//	"frameNumber": 8,
+	//	"startTime":0,
+	//	"duration":10,
+	//	"timeArray": [
+	//		{
+	//			"time": 0,
+	//			"frameArray": [
+	//				{
+	//					"dataSize": 100,
+	//					"picData": "Base64Data"
+	//				},
+	//				{
+	//					"dataSize": 0,
+	//					"picData": ""
+	//				},
+	//				{
+	//					"dataSize": 150,
+	//					"picData": "Base64Data"
+	//				}
+	//			]
+	//		},
+	//		{
+	//			"time": 1,
+	//			"frameArray": [
+	//				{
+	//					"dataSize": 160,
+	//					"picData": "Base64Data"
+	//				},
+	//				{
+	//					"dataSize": 0,
+	//					"picData": ""
+	//				},
+	//				{
+	//					"dataSize": 180,
+	//					"picData": "Base64Data"
+	//				}
+	//			]
+	//		}
+	//	]
+	//}
+    struct DMAntiBlockingInfo 
+    {
+        0 require bool isSupportAntiBlocking = false;  //是否支持弹幕防遮挡功能
+        1 require string cdnUrl;               //拉取mask图片的cdn地址
+        2 require vector<int> frameRateList;   //支持的帧率列表
+        3 optional bool defaultState = false;          //默认开启/不开启
+		4 optional int sliceDuration;          //分片时长，单位为秒
+    };
+
+	struct DMRegistResultInfo
+	{
+		0 optional string strDanMuKey;
+		1 optional int wOpened;//该视频是否有弹幕模块，1表示有，0和2表示没有
+		2 optional int wDisplay;//该视频的弹幕模块默认状态，1表示默认打开，其他值表示默认关闭
+		3 optional int iIsBubbleFlg;//该视频是否有弹幕气泡 1==>有 0==>无
+		4 optional DMAntiBlockingInfo antiBlockingInfo;  //弹幕防遮挡信息
+	};
+
+	struct DMRegistTargetIdMoreResponse
+	{
+		0 require int errCode;//0表示成功，非零表示失败
+		1 optional map<string,DMRegistResultInfo> stMap;
+		2 optional short wUserStaus;//该视频弹幕对单个uin的开启状态，1表示开启，0表示关闭，用户级别的行为
+		3 optional int dwPresentArea;    //展示范围，取值10-80，默认40
+		4 optional int dwFontSize;   //字号，取值24-72，默认36
+		5 optional int dwSpeed;         //速度，取值4-12，默认8
+		6 optional int dwAlpha; // 不透明度，取值10-100，默认100
+	};
+
+
+	//提供pid/vid批量换取弹幕总数的协议(暂时只提供vid查询弹幕数的接口)
+	//目前一次最多只支持10个，多余的会丢弃
+	//0xead0
+	struct DMGetPubTotalRequest
+	{
+		0 require int dwType;//1表示pid，2表示vid
+		1 require vector<string> vecIdList;//待查询的idlist
+	};
+
+	//建议调用者在使用回包时不要关注errCode字段
+	//而是去map中查找(调用find函数)映射关系就行,协议只会尽最大可能将发表计数换取回来
+	struct DMGetPubTotalResponse
+	{
+		0 require int errCode;//0成功，非零有问题
+		1 optional map<string,long> pubTotalMap;//id对发表弹幕总数的映射
+	};
+
+	//0xec92 请求弹幕气泡，彩蛋，彩色弹幕信息的协议
+	struct StGetRichDataRequest
+	{
+		0 require  string strDanMuKey; // 调用注册弹幕时接口返回的，请求方原样透传回来即可
+		1 optional int userVipDegree; //发表弹幕用户的VIP级别
+	};
+
+	struct StRichData
+	{
+		0 require   string strRichId; 	 // 弹幕富媒体id
+		1 optional  int    iRichType; 	 // 1==>弹幕气泡,
+		2 optional  string strRichName;  // 弹幕富媒体名称
+		3 optional  string strUrlIcon;   // 资源图标url
+		4 optional  string strUrlBg;   // 资源背景url
+		5 optional  int    iPayType;  	 // 付费类型 1==>免费 2==>付费
+		6 optional  int    iIsGlobal;  	 // 是否全局生效 1==>非全局生效 2==>全局生效
+		7 optional  string strUrlHead;   // 弹幕气泡人物头像
+		8 optional  string strColor;     // 弹幕气泡发表框颜色
+		9 optional  int    iIsDefault;   // 是否是默认选中 1==>默认选中
+	};
+	
+	// 单个彩色弹幕信息和H5打通，采用Json格式，举例如下：
+	// {
+	//    "color":"ffffff",
+	//    "gradient_colors":["ffffff", "888888"],
+	//    "position":1,                            // 移动端app position默认值填1
+	//    "colorConfigId":"xxx",
+	//    "lowVipDegree":3,
+	//    "animationElementUrl":"http://connorlu.vip:3000/img/LV7/lv7_love.png"   //动画元素的url。有动画元素，就有动画。
+	// }
+	struct DMColorConfig
+	{
+		0 require   string strColorConfigId; 	// 彩色弹幕id
+		1 optional  string strTitle; 	        // 彩色弹幕标题，比如：盛世美颜
+		2 optional  string strColorInfoJson;    // 单个彩色弹幕信息Json，注意：后台配置不带position
+		3 optional  int    lowVipDegree;        //颜色弹幕最低VIP等级要求。取值0表示为免费头像
+		4 optional  string lowVipDegreePic;    // 颜色弹幕最低VIP等级要求角标图片。
+		5 optional  string lottieUrl;           //lottie动画（LV7的弹幕需要有特殊的光影和粒子特效）
+		6 optional  string dialogImageUrl;      // 鉴权弹窗背景图
+		7 optional  string defaultTips;      	// 彩色弹幕默认提示语
+	};
+	
+	struct DMEasterEgg
+	{
+		0 require   string strEggId;           // 弹幕彩蛋id	 
+		1 optional  string strEggUrl; 	       // 弹幕彩蛋Lottie资源的URL
+		2 optional  vector<string> vecEggKey;  // 弹幕彩蛋匹配关键字列表
+		3 optional  long   minInterval = 3000; // 当前弹幕彩蛋频率控制最短时间间隔，单位为毫秒。默认值3秒
+		4 optional  int    maxExposureTime = 1; // 当前弹幕彩蛋最大曝光次数，默认值1次
+	};
+	
+	struct StarSupportDMInfo
+	{
+		0 require string supportConfigId;    //应援明星配置id，对应一场应援活动的一个明星，细粒度比supportStarId更小
+		1 require string supportStarId;      //应援明星id，对应单个明星
+		2 optional string strTitle;         //明星应援项文本，用于展示在网格列表中
+		3 optional string starSupportHeaderText;  //明星应援弹幕的固定头部文本
+		4 optional string strColorInfoJson;       //明星应援弹幕的渐变色，也可以是纯色;格式与变色弹幕的json格式相同;
+	};
+	
+	struct StarSupportConfig
+	{
+		0 require string dataKey;  // 明星应援活动Key
+		1 optional vector<StarSupportDMInfo> starSupportDMInfo;   // 明星应援弹幕配置列表
+	};
+	
+	struct RoleDMConfigItem
+	{
+		0 require string roleConfigId;   // 角色弹幕id
+		1 require string strHeadUrl;  // 角色弹幕头像Url
+		2 require string strSelectedHeadUrl;  // 角色弹幕选中后头像Url，选中后的图片根据VIP级别一共有8张，需要后台根据用户VIP等级，选择不同的图片下发
+		3 optional string strName;  // 角色弹幕名字
+		4 optional int lowVipDegree;  // 角色弹幕最低VIP等级要求。取值0表示为免费头像
+		5 optional string lowVipDegreePic;  // 角色弹幕最低VIP等级要求角标图片。
+		6 optional string strHint;        // 角色弹幕被选中时的引导语
+		7 optional int type;		//0-通用挂件 1-角色挂件 大于等于2-其他挂件
+	};
+	
+	struct RoleDMConfig
+	{
+		0 require vector<RoleDMConfigItem> roleDMConfigList;   // 角色弹幕配置列表
+		1 require string strTitle;  // 角色扮演列表标题
+		2 optional Action openVipAction;  //引导开通VIP的跳转
+		3 optional string openVipTips;  //引导开通VIP的文案
+		4 optional CommonDialogInfo vipDialogInfo; //引导开通VIP弹框信息
+	};
+	
+	struct DMEmojiInfo
+	{
+		0 require string emojiCode;//表情包编码
+		1 require string emojiUrl;//表情包对应的url地址		
+		2 optional int lowVipDegree; //表情最低VIP等级要求。取值0表示为免费表情
+		3 optional string lowVipDegreePic;  // 表情弹幕最低VIP等级要求角标图片。
+	};
+	
+	struct DMEmojiConfig
+	{
+		0 require vector<DMEmojiInfo> vecEmojiInfo; //表情包列表信息
+		1 optional int normalEmojiMaxCount = 3;  //非vip用户表情包最大个数
+		2 optional int vipEmojiMaxCount = 5;  //vip用户表情包最大个数
+	};
+
+	//请求所有表情包
+	//0xfa5e
+	struct CacheDMEmojiRequest
+	{
+		0 require string   dataVersion;          // 请求自定义表情版本号
+	};
+
+	struct CacheDMEmojiResponse
+	{
+		0 require  int     errCode;				  	// 0==>成功
+		1 optional string   dataVersion;          			// 请求自定义表情版本号
+		2 optional vector<DMEmojiInfo> vecAutoEmojiUpdateData; 	// 更新表情列表
+	};
+	struct StGetRichDataResponse
+	{
+		0 require  int     errCode;					 // 0==>成功
+		1 require  string  strDanMuKey;				 // 请求的danmukey
+		2 require  vector<StRichData> vecStRichData; // 富媒体信息列表
+		3 optional vector<DMColorConfig> vecColorDMConfig;   // 变色弹幕配置列表
+		4 optional vector<DMEasterEgg> vecDMEasterEgg;       // 弹幕彩蛋配置列表
+		5 optional vector<StarSupportConfig> vecStarSupportConfig; // 明星应援弹幕活动配置列表
+		6 optional RoleDMConfig roleDMConfig;   //角色弹幕配置信息
+		7 optional DMEmojiConfig emojiConfig;   // 表情弹幕配置信息
+		8 optional Action openVipAction;  		// 引导开通VIP的跳转
+		9 optional string openVipTips;  		// 引导开通VIP的文案
+	};
+
+	//弹幕举报
+	//0xf717
+	struct DMReportRequest
+	{
+		0 optional long   ddwCommentId;          // 弹幕消息id, 全局唯一
+		1 optional long   ddwTargetId;           // 视频/直播流 通过评论注册接口返回的主贴id
+		2 optional string description;           //用户输入的描述
+		3 optional string seq;                   //sequence，防止终端重复提交
+		4 optional int type;                     //举报类型  (1024--广告，8--谩骂，1--淫秽，32--地域攻击，0--其他)，弹幕举报暂时填0
+	};
+
+	struct DMReportResponse
+	{
+		0 require int errCode;    //0表示发表成功，其他表示失败；
+	};
+	
+	struct StarPopularInfo
+	{
+		0 require string supportConfigId;      //应援明星配置id
+		1 require string supportStarId;      //应援明星id
+		2 optional string starName;  //明星名字
+		3 optional string starNameColor;  //明星名字颜色，取值举例：FF0000
+		4 optional string starHeaderUrl;   // 明星头像Url
+		5 optional long popularValue;     // 明星人气值
+		6 optional string popularValueTail; // 明星人气值后缀，需要拼接显示。目前已知的取值是：人气
+	};
+	
+	struct MostPopularInfo
+	{
+		0 require long popularValue;   // 人气王的人气值，不带“人气”后缀
+		1 require string mostPopularLottieUrl; //人气王的Lottie动画Url
+		2 optional string popularValueColor;  //人气值的颜色，取值举例：FF0000
+		3 optional int popularValueLeft;  //人气值的左边距（基于Lottie中线），单位为DP
+		4 optional int popularValueTop;   // 人气值的上边距（基于Lottie上边界），单位为DP
+		5 optional int popularValueSize;  // 人气值的文本Size，单位为DP
+	};
+	
+	
+	//明星应援弹幕人气榜协议
+	//0xf892
+	struct StarPopularRankRequest
+	{
+		0 require string dataKey;  // 明星应援活动Key
+	};
+
+	struct StarPopularRankResponse
+	{
+		0 require int errCode;    // 0==>成功
+		1 optional vector<StarPopularInfo> starPopularInfoList;   // 明星人气排行榜列表, 列表排名即为人气榜排名。
+		2 optional int state;  //0未开始，1进行中，2活动结束
+		3 optional MostPopularInfo mostPopularInfo; //人气王界面的UI信息，state==2活动结束时，必须有值
+		4 optional int rankRefreshInterval = 5000;      // 明星人气排行榜轮询时间间隔，取值单位为毫秒
+	};
+};

@@ -1,0 +1,102 @@
+#include "qqvideo_common.jce"
+#include "qqvideo_user_info.jce"
+module jce
+{
+	
+	// 问答帖发表请求
+	struct PubQAMsgRequest
+	{
+		0  require string dataKey;								//请求key
+		1  optional int cfrom = 0;								//来源字段，0未定义 1视频详情页评论 2分享面板(包括小窗和全屏) 3录制面板(包括截图和小视频) 4饭团粉丝留言(包括饭团和V+) 5话题详情页 6电影打分 7管理台发表(后台内部枚举值占位) 8用于doki广场 9用于h5祝福卡片 10给豆瓣抓取使用 11自拍原创视频 15明星说TAB
+																// 16:问答发表(不走帖子的发表，只是统一分配一个场景)
+		2  optional string seq; 								//sequence，防止终端重复提交
+		3  optional string qaTitle; 								//问题
+		4  optional string qaContent; 							//问题描述
+		5  optional vector<CircleUploadImageUrl> imageList;	//图片；
+		6  optional vector<ActorInfo> actorInfoList;	 // doki广场增加关联多个doki
+		7  optional STStarInfo userStarInfo;                    //指定发表用户明星属性，optional的，用于写索引、屏蔽用户(明星)的真实资料；
+		8  optional byte status;						//该feed是否已经删除:0 正常  2 审核不通过 3 删除
+	};
+
+	// 问答帖发表回包
+	struct PubQAMsgResponse
+	{
+		0 require int errCode; 									//0表示发表成功，其他表示失败；
+		1 optional string errMsg;                       		//发表失败的原因描述，比如被禁言
+		2 optional string sucMsg;                       		//发表成功提示
+		3 optional QAPrimaryFeed qaPrimaryFeed;                 //问题主体
+	};
+	
+	// 问答帖详情页请求
+	struct QAFeedDetailRequest
+	{
+		0  require string dataKey;				//请求key
+		1  optional string pageContext;			// 翻页信息
+	};
+	
+	// 问答帖详情页请求回包
+	struct QAFeedDetailResponse
+	{
+		0  require int errCode;						//0表示发表成功，其他表示失败；
+		1  require QAPrimaryFeed qaPrimaryFeed;     //问题主体
+		2  optional vector<TempletLine>	uiData;	    // 问题下回答帖子
+		3  optional string postDataKey;             // 回答发表key
+		4  optional string pageContext;             // 翻页信息
+		5  optional bool hasNextPage = false;               // 是否有下一页
+	};
+	
+	//举报
+	struct QAFeedReportRequest
+	{
+		0  optional string dataKey;                            //请求key
+		1  optional string seq; 		                        //sequence，防止终端重复提交
+		2  optional int reportType; 		                    //举报的类型（备用）
+		3  optional string  description; 						//用户输入的描述（备用）
+	};
+
+	struct QAFeedReportResponse
+	{
+		0 require int errCode; 			//0表示发表成功，其他表示失败；
+	};
+
+	//消息删除请求
+	struct QAFeedDeleteRequest
+	{
+		0 optional string dataKey;         //请求key
+		1 optional string seq; 		    	//sequence，防止终端重复提交
+	};
+
+	struct QAFeedDeleteResponse
+	{
+		0 require int errCode; 			//0表示发表成功，其他表示失败；
+	};
+	
+	// 回答提问前的状态查询请求
+	struct CheckPublishStatusRequest
+	{
+		0 optional string dataKey;      //请求key
+	};
+
+	struct CheckPublishStatusResponse
+	{
+		0 require int errCode; 			//0表示发表成功，其他表示失败；
+		1 require int statusMask;       // 状态掩码，0：可以正常发表；1：需要考试
+		2 optional Action action;       // 状态非0时的跳转action
+	};
+	
+	// 发表提问SmartBox请求
+	struct PubQASmartBoxRequest
+	{
+		0  require string keyWord;				// 搜索词
+		1  optional string pageContext;			// 翻页信息
+	};
+	
+	// 发表提问SmartBox请求回包
+	struct PubQASmartBoxResponse
+	{
+		0  require int errCode;						//错误码
+		1  optional vector<TextAction> itemList;	    // 联想列表
+		2  optional string pageContext;             // 翻页信息
+		3  optional bool hasNextPage = false;               // 是否有下一页
+	};
+};

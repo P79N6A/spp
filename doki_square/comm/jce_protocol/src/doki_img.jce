@@ -1,0 +1,92 @@
+module DokiImg
+{
+	//测试环境 847873:327680
+	//正式环境 977601:131072
+	enum CMD
+	{
+		CMD_DOKI_IMG_INFO = 0xf81b,//单图信息查询命令字
+		CMD_DOKI_FEED_IMG_INFO = 0xf81c,//按feed查询图片信息命令字
+		CMD_DOKI_FEED_IMG_INFO_PUSH = 0xf81d//按feed推送图片信息中转命令字
+	};
+
+    enum TagType
+    {
+        TAG_TYPE_DOKI = 1,//发表在doki下
+        TAG_TYPE_VID = 2,//feed关联vid
+        TAG_TYPE_CID = 3,//feed关联cid
+        TAG_TYPE_LID = 4,//feed关联lid
+    };
+
+    enum BitInfo
+    {
+        BIT_MAP_SIMILAR = 0x1,//相似度信息
+        BIT_MAP_FACE = 0x2,//图片人脸识别信息
+        BIT_MAP_PIC_SCORE = 0x4,//图片分数信息
+        BIT_MAP_ALL = 0x7
+    };
+
+    struct TagInfo
+    {
+        0 optional TagType type;//标签类型
+        1 optional string tag;//标签id
+    };
+	
+	struct FeedUrl//图片相似的帖子信息
+	{
+		0 optional long feedid;//相似图片属于的feedid
+		1 optional long pubtime;//相似feedid的发表时间
+		2 optional int picNum;//相似帖子的总图片数
+	};
+	
+    struct TagSimilarUrl
+    {
+        0 optional TagInfo tagInfo;//标签信息
+        1 optional vector<FeedUrl> feedSimilarUrl;//图片相似的feed信息
+    };
+
+    struct DokiImgInfo
+    {
+		0 optional string url;//图片url
+		1 optional string finger;//图片指纹
+        2 optional vector<TagSimilarUrl> similarUrl;//各tag下对应的相似图判重信息-bitmpa&BIT_MAP_SIMILAR
+        3 optional vector<TagInfo> faceSucc;//相关的tag列表-bitmpa&BIT_MAP_FACE
+        4 optional vector<TagInfo> faceFail;//无关的tag列表-bitmpa&BIT_MAP_FACE
+		5 optional vector<TagInfo> faceNotSupport;//不支持检测的tag列表-bitmpa&BIT_MAP_FACE
+        6 optional int clarityScore;//清晰度分数-bitmpa&BIT_MAP_PIC_SCORE
+        7 optional int width;//图片宽度-bitmpa&BIT_MAP_PIC_SCORE
+        8 optional int height;//图片高度-bitmpa&BIT_MAP_PIC_SCORE
+    };
+	
+	struct DokiFeedImgInfoReq
+	{
+		0 optional long feedid;//doki feedid
+        1 optional int bitmap;//信息bitmap
+	};
+	
+    struct DokiFeedImgInfoRsp
+	{
+		0 optional int retcode;//返回码
+        1 optional int bitmap;//信息bitmap
+        2 optional vector<DokiImgInfo> imgInfo;//图片信息列表，和feed的图片张数相同
+	};
+	
+    struct DokiImgInfoReq
+	{
+		0 optional string imgUrl;//图片url
+        1 optional int bitmap;//信息bitmap
+	};
+
+    struct DokiImgInfoRsp
+    {
+		0 optional int retcode;//返回码
+        1 optional int bitmap;//信息bitmap
+        2 optional DokiImgInfo imgInfo;//图片信息
+    };
+	
+    struct DokiFeedImgInfoPush
+    {
+        0 optional long feedid;//feedid
+        1 optional int bitmap;//信息bitmap
+        2 optional vector<DokiImgInfo> imgInfo;//图片信息列表，和feed的图片张数相同
+    };
+};

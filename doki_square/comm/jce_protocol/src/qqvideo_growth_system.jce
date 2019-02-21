@@ -1,0 +1,67 @@
+/*
+* 成长体系相关协议
+*/
+
+#include "qqvideo_common.jce"
+
+module jce
+{   
+
+    //成长体系提示信息封装结构
+    struct TaskTipsInfo
+    {
+        0 require int uiType;                               // 1:Push Toast 2:浮层H5 3:vip push toast
+        1 optional string title;                             //主标题
+        2 optional string subTitle;                         //副标题
+        3 optional string leftIconImgUrl;                   //小图标
+        4 optional string bgImgUrl;                         //背景图
+        5 optional string h5Url;                            //浮层H5的url
+        6 optional Action action;                           //整体跳转
+        7 optional string reportKey;                        //曝光上报Key
+        8 optional string reportParams;                     //曝光上报Params
+		9 optional ActionBarInfo rightButton;				//右侧按钮
+        10 optional int leftIconPosition;                   //左侧图片位置 （0: 居中  1: 底部对齐）
+    };
+
+    //整体任务完成情况
+    struct GrowthSystemTasksCompletedInfo
+    {
+        0 optional int totalTaskNum;            //整体任务个数
+        1 optional int finishTaskNum;           //完成的任务个数
+        2 optional Action action;               //整体任务列表跳转
+		3 optional vector<int> finishTaskTypes; //完成的任务类型列表，比如完成了Doki的5次点赞和评论，里面就包含201，202
+    };
+
+	
+	//任务奖励信息集合
+	struct GrowthSystemRewardInfo
+	{
+		0 optional int rewardType;           //奖励类型 1:Doki心跳 2:Doki粉丝值
+		1 optional string rewardInonUrl;     //奖励的图标Url
+		2 optional int totalRewardNum;       //该项奖励的累积数目
+		3 optional int singleRewardNum;      //单次任务该项奖励的数目
+		4 optional Action rewardAction;      //该项奖励的整体跳转
+	};
+
+	//做任务后上报并请求提示
+    struct GrowthSystemTaskRequest
+    {
+        0 require int taskType;                     //任务类型
+        1 optional map<string, string> extraData;     //后台用的信息
+        2 optional int systemType;                  //体系类型 1:Doki 2:VIP 3:V币
+        3 optional int degreeLevel;                 //当前等级
+        4 optional string exHttpData;               //兼容pc/web的http接入：格式： fantuanid=10223&feedId=1111&readTime=111
+    };
+
+    struct GrowthSystemTaskResponse
+    {
+        0 require int errorCode;
+        1 optional int taskType;                                        //任务类型
+        2 optional int systemType;                                      //体系类型 1:Doki 2:VIP 3:V币
+        3 optional TaskTipsInfo tipsInfo;                               //提示信息
+        4 optional DegreeLabel degreeLabel;                             //成长等级信息
+		5 optional bool isCurTaskFinished = false;						//当前任务是否完成
+        6 optional GrowthSystemTasksCompletedInfo tasksCompletedInfo;   //整体任务完成情况
+        7 optional vector<GrowthSystemRewardInfo> rewardInfo;           //奖励信息
+    };
+};

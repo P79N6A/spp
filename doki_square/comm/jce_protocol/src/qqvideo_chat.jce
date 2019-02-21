@@ -1,0 +1,219 @@
+#include "qqvideo_common.jce"
+
+module jce
+{
+	struct ChatSessionExtraInfo
+	{
+		0 optional Action action;						// 会话跳转信息
+		1 optional int level;  							// 用户等级
+		2 optional string markUrl;                      // 角标，优先级大于level用户等级，优先展示
+	};
+	struct ChatSessionInfo
+	{
+		0 require string sessionId;		//会话的id
+		1 require int sessionType;		//会话的类型  1 单聊； 2 群聊 3 DOKI运营号互动  4 折叠会话
+		2 optional string headerUrl;	//头像url
+		3 optional string sessionName;	//会话的名称
+		4 optional long timestamp; 		//会话最后de时间戳 毫秒
+		5 optional bool muted=false;          //是否静音（免打扰）
+		6 optional bool inBlackList=false;		//是不是在黑名单
+		7 optional int functionMask;			//部分功能掩码，第一位表示拉黑(默认不关闭0)，第二位表示举报(默认不关闭0)
+		8 optional ChatSessionExtraInfo extraInfo;		//扩展信息
+		9 optional string parentId;      //该会话的父亲会话id,用来聚合会话
+	};
+	
+	//获取会话信息请求
+	struct GetChatSessionInfoRequest
+	{
+		0 require string sessionId;		//会话的id
+		1 require int sessionType;		//会话的类型  1 单聊； 2 群聊 3 DOKI运营号互动
+	};
+
+	struct GetChatSessionInfoResponse
+	{
+		0 require int errCode;
+        1 require ChatSessionInfo sessionInfo;		//会话信息
+	};
+	
+	struct ChatOperateItem {
+		0 require int operateType;       // 操作类型
+		1 require int optValue;			 // 操作值
+	};
+
+	struct ChatUserInfo {
+		0 require vector<ChatOperateItem> userOperates;        //用户设置信息
+	};
+	//获取会话列表请求
+	struct GetChatSessionListRequest
+	{
+		0 require string pageContext;				//上下文环境，首次请求为空
+	};
+
+	struct GetChatSessionListResponse
+	{
+		0 require int errCode;
+        1 require vector<ChatSessionInfo> sessionList;		//会话列表
+        2 require bool hasNext=false;						//是否有下一页
+        3 require string pageContext;						//上下文环境
+        4 optional ChatUserInfo userInfo;                   //当前用户信息
+	};
+	
+	//文本消息
+    struct ChatTextMessage
+    {
+        0 require string textContent;	//消息文本
+	};
+
+    //图片消息
+    struct ChatImageMessage
+    {
+        0 require string picUrl;		//图片下载地址
+		1 require int width;			//图片的宽度
+		2 require int height;			//图片的高度
+		3 optional string thumbUrl;		//图片缩略图的下载地址
+		4 optional string desc;			//图片描述
+		5 optional int style;			//图片样式 0：普通样式 1：卡片样式
+	};
+
+	//语音消息
+	struct ChatVoiceMessage
+	{
+		0 require ApolloVoiceData voiceData;
+	};
+
+	//视频消息
+	struct ChatVideoMessage
+	{
+		0 require string vid;
+		1 require ChatImageMessage imageData;	//背景图片
+	};
+
+	//通知消息(成就消息)
+	struct ChatNoticeMessage
+	{
+		0 require string text;
+	};
+
+	struct ChatReplyItem
+	{
+		0 require string text;			//回复内容
+		1 require string dataKey;
+	};
+
+	struct ChatReplyData
+	{
+		0 require vector<ChatReplyItem> replyList;
+		1 optional string context;
+	};
+    //消息结构
+    struct ChatMessageData
+    {
+		0 require string msgId;			//消息id
+        1 require int type;				//消息类型  1:ChatTextMessage 2:ChatImageMessage 3:ChatVoiceMessage 4:ChatVideoMessage 5:ChatNoticeMessage
+        2 require vector<byte> data;	//消息数据   1:ChatTextMessage 2:ChatImageMessage 3:ChatVoiceMessage  4:ChatVideoMessage 5:ChatNoticeMessage
+		3 require long timestamp;		//消息时间戳 毫秒
+		4 require string fromUserId;	//消息发送者vuid
+		5 optional string seqId;        //发送消息时发送方传递序号id
+		6 optional ChatReplyData replyData; //回复消息
+		7 optional vector<long> showList;   // （后台用到） 为空：回话内所有人可以看见消息；不为空：只有列表用户可以看见消息
+	};
+
+	struct ChatMessageRequestItem
+	{
+		0 require ChatSessionInfo sessionInfo;		//会话信息
+        1 require string msgId;						//客户端聊天室消息id，如果消息id为0，返回最新的消息
+		2 require long msgTime;						//消息msgId对应的ms时间戳
+        3 require int pageLocation;					//翻页方向，0：向下翻页，1：向上翻页
+        4 require string pageContext;				//上下文
+	};
+	
+	struct ChatMessageResponseItem
+	{
+		0 require ChatSessionInfo sessionInfo;		//会话信息
+        1 require vector<ChatMessageData> msgInfos;	//消息列表
+        2 require bool hasNext;						//是否有下一页
+        3 require string pageContext;				//上下文信息
+	};
+	
+	//获取聊天消息请求
+    struct GetChatMessageRequest
+    {
+        0 require vector<ChatMessageRequestItem> requestItemList;
+	};
+
+    //获取聊天室消息应答
+    struct GetChatMessageResponse
+    {
+        0 require int errCode;
+        1 require vector<ChatMessageResponseItem> responseItemList;		//消息列表
+	};
+	
+	//发送消息请求
+    struct SendChatMessageRequest
+    {
+        0 require ChatSessionInfo sessionInfo;		//会话信息
+        1 require ChatMessageData msgData;			//消息结构
+        2 optional string seqId;					//发送序号id
+    };
+
+    //发送消息应答
+    struct SendChatMessageResponse
+    {
+        0 require int errCode;
+        1 require string msgId;
+		2 require long msgTime;
+	};
+	
+	//删除会话应答
+	struct DeleteChatSessionRequest
+	{
+		0 require string sessionId;			//会话的id
+		1 require int sessionType;			//会话的类型  1 单聊； 2 群聊
+		2 require string msgId;				//会话当前最新一条消息id
+		3 optional int reqType;				//请求类型 0:删除会话  1:删除聊天记录
+	};
+
+	struct DeleteChatSessionResponse
+	{
+		0 require int errCode;
+	};
+
+    //操作会话应答
+	struct ChatSessionOperateRequest
+	{
+		0 require ChatSessionInfo sessionInfo;		//会话信息
+		1 require int operateType;					//操作类型  1:免打扰  2,拉黑   3, 举报
+		2 require int optValue;						//操作值 根据类型 0:取消免打扰\取消拉黑;    1:免打扰开启\打开拉黑;     
+	};
+
+	struct ChatSessionOperateResponse
+	{
+		0 require int errCode;
+	};
+	//获取拉黑的会话列表请求
+	struct GetBlackChatSessionListRequest
+	{
+		0 require string pageContext;				//上下文环境，首次请求为空
+	};
+
+	struct GetBlackChatSessionListResponse
+	{
+		0 require int errCode;
+        1 optional vector<ChatSessionInfo> sessionList;		//拉黑的会话列表
+        2 optional bool hasNext=false;						//是否有下一页
+        3 optional string pageContext;						//上下文环境
+	};
+	//操作用户设置
+	struct ChatUserOperateRequest
+	{
+		0 require string vuid;		                         //用户id
+		1 require vector<ChatOperateItem> operates;					//操作类型  1:是否接收陌生人消息 
+	};
+
+	struct ChatUserOperateResponse
+	{
+		0 require int errCode;
+	};
+};
+
+

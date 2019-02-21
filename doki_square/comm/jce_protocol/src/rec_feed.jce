@@ -1,0 +1,190 @@
+#include "rec_interface.jce"
+
+module MyRecFeed
+{
+    enum Cmd
+    {
+        CMD_GET_RECOMMEND = 0xf1e7,
+        CMD_GET_FEEDS_CNT = 0xf32a, 
+        CMD_RECALL_QUEUE = 0xf3d1,
+        CMD_NEW_RECALL_QUEUE = 0xf44d,
+    };
+
+	// 场景
+	enum RecSceneType
+	{
+		SCENE_NONE				= 0,
+		SCENE_FANS				= 1,					//粉丝后援会
+		SCENE_TOPIC 			= 2,					//话题
+		SCENE_DOKI				= 3,					//doki独家
+		SCENE_VIDEO				= 4,					//视频底层页
+        SCENE_STAR_CARD         = 5,                    //明星明星卡片
+	};
+	
+	// 上报用的推荐类型
+	enum ReasonType
+	{
+		REASON_NONE		 		= 0,					// 非推荐算法
+		REASON_FIRST_CATE		= 101,
+		REASON_SECOND_CATE		= 102,
+		REASON_TAG				= 103,
+		REASON_LBS				= 104,
+		REASON_TITLE			= 105,
+		REASON_USER_GROUP		= 106,
+        REASON_RECALL           = 107,                  // 基于队列召回排序
+	};
+	
+	enum TagType
+	{
+		TAG_NONE				= 0,
+		TAG_INTEREST_COMMON		= 1,					// 用户兴趣-普通
+		TAG_INTEREST_COVER		= 2,					// 用户兴趣-剧集
+		TAG_INTEREST_STAR		= 3,					// 用户兴趣-明星
+	};
+
+    enum QueueType
+    {
+        QUEUE_HOT               = 0,                    //热门队列
+        QUEUE_COLD              = 1,                    //冷启动队列
+        QUEUE_REAL              = 2,                    //实时队列
+        QUEUE_REPLY             = 3,
+    };
+	
+	// 用于上报BucketId、算法Id以及其他一些用于统计推荐质量，进行分析的数据
+	struct ReportInfo
+	{
+		0	require		string bucketId;				// 桶ID
+		1	require		string algId;					// 算法ID
+		2	optional	ReasonType reasonType;			// 推荐类型，上报用
+		3	optional	string reason;					// 上报用的显示字符串
+	};
+
+	// 推荐标签
+	struct RecTag
+	{
+		0	require		string		tagId;				// 推荐标签ID
+		1	optional	TagType		tagType;			// 推荐标签类型
+		2	optional	string		recTitle;			// 推荐标签外显文案
+	};
+
+	// 推荐实体
+	struct RecFeed
+	{
+		0	require		long		feedId;				// 推荐feedID
+		1	optional	string		tagId;				// 推荐标签
+		2	optional	TagType		tagType;			// 推荐标签类型
+		3	optional	double		recPriority;		// 推荐权重，双方约定用于在去重保留和运营数据混排时的优先级
+		4	optional	string 		debugInfo;			// 用于客户端展示的调试信息
+		5	optional	ReportInfo	recReportInfo;		// 数据上报		
+        6   optional    long        replyTime;          // 最新回复时间戳，没取到时为0
+	};
+
+	// 推荐上下文，推荐引擎根据此上下文控制推荐算法
+	struct RecContext
+	{
+		1	optional	vector<RecFeed>	recFeedList;	// 推荐实体列表，后续根据视频获取推荐内容
+		2	optional	vector<string>	vecFilterIds;	// 过滤Id列表，当用户负反馈后短时间内的过滤id列表(vid/cid/...)
+		3	optional	string		lastedTagId;		// 上次请求的最后一个标签ID
+		4	optional	TagType		lastedTagType;		// 上次请求的最后一个标签类型
+	};
+	
+	// 个性化推荐请求：根据场景、或视频拉取个性化推荐的视频列表
+	struct GetRecFeedRequest
+	{
+		0	require		string	seqNum;							// 每次请求的流水号
+		1	optional	RecSceneType	recScene;				// 推荐场景：后援会，话题，广场，底层页
+		2	optional	string	dataKey;						// 请求dataKey。后援会fansid=xxx,话题页topicid=xxx,底层页vid=xxx&cid=xxx&lid=xxx
+		3	require		RecContext recContext; 					// 推荐上下文
+		4	optional	string	pageContext;					// 翻页上下文，如果是首页，填写为空
+		5	optional	string		bucketId;					// 用于携带客户端 BucketConfig.extrData.extra,recom_bucket="XXX" 的内容
+		6	require		int		tagNum;							// 请求tag的数量
+		7	require		int		recNum;							// 每个tag推荐的items数量
+        8   optional    int     pageNum;
+        9   optional    string  sourceKey;
+	};
+
+	// 个性化推荐返回
+	struct GetRecFeedResponse
+	{
+		0	require		int		errcode;						// 接口调用返回码
+		1	optional	string	seqNum;							// 每次请求的流水号
+		2	optional	vector<RecFeed> recFeedList; 			// 返回的推荐feed列表
+		3	optional	vector<RecTag> recTagList;				// 返回的推荐标签列表
+		4	optional	string	pageContext;					// 翻页上下文，如果是首页，填写为空
+		5 	optional 	RecContext recContext;					//推荐上下文
+		6 	optional 	int 	hasNextPage;					//是否还有下页
+	};
+	
+	struct GetFeedCntRequest
+	{
+		0	optional	RecSceneType	recScene;				// 推荐场景：后援会，话题，广场，底层页
+		1	optional	string	dataKey;						// 请求dataKey。后援会fansid=xxx,话题页topicid=xxx,底层页vid=xxx&cid=xxx&lid=xxx
+	};
+
+	// 个性化推荐返回
+	struct GetFeedCntResponse
+	{
+		0	require		int		errcode;						// 接口调用返回码
+        1   optional    int     count;
+	};
+
+   	//未审核的曝光的feeds,通过中转反馈给队列系统，进行审核态修复
+	struct ReviewFeedsReq
+	{
+		0 	optional 	RecSceneType 	scene;					//场景
+		1 	optional 	string 	tagId; 							//曝光的标签
+		2 	optional 	vector<long> 	feedIds; 				//曝光的feeds列表
+	};
+	
+	struct RecallFeed
+	{
+		0 	optional 	long 	feedId;							//feed ID
+		1 	optional 	long 	pubtime;						//发表时间
+		2 	optional 	long 	pubuser;						//发表用户
+		3 	optional 	long 	score;							//队列分值
+	};
+	
+	struct RecallQueue
+	{
+		0 	optional 	long type;							//队列类型
+		1 	optional 	vector<RecallFeed>	feedList;			//feed列表
+	};
+    
+    struct QueueTypeInfo
+    {
+        0   optional    long   type;                       // 队列类型
+        1   optional    long        score;                      // 队列起始得分，score=0表示从头开始
+        2   optional    long        pageNum;                    // pageNum=0时由召回层指定队列长度
+        3   optional    long        lastFeedId;                    //上次拉到的最后一个feedID
+    };
+	
+	
+	struct RecallQueueReq
+	{
+		0 	optional 	RecSceneType	recScene;				// 推荐场景：后援会，话题，广场，底层页
+		1	optional 	string 			dataKey;				// 请求dataKey。后援会fansid=xxx,话题页topicid=xxx,底层页vid=xxx&cid=xxx&lid=xxx
+		2 	optional 	vector<QueueType> 	typeList;			// 请求的队列类型
+        3   optional    RecCommonStruct::ExpFlowInfo expFlowInfo;//流量实验数据
+	};
+	
+	struct RecallQueueRsp
+	{
+		0 	optional 	int 			errcode;				//接口调用返回码
+		1 	optional	vector<RecallQueue> queueList;			//返回的队列列表
+	};
+
+    struct NewRecallQueueReq
+	{
+		0 	optional 	RecSceneType	recScene;				// 推荐场景：后援会，话题，广场，底层页
+		1	optional 	string 			dataKey;				// 请求dataKey。后援会fansid=xxx,话题页topicid=xxx,底层页vid=xxx&cid=xxx&lid=xxx
+		2 	optional 	vector<QueueTypeInfo> 	typeInfoList;			// 请求的队列类型
+        3   optional    RecCommonStruct::ExpFlowInfo expFlowInfo;//流量实验数据
+	};
+	
+	struct NewRecallQueueRsp
+	{
+		0 	optional 	int 			errcode;				//接口调用返回码
+		1 	optional	vector<RecallQueue> queueList;			//返回的队列列表
+	};
+};
+

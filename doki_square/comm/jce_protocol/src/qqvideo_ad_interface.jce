@@ -1,0 +1,24 @@
+#include "qqvideo_ad_common.jce"
+
+module jce
+{
+    //详情页广告请求
+    struct AdDetailRequest
+    {
+        0 optional string vid;                                  //视频id
+        1 optional string cid;                                  //专辑id
+        2 optional string lid;                                  //栏目id
+        3 optional vector<string> appContext;                   //广告新鲜度控制
+        4 optional map<string,AdDetailShowSizeInfo> dataMap;    //dataKey列表，及显示元素
+        5 optional string pageContext;                          //页面上下文
+    };
+
+    struct AdDetailResponse
+    {
+        0 require int errCode;                                      //透传广告用的上下文
+        1 optional map<string, vector<AdONATempletLine> > dataMap;  //UI显示元素，每一行是一个显示元素,使用绝对位置，位置信息在 ONAView 中携带
+        2 optional vector<string> appContext;                       //广告新鲜度控制
+        3 optional string pageContext;                              //页面上下文
+        4 optional bool hasNextPage = false;                        //是否有下一页
+    };
+};

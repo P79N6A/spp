@@ -1,0 +1,208 @@
+#include "ad_promotion_comm_enum.jce"
+#include "qqvideo_common.jce"
+#include "accessory_rec.jce"
+
+//测试环境L5 328257:1835008
+//线上环境L5 879873:65536
+module AdvertisingPromotion
+{
+    struct PlayInfo
+    {
+        0 optional string strVid;               //播放的视频
+        1 optional string strCid;               //播放的专辑
+        2 optional string strLid;               //播放的栏目
+        3 optional string strTags;              //标签
+        4 optional string strCategory;          //品类
+    };
+
+    struct PlatformInfo
+    {
+        0 require string strVerName;            //app的版本名称
+        1 require string strVerId;              //app的版本号
+        2 optional int iPlatform;               //平台编号        
+        3 optional string strPlatformVer;       //平台版本信息
+    };
+
+    struct UserInfo
+    {
+        0 optional long ddwUin;
+        1 optional long lVuid;
+        2 optional string strGuid;
+        3 optional int iCellNet;                //用户手机运营商信息
+    };
+
+    struct PromotionLoc
+    {
+        0 require int iPageLocId;                   //对应大资源位id(PageLocId),1.启动页、2.频道页(所有频道页)、3.个人中心、4.详情页...
+        1 require int iModLocId;                    //对应PageModId下的模块id(不传的情况下批量拉取该页面下所有推广)
+        2 optional int iCmsChannelId;               //对应频道页下的cms频道id，如动漫、那年花开、明月之子...
+        3 optional PlayInfo stPlayInfo;             //播放页播放相关以及搜索结果页推广相关
+        4 optional string strStarId;                //明星个人页明星id
+        5 optional string strSearchKey;             //搜索页搜索关键词
+    };
+
+    struct AdValidateInfo                                                                                                                      
+    {                                                                                                                                             
+        1 require string uniqueId;                  //唯一ID，频道资源位活动中用于标识config                                                      
+        2 require int eventType;                    //活动类型：4.全屏H5
+        3 optional string businessId;               //每个（商业）活动对应的唯一Id，对应promotion后台projectId                                    
+        4 optional long frequency;                  //两次曝光的最小时间间隔，以秒为单位
+        5 optional int maxExposeCount;              //最大曝光次数
+        6 optional long startTime;                  //配置开始时间，以秒为单位                                                                    
+        7 optional long endTime;                    //配置结束时间，以秒为单位
+        8 optional string reportKey;                //上报参数
+        9 optional string reportParams;             //上报参数
+    };  
+
+    //大H5类型的素材:主要用到web端，app有自己定义的大H5结构BannerEventConfig
+    struct BannerAdType
+    {
+        1 optional AdValidateInfo validateInfo;
+        2 optional string imageUrl;
+        3 optional string url;
+        4 optional string reportParams;
+        5 optional int needLogin;                  //0.无需登录，1.需要登录
+    };
+
+    //
+    struct EnterTipAdType
+    {
+        1 optional AdValidateInfo validateInfo;
+        2 require  string itemId;   //Id
+        3 require  int    buttonType;//按钮类型，0表示预约、1表示查看详情
+        4 require  string title;     //主标题，推广的文字描述
+        5 optional string imgUrl;    //推广图片url;
+        6 optional string bgImgUrl;  //推广背景图片url;
+        7 optional jce::VideoAttentItem attentItem;//预约item;
+        8 optional string btnText; //预约按钮的标题
+        9 optional jce::Action action;    //跳转action
+        10 optional string reportKey; //曝光reportKey
+        11 optional string reportParams; //曝光reportParams
+    };
+
+    //
+    struct PlayPageAd
+    {
+        1 optional bool iCache;                                                     //数据是否可以cache
+        2 optional int iCacheTime;                                                  //建议cache时间 
+        3 optional vector<accessory_rec::AccessoryItem> accessory_item_list;
+    };
+
+    //频道页活动推广
+    struct ChannelDataPageAd
+    {
+        1 optional jce::PromotionEventInfo  promotionInfo;                          //590新增，活动资源位信息
+        2 optional bool iCache;                                                     //数据是否可以cache
+        3 optional int iCacheTime;                                                  //建议cache时间 
+        4 optional vector<EnterTipAdType>  entertipList;
+        5 optional map<int,vector<jce::IconTagText> > searchTagsMap;                   //搜索推广 key:cms_channel
+    };
+
+    //Doki页活动推广(主要广场页，不包括明星页)
+    struct DokiPageAd
+    {
+        1 optional jce::PromotionEventInfo  promotionInfo;                           //590新增，活动资源位信息
+        2 optional bool iCache;                                                      //数据是否可以cache
+        3 optional int iCacheTime;                                                   //建议cache时间 
+        4 optional vector<jce::PosterGroup> insertPosterGroup;                       //doki广场焦点图资源位
+    };
+    
+    //明星页活动推广
+    struct StarPageAd
+    {
+        1 optional jce::PromotionEventInfo  promotionInfo;                           //590新增，活动资源位信息
+        2 optional bool iCache;                                                      //数据是否可以cache
+        3 optional int iCacheTime;                                                   //建议cache时间 
+    };
+
+    //搜索页活动推广
+    struct SearchPageAd
+    {
+        1 optional jce::PromotionEventInfo  promotionInfo;                           //590新增，活动资源位信息
+        2 optional bool iCache;                                                      //数据是否可以cache
+        3 optional int iCacheTime;                                                   //建议cache时间 
+    };
+
+    //V币商城活动推广
+    struct VStorePageAd
+    {
+        1 require PromotionLoc stLocInfo;
+        2 optional bool iCache;                                                      //数据是否可以cache
+        3 optional int iCacheTime;                                                   //建议cache时间,单位秒
+        4 optional vector<BannerAdType>  vecBannerAdTasks;
+    };
+    
+    //个人中心
+    struct PersonalPageAd
+    {
+        1 optional vector<jce::DynamicItemInfo> itemList;
+    };
+
+    //序列化后的通用模版
+    struct AdTempletItem
+    {
+        0 require PromotionLoc stLocInfo;
+        1 optional string strData;                                                   //将DokiPageAd、StarPageAd、SearchPageAd、ChannelDataPageAd等结构序列化后存入strData
+        2 optional bool iCache;                                                      //数据是否可以cache
+        3 optional int iCacheTime;                                                   //建议cache时间,单位秒
+    };
+
+    enum EnumRetCode
+    {
+        Ret_Succ = 0,
+        Ret_Req_Decode_Fail = 10000,            //请求包解包失败
+        Req_Invalid_LocInfo = 10001,            //无效的资源位
+        Ret_Not_Support_Cmd = 10002,            //不支持的命令字
+        Ret_Unknow_LocInfo = 10003,             //位置信息有误
+        Ret_Handle_Exception = 10004,
+        Ret_Svr_Logic_Err = 10005,              //服务内部异常
+        Ret_Rsp_Encode_Fail = 10006,            //响应组包失败
+        Ret_Task_Num_Over_Mod_Limit = 10007,    //任务数量超过模块限制
+    };
+
+    struct CommResult
+    {
+        0 require int iRet;
+        1 optional string strErrMsg;
+    };
+
+
+    //搜索关键词结构体
+    struct SearchKeyInfo
+    {
+        0 require string strKey;              //搜索关键词
+        1 optional long lModifyTimeStamp;     //修改时间timestamp
+    };
+
+    struct AllSearchKeyInfos
+    {
+        0 optional map<string,vector<SearchKeyInfo> > mId2SearchKeys;
+    };
+
+    /*******EnumCmdQueryAdTasks:查询资源位上推广的广告,所有页面统一使用****/
+    struct QueryAdPromotionReq
+    {
+        0 require PromotionLoc stLocInfo;
+        1 optional PlatformInfo stPtInfo;    //可以放到videopacket包头
+        2 optional UserInfo stUserInfo;      //可以放到videopacket包头,包括login信息、ip信息。。。
+    };
+
+    struct QueryAdPromotionRsp
+    {
+        0 require CommResult stCommRes;
+        1 optional AdTempletItem stAdTempletItem;
+        2 optional VStorePageAd stVStorePageAd;             //v币商城因为不支持反序列化
+    };
+
+    /*******EnumCmdQuerySearchKeys:搜索查询目前已推广的所有关键词****/
+    struct QuerySearchKeysReq
+    {
+        0 require int iType;        //默认0
+    };
+
+    struct QuerySearchKeysRsp
+    {
+        0 require CommResult stCommRes;
+        1 optional vector<SearchKeyInfo> vecSearchKeys;
+    };
+};

@@ -1,0 +1,30 @@
+#include "qqvideo_common.jce"
+
+module jce
+{	
+	struct IOSSearchIndexItem
+	{
+		0 optional string thumbnail;                 // 缩略图
+		1 optional string title;                     // 主标题
+		2 optional string subTitle;                  // 副标题
+		3 optional vector<string> keywords;          // 关键字列表
+		4 optional Action action;                    // 跳转 action
+		5 optional float rating;                     // 评分 5 封顶
+		6 optional string ratingDescription;         // 评分描述 类似9.0分
+	};
+	
+	// IOS app 搜索关键字接口
+	struct IOSSearchIndexRequest
+	{
+		0 require string dataKey;                   // 数据 key ，可以为空
+		1 optional long updateTime;                 // 更新时间戳
+	};
+	
+	struct IOSSearchIndexResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 optional vector<IOSSearchIndexItem> data;	
+		2 optional bool updateFlag;                 // 是否有更新
+		3 optional long serverTime;                 // 服务器时间戳	
+	};
+};

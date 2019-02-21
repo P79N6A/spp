@@ -1,0 +1,228 @@
+#include "qqvideo_common.jce"
+
+module jce
+{
+	//拍摄时长配置和美颜参数配置协议
+	struct CaptureContextConfig
+	{
+		0 require int minRecordTime;    //最小录制时长
+		1 require int maxRecordTime;    //最大录制时长
+		2 require int maxLocalVideoSize;//本地视频最大体积
+	};
+
+	struct CaptureStrategy
+	{
+		0 require int strategyId;    //策略id
+		1 require map<string,string>  featureFactorMap;  //当前策略的特征系数组合   
+	};
+
+	struct CaptureProgram
+	{
+		0 require string programId;      //方案id，前后台需要跟版本对齐
+		1 require vector<CaptureStrategy>  strategyList;    //当前方案的策略列表
+	};
+
+	struct CaptureBeautifyConfig
+	{
+		0 require vector<CaptureProgram> programList;   //美颜方案列表
+	};
+
+	struct CaptureConfig
+	{
+		0 require CaptureContextConfig contextConfig;    //拍摄环境配置
+		1 require CaptureBeautifyConfig beautifyConfig;  //美颜功能参数配置
+	};
+
+	struct GetCaptureConfigRequest
+	{
+		0 optional int flag;        //纯占位，无意义
+	};
+
+	struct GetCaptureConfigResponse
+	{
+		0 require int errCode;                   	//错误码
+		1 require CaptureConfig captureConfig;      //拍摄配置信息
+	};
+
+	//配乐拉取协议
+	struct MediaTabInfo 
+	{          
+		0 require string title;                       //模块标题
+		1 require string dataKey;                     //模块获取数据的key
+		2 optional byte isSelected;                   //1:当前选中，0：当前未选中
+		3 optional string reportKey;                  //点击事件用来上报的内容(点击)
+		4 optional string reportParams;               //点击事件用来上报的内容(点击)
+	};
+
+	//tablist信息
+	struct MediaTabInfoListRequest
+	{
+		0 require string dateKey;        //请求dataKey
+		1 optional int type;             //请求素材类型,1是视频，2是音乐
+	};
+
+	//tablist信息请求
+	struct MediaTabInfoListResponse
+	{
+		0 require int errCode;                   	//错误码
+		1 optional vector<MediaTabInfo> tabList;   
+	};
+
+	//媒体列表页数据请求，支持筛选过滤
+	struct MediaListRequest
+	{
+		0 require string dataKey;                                //请求dataKey
+		1 optional string pageContext;                           //翻页上下文
+	};
+
+	//媒体列表数据结果返回
+	struct MediaListResponse
+	{
+		0 require int errCode;                              //业务错误码
+		1 require int uiType;                               //海报显示
+		2 require vector<MediaItem> itemList;               //Media数据列表
+		3 optional string pageContext;              		//翻页上下文
+		4 optional bool hasNextPage;                    	//是否还有下一页
+        5 optional long dataVersion;                        //数据版本号，第一页有效
+	};
+	
+	//挂件分类信息
+	struct PendantTableInfo
+    {
+        0 require string title;        //挂件分类标题
+        1 require string datakey;         //挂件的分类
+    };
+	
+	//挂件分类信息请求
+	struct PendantTableRequest
+    {
+        0 optional int flag;
+    };
+    
+	//挂件分类信息请求回包
+    struct PendantTableResponse
+    {
+        0 require int errCode;                             // 错误码
+        1 require vector<PendantTableInfo> tabList;       // table 列表
+    };
+	
+	// 每个挂件的信息
+    struct PendantDetail
+    {
+        0 require string pendantId;           // 挂件id
+        1 require string name;                  // 挂件名字
+        2 require string downloadurl;       // 挂件资源的地址
+        3 optional string imageurl;           // 缩略图地址
+        4 optional string filterId;              // 滤镜id 
+        5 optional string desc;                 // 挂件的提示文案
+        6 optional bool hasMusic;           // 是否有音乐
+        7 optional string md5;
+    };
+	
+	//挂件列表页数据请求
+    struct PendantListRequest
+    {
+        0 require string datakey;                                // 挂件的分类
+        1 optional string pageContext;                     //翻页上下文
+    };
+	
+    //挂件列表数据结果返回
+    struct PendantListResponse
+    {
+        0 require int errCode;                              //业务错误码
+        1 require vector<PendantDetail> itemList;           //挂件数据列表
+        2 optional string pageContext;                      //翻页上下文
+        3 optional bool hasNextPage;                        //是否还有下一页
+        4 optional long dataVersion;                        //数据版本号，第一页有效
+    };
+
+    //拉取滤镜分类
+    struct FilterTabItemInfo
+    {
+        0 require string title;        //滤镜分类标题
+        1 require string datakey;         //滤镜的分类
+    };
+
+    //滤镜分类信息请求
+	struct FilterTabListRequest
+    {
+        0 optional int flag;
+    };
+    
+	//滤镜分类信息请求回包
+    struct FilterTabListResponse
+    {
+        0 require int errCode;                             // 错误码
+        1 require vector<FilterTabItemInfo> tabList;       // table 列表
+    };
+
+    //拉取滤镜列表
+    // 每个滤镜的信息
+    struct FilterItemDetail
+    {
+        0 require string filterId;           // 滤镜id
+        1 require string name;                  // 滤镜名字
+        2 require string downloadurl;       // 滤镜资源的地址
+        3 optional string imageurl;           // 滤镜缩略图地址
+        4 optional string md5;
+    };
+	
+	//滤镜列表页数据请求
+    struct FilterItemListRequest
+    {
+        0 require string datakey;                           
+        1 optional string pageContext;                     //翻页上下文
+    };
+	
+    //滤镜列表数据结果返回
+    struct FilterItemListResponse
+    {
+        0 require int errCode;                              //业务错误码
+        1 require vector<FilterItemDetail> itemList;           //滤镜数据列表
+        2 optional string pageContext;                      //翻页上下文
+        3 optional bool hasNextPage;                        //是否还有下一页
+        4 optional long dataVersion;                        //数据版本号，第一页有效
+    };
+
+    struct CaptureReddotRequestItem
+    {
+    	0 require string businessName;       // 业务名称  pendant(挂件)  filter(滤镜)  bgmusic(背景音乐)
+    	1 require long dataversion;          // 该业务对应版本号
+    };
+
+    struct CaptureReddotResponseItem
+    {
+    	0 require string businessName;       // 业务名称  pendant(挂件)  filter(滤镜)  bgmusic(背景音乐)
+    	1 require bool isUpdate;          // 该业务是否有更新
+    	2 optional string updateImage;    // 更新海报图
+    };
+
+    //请求所有小红点
+    struct CaptureReddotRequest
+    {
+        0 require vector<CaptureReddotRequestItem> requestItems;
+    };
+	
+    //
+    struct CaptureReddotResponse
+    {
+        0 require int errCode;  
+        1 require vector<CaptureReddotResponseItem> responseItems;
+    };
+	// 通过经纬度和关键字搜索地址列表
+	struct GetGpsAddressRequest
+	{
+		0 require double longitude;       // 经度
+		1 require double latitude;        // 纬度
+		2 optional string keyword;      // 搜索关键字
+		3 optional string pageContext;         //翻页上下文
+	};
+	
+	struct GetGpsAddressResponse
+	{
+		0 require int errCode;                   	//错误码
+		1 require vector<GpsAddressInfo> addressInfoList;  //地址列表
+		2 optional string pageContext;              		//翻页上下文
+		3 optional bool hasNextPage;                    	//是否还有下一页
+	};	
+};

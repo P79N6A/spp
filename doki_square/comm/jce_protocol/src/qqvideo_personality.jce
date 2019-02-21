@@ -1,0 +1,115 @@
+#include "qqvideo_common.jce"
+
+module jce
+{
+	//展示某种active场景的button
+    struct ONAActiveButton
+    {
+        0 require string title;                          // 按钮文字
+        1 require string imgUrl;                         // 按钮图片
+        2 optional string dataKey;
+    };
+	
+	//用户操作行为
+    struct UserAction 
+    {
+        0 require int actionType;                        // 0-不感兴趣（不喜欢），1-关注TAG，2-关注VideoItem 饭团广场页占用类型：3-饭团
+        1 require bool isActive;                         // 激活、非激活状态的标记，根据该标志决定来显示不同的ONAActiveButton，饭团广场页不需要
+        2 require ONAActiveButton activeButton;          // 激活状态的的按钮
+        3 require ONAActiveButton inActiveButton;        // 非激活状态的的按钮，饭团广场页不用
+        4 optional VideoAttentItem videoAttentItem;      // 视频的关注时使用，tag的关注无需关注，饭团广场页不用
+        5 optional Action jumpAction;                    // 观看正片使用，饭团广场页不用
+        6 optional string type;                          // 操作来源类型：从tag来，还是从预览来（正负反馈的时候透传到后台），饭团广场页不用
+    };
+
+    //带有用户操作行为的title
+    struct ONAUserActionTitle 
+    {
+        0 require string title;                          //标题
+        1 optional string subTitle;                      //副标题
+        2 optional VideoImage image;                     //左侧头像
+        3 optional vector<UserAction> userActions;       //正负反馈操作列表
+        4 optional string reportKey;                     //上报key，后台透传
+        5 optional string reportParams;                  //上报参数，后台透传
+		6 optional Action action;                        //标题点击跳转
+        7 optional ChannelInsertItem channelInsertItem;    //非快捷区域频道插入按钮信息 
+    };
+	//带有主题样式的用户操作行为的title
+    struct ONAThemeUserActionTitle 
+    {
+        0 require ONAUserActionTitle actionTitle;     
+		1 optional string titleColor;                    //颜色
+    };
+
+    //正负反馈的请求
+    struct FeedbackActionRequest
+    {
+        0 require int actionType;                       // 0-不感兴趣（不喜欢），1-关注，2-视频关注 
+        1 optional string dataKey;                      // 不感兴趣对应的dataKey，由后台下发的UserAction.ONAActiveButton.dataKey透传
+        2 optional string type;                         // 操作来源类型：从tag来，还是从预览来
+    };
+
+    //正负反馈的响应
+    struct FeedbackActionResponse
+    {
+        0 require int errCode;
+        1 optional vector<TempletLine> uiData;           // 用来显示的数据
+    };
+
+    //视频预览信息的请求
+    struct VideoPreviewActionRequest
+    {
+        0 require Poster previewPoster;                  // 需要预览的poster
+    };
+
+    //视频预览信息的响应
+    struct VideoPreviewActionResponse
+    {
+        0 require int errCode;
+        1 optional VideoItemData videoItem;             // 预览视频vid
+        2 optional vector<UserAction> userActions;      // 一组用户行为，包含观看正片的action
+    };
+	
+    //个性化推荐二级和三级页面协议
+    struct PersonalityPageRequest
+    {
+        0 optional string type;
+        1 optional string dataKey;
+        2 optional string pageContext;
+        3 optional int hasCache;                       //1有缓存0无缓存
+        4 optional int requestScenes;                  //场景区分：1-第一次进入二级页，0-进入二级页之后的加载操作
+		5 optional string lastGroupId;                 //翻页带给后台的当前数据源中最后一个item的groupid，用于后台是否下发分割线的标志
+		6 optional string routeKey;                    //本条协议的路由字段
+    };
+	
+    struct PersonalityPageResponse
+    {
+        0 require int errCode;                        //业务错误码
+        1 optional vector<TempletLine> uiData;        //用来显示的数据	
+        2 optional string pageContext;                //翻页上下文
+        3 optional bool isHaveNextPage;               //是否还有下一页
+        5 optional string title;                      //标题
+        6 optional string subTitle;                   //副标题
+        7 optional int titleUiType;                   //标题UI类型，默认为0-只有文字；1-上图下文，上推可收起为左图右文
+        8 optional string reportParams;               //点击事件用来上报的内容(点击)
+        9 optional string reportKey;                  //点击事件用来上报的事件名称，后台下发必须以"server_"开头
+    };
+	struct FeedbackInfo
+    {
+        0 require int actionType;                       // 0-不感兴趣（不喜欢），1-关注，2-视频关注 
+        1 optional string dataKey;                      // 不感兴趣对应的dataKey，由后台下发的UserAction.ONAActiveButton.dataKey透传
+        2 optional string type;                         // 操作来源类型：从tag来，还是从预览来
+    };
+    
+    //正负反馈的请求
+    struct FeedbackActionBatchRequest
+    {
+        0 optional vector<FeedbackInfo> feedbackInfoList;
+    };
+
+    //正负反馈的响应
+    struct FeedbackActionBatchResponse
+    {
+        0 require int errCode;
+    };
+};

@@ -1,0 +1,96 @@
+/*
+观看历史相关的协议
+*/
+#include "qqvideo_common.jce"
+
+module jce
+{
+	//播放纪录
+	struct WatchRecordV1
+	{
+		0  require  string recordId;			//当前纪录的唯一编号
+		1  optional string lid;					//栏目id
+		2  optional string cid; 				//专辑id
+		3  optional string vid;                 //视频id
+		4  optional int    videoTime;           //单位秒，视频时间点，表示观看到视频的第多少秒
+		5  optional long   viewDate;            //单位毫秒，用户观看记录的时间戳，表示什么时候看的视频
+		6  optional string pid;					//直播id
+		7  optional string plid;				//直播栏目id(直播id的集合)，app目前不使用这个字段
+		8  optional string fromContext;			//来源字段，app上报，后台存储，读时回传给app
+		9  optional int    recordType;			//记录类型：0普通观看历史；1热点观看；2广告
+		10 optional int    iHD = -1;			//观看时的清晰度；-1表示使用用户设置的清晰度，其他值表示具体的清晰；app上报，后台存储，读时回传给app
+		11 optional int    playFrom;			//观看来源：1 pc; 2 web; 3 aphone; 4 ipad; 5 iphone; 8 tv
+		12 optional int    totalWatchTime; 	    //s为单位，用户实际观看的时长（不包含拖动）
+	};
+	
+	//播放数据含UI数据
+	struct WatchRecordUiData
+	{
+		0 optional WatchRecordV1 record;		//播放相关数据
+
+		//以下为UI元素
+		1 optional Poster poster;				//主要UI元素显示结构体，使用了其第一标题，第2标题,图片，还有角标信息
+		2 optional string seriesText;			//正在看的集数信息。连续剧：第N集；动画片、综艺：子集的名字；其他类型无需填值		
+		3 optional int totalTime;				//s为单位，总时长
+		4 optional int showLocation;			//1:显示在续看tab, 全部观看历史tab不需要理解这个字段
+	};
+
+	//用户播放历史纪录请求
+	struct WatchRecordListV1Request
+	{
+		0 require  long   dataVersion;			//上次server返回的版本号
+		1 optional string pageContext; 			//翻页上下文，第一页为空
+	};
+
+	struct WatchRecordListV1Response
+	{
+		0 require  int  errCode;						//业务错误码
+		1 require  long dataVersion;					//版本号，如果版本号和本地缓存的版本号相同，则不可更新本地缓存
+		2 optional string pageContext;					//翻页上下文
+		3 optional bool hasNextPage = false;			//是否有下一页
+		4 optional vector<WatchRecordV1> recordList;	//结果列表
+		5 optional bool isUpdateAll = false;            // 是否全量更新
+		6 optional long lastClearAllTimeInterval;       // 用户上次清除观看历史纪录的时间戳，单位毫秒
+		7 optional vector<WatchRecordV1> deleteList;	// 用户删除的列表
+	};
+
+	//用户播放历史纪录上传
+	struct WatchRecordUploadV1Request
+	{
+		0 require vector<WatchRecordV1> uploadList;		//请从结构中只读取需要的字段
+		1 require long dataVersion;
+	};
+
+	struct WatchRecordUploadV1Response
+	{
+		0 require  int  errCode;						//业务错误码
+		1 require  long dataVersion;
+		2 optional vector<WatchRecordV1> recordList;	//服务器将填充完毕的纪录重新返回，主要是 poster结构的字段
+	};
+
+	//删除本地的播放历史纪录
+	struct WatchRecordDeleteV1Request
+	{
+		0 require  long dataVersion;
+		1 optional vector<WatchRecordV1> recordList;			//需要删除的纪录id
+		2 optional bool isDeleteAll = false;			//是否删除所有纪录
+	};
+
+	struct WatchRecordDeleteV1Response
+	{
+		0 require int  errCode;							//业务错误码
+		1 require long dataVersion;
+	};
+
+	// 拉取观看历史海报列表
+	struct WatchRecordPostersV1Request
+	{
+		0 optional vector<WatchRecordV1> recordList;	// 需要拉取的海报列表
+	};
+
+	struct WatchRecordPostersV1Response
+	{
+		0 require  int errCode;							//业务错误码
+		1 optional vector<WatchRecordUiData> recordList;      // 全量海报数据列表
+	};
+};

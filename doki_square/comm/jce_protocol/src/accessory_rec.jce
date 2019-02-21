@@ -1,0 +1,191 @@
+// 周边推荐协议
+// songliao
+// 测试环境L5：520769:3473408
+// 正式环境L5：742529:65536
+module accessory_rec
+{
+    enum Cmd
+    {
+        CMD_SIMPLE = 0xef75,                    // 简版协议
+        CMD_DETAIL = 0xef7f,                    // 
+        CMD_WEB = 0xef81,                       // web端
+        CMD_SEARCH = 0xf0ee,                    // 搜索
+        CMD_DETAIL_ACC = 0xf20c,                // 周边推荐插件
+        CMD_DETAIL_BANNER = 0xf22e,             // banner周边推荐插件
+        CMD_GAME_REC_LIST = 0xf377,             //周边游戏推荐
+    };
+
+    enum Error
+    {
+        ERROR_SIMPLE_REQ_EMPTY = 401600,        // 简版协议请求参数为空
+        ERROR_GET_TASK_ID_EMPTY = 401601,       // 没有获取到taskid
+        ERROR_UNKNOW_CMD = 401602,              // 未知命令字
+        ERROR_WEB_REQ_EMPTY = 401603,           // web协议请求参数为空
+        ERROR_GET_TASK_DETAIL = 401604,         // taskid没有获取到合法素材
+        ERROR_GET_REC_APP = 401605,             // 从推荐拉取为空
+        ERROR_CHANNEL_ID = 401606,              // 该渠道不下发周边推荐
+        ERROR_DYNAMIC_TYPE = 401607,            // DYNMIAC TYPE
+        ERROR_DETAIL_CMD = 401608,              // DETAIL CMD
+        ERROR_OMGID_EMPTY = 401700,             // 周边游戏推荐omgid为空
+        ERROR_GAME_REC = 401701,                // 拉取推荐逻辑失败
+        ERROR_GAME_INFO = 401702,               // 拉取推荐游戏详情失败
+    };
+    
+
+    enum ItemType
+    {
+        ITEM_TYPE_GOODS = 0,                    // 商品
+        ITEM_TYPE_MUSIC = 5,                    // 音乐
+        ITEM_TYPE_NOVEL = 8,                    // 小说
+        ITEM_TYPE_APP = 9,                      // APP
+        ITEM_TYPE_GAME_APP = 10,                // 游戏APP
+        ITEM_TYPE_OPERA = 11,                   // 运营
+    };
+
+    enum Location
+    {
+        LOCATION_APP_BANNER = 1,                // 移动端播放首屏banner
+        LOCATION_APP_ACCESSORY = 2,             // 移动端周边推荐
+        LOCATION_APP_WEB_FRAME = 3,             // Web端框内头像
+        LOCATION_APP_SEARCH = 4,                // 移动端搜索位
+        LOCATION_APP_GAME_LIST = 5,             // 游戏横滑位置
+    };
+
+    struct H5Item
+    {
+        0 require ItemType type;                // H5类型
+        1 require int c_id;                     // db主键
+        2 optional string title;                // 主标题
+        3 optional string sub_title;            // 副标题
+        4 optional string action_url;           // H5跳转链接
+        5 optional string image_url;            // 图片链接
+        6 optional string reportKey;            //app上报key
+        7 optional string reportParams;         //app上报参数
+    };
+
+    // 推荐的信息
+    struct RecInfo
+    {
+        0 optional int id;                      // id
+        1 optional string alg;                  // 算法
+        2 optional string report_key;
+        3 optional string report_value;
+    };
+
+    struct AppItem
+    {
+        0 require ItemType type;                // APP类型，只可能是9和10
+        1 require int c_id;                     // db主键
+        2 optional string name;                 // APP名
+        3 optional string title;                // 主标题
+        4 optional string sub_title;            // 副标题
+        5 optional string image_url;            // 图片链接
+        6 optional string android_down_url;     // Android下载地址
+        7 optional string android_open_url;     // Android打开地址
+        8 optional bool android_has_gift;       // Android是否有礼包
+        9 optional string iphone_down_url;      // iPhone下载地址
+        10 optional string iphone_open_url;     // iPhone打开地址
+        11 optional bool iphone_has_gift;       // iPhone是否有礼包
+        12 optional string fid;                 // 爱玩唯一标识符
+        13 optional string app_id;              // 应用宝唯一标识符
+        14 optional string version_code;        // 版本号
+        15 optional RecInfo rec_info;
+        16 optional string via;
+        17 optional string blank_url;
+        18 optional string md5;                 // 下载文件的md5
+        19 optional string reportKey;            //app上报key
+        20 optional string reportParams;         //app上报参数
+    };
+
+    // 用户类型
+    enum VplusUserType
+    {
+        VUT_UNKNOW = 0,
+        VUT_VPLUS = 1,                          // v+用户
+        VUT_OM = 2,                             // om用户
+        VUT_VIDEO_USER = 3,                     // 视频用户
+    };
+
+    // web端的banner位置还需要返回v+账号信息
+    struct VplusUserItem
+    {
+        0 require string uin;                   // 用户uin
+        1 optional string nick;                 // 昵称
+        2 optional string avatar;               // 头像
+        3 optional int subscription;            // 订阅数
+        4 optional long count;                  // 当前vid的播放量
+        5 optional string euin;                 // 加密后的uin
+        6 optional bool isvpp;                  // 是否是v+账号
+        7 optional string urlfull;              // 账号主页完整跳转链接
+        8 optional string info;                 // 账号简介
+        9 optional int upload_src;              // 视频来源
+        10 optional int video_count;            // 账号视频个数
+        11 optional VplusUserType user_type;    // 用户类型
+    };
+
+    // 有且仅会下发 h5_item 和 app_item 中的某一个
+    struct AccessoryItem
+    {
+        0 require int type;                     // 1: h5, 2: app, 其他: 非法
+        1 optional Location location;
+        2 optional H5Item h5_item;
+        3 optional AppItem app_item;
+    };
+
+    // 简版的
+    struct SimpleAccessoryItem
+    {
+        0 require string item_id;
+        1 require int item_flag;                // 1: 周边推荐(carryzhao)
+        2 optional bool is_top;                 // 是否置顶
+        3 optional string title;                // 付过来自第三方，展示的标题
+    };
+
+    struct AccessoryRecRequest
+    {
+        0 require Location location;                 
+        1 optional string lid;
+        2 optional string cid;
+        3 optional string vid;                  // 当且仅当 lid 和 cid 为空时，vid才会被使用
+        4 optional int channel_id;              //频道ID
+    };
+
+    struct AccessoryRecResponse
+    {
+        0 require int err_code;
+        1 optional vector<AccessoryItem> accessory_item_list;
+    };
+
+    struct AccessoryRecSimpleRequest
+    {
+        0 require Location location;                 
+        1 optional string lid;
+        2 optional string cid;
+        3 optional string vid;                  // 当且仅当 lid 和 cid 为空时，vid才会被使用
+    };
+
+    struct AccessoryRecSimpleResponse
+    {
+        0 require int err_code;
+        1 optional string err_msg;
+        2 optional vector<SimpleAccessoryItem> vec_task;
+    };
+
+    // web端周边推荐请求协议
+    struct AccessoryRecWebRequest
+    {
+        0 optional string lid;
+        1 optional string cid;
+        2 optional string vid;                  // 当且仅当 lid 和 cid 为空时，
+                                                // vid才会被使用
+    };
+
+    // web端周边推荐回包协议
+    struct AccessoryRecWebResponse
+    {
+        0 require int err_code;
+        1 optional string err_msg;
+        2 optional H5Item h5_item;
+        3 optional VplusUserItem vplus_user_item;
+    };
+};

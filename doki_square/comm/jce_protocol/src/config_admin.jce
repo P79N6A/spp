@@ -1,0 +1,367 @@
+/*
+@brief:明星管理后台协议
+auth：jettchen
+time：2017.10.09
+*/
+module CStarAdminPro
+{
+	/*
+	@brief:机器环境信息
+	TestIp:10.198.17.218:16010
+	TestL5:520769:4784128
+	OnlineL5:817857:65536 ---粉丝管理台使用
+	OnlineL5:920705:196608 ---app后台业务使用
+	*/
+	enum ConfigCmd
+	{
+		CMD_CREATE_GIFT = 0xf1cd,
+		CMD_MODIFY_GIFT = 0xf1ce,
+		CMD_DELETE_GIFT = 0xf1cf,
+		CMD_GIFT_DETAIL = 0xf1d0,
+		CMD_ALL_GIFT = 0xf1d1,
+		CMD_CREATE_SIGNATURE = 0xf1d2,
+		CMD_ALL_SIGNATURE = 0xf1d3,
+		CMD_STAR_CONFIG = 0xf1d4,
+		CMD_STAR_CONFIG_DETAIL = 0xf1ea,
+		
+		CMD_EVENT_CONFIG = 0xf3e1,
+		CMD_EVENT_LIST = 0xf3e2,
+		
+		CMD_STAR_CHAT_ROOM_CONFIG = 0xf78a,
+		CMD_STAR_CHAT_ROOM_LIST = 0xf78b,
+		
+		CMD_DOKI_VID_CONFIG = 0xf7b5,
+		CMD_DOKI_VID_CONFIG_LIST = 0xf7b6,
+		
+		CMD_OPER_DOKI_RECOMMEND = 0xf6e4,
+		CMD_DOKI_RECOMMEND_LIST = 0xf6e5,
+	};
+
+/***********************结构体定义*************************/
+
+	enum giftType
+	{
+	    GIFT_VCOIN = 1,   //V币        content填纯数字的字符串
+		GIFT_FVALUE,      //粉丝值     content填纯数字的字符串
+		GIFT_PIC,     //专属福利  content填入url
+		GIFT_VOICE,   //专属福利  content填入音频链接url， ext填入：音频时长
+		GIFT_VIDEO,   //专属福利  content填入vid， ext暂不填
+		
+		GIFT_PRIVILEGE,    //专属福利 - 特权
+
+	};
+	//礼包json格式： {"content":"","desc":"赵丽颖签名壁纸","ext":""}
+
+	//创建礼包
+	struct stCreateGiftReq
+	{
+		0 optional int type; //详见宏定义giftType
+		1 optional string jsonValue; //{"content":"200","desc":"赵丽颖签名送V币","ext":""}
+	};
+	struct stCreateGiftRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+        2 optional long id;
+	};
+	
+	//修改礼包
+	struct stModifyGiftReq
+	{
+		0 require long id;
+		1 optional int type;
+		2 optional string jsonValue;
+	};
+	struct stModifyGiftRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+	};
+	
+	//删除礼包
+	struct stDeleteGiftReq
+	{
+		0 require long id;
+	};
+	struct stDeleteGiftRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+	};
+
+	struct stGiftInfo
+	{
+		0 require long id;
+		1 optional int type;
+		2 optional string jsonValue;
+	};
+	
+	//通过id精确查找礼包详情
+	struct stGiftDetailReq
+	{
+		0 require string ids;
+	};
+	struct stGiftDetailRsp
+	{
+		0 require int errCode;						//业务错误码
+		1 optional string strErrMsg;				//业务错误原因
+		2 optional vector<stGiftInfo> list;   			// {"id":123,"type":1,"json_value":"{"type":1,"typename":"V币","name":"V币","content":"1000"}"}
+	};
+	
+	//获取所有礼包
+	struct stAllGiftReq
+	{
+		0 optional int page_num;
+		1 optional int page_size;
+	};
+	struct stAllGiftRsp
+	{
+		0 require int errCode;						//业务错误码
+		1 optional string strErrMsg;				//业务错误原因
+		2 optional vector<stGiftInfo> list;   			// {"id":123,"type":1,"json_value":"{"type":1,"typename":"V币","name":"V币","content":"1000"}"}
+		3 optional int page_num;
+		4 optional int page_totalNum;
+	};
+	
+	//签到日历,修改签到日历是采用全量覆盖写
+	struct stCreateSignatureReq
+	{
+		0 require string starId; //人名库明星id
+		1 optional int dayNum; //连续签到天数
+		2 optional string ids; //礼包id列表,多个用逗号相隔
+	};
+	struct stCreateSignatureRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+	};
+	
+	//获取指定明星的签到日历
+	struct stAllSignatureReq
+	{
+		0 require string starId; //人名库明星id
+	};
+	struct stAllSignatureRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+		2 optional map<string, string> day2GiftIds; //连续签到天数到礼包列表的map   {"1":"111,222,333"}
+	};
+	
+	enum DOKI_TAB_ID
+	{
+		TAB_H5 = 1,// h5
+		TAB_FANSCLUB = 2, //后援会
+		TAB_STARTALK = 3, //明星说
+		TAB_VIDEO = 4, //视频
+		TAB_JOB = 5,   //作品
+	};
+	enum configType
+	{
+		STAR_NICKNAME = 1,        //粉丝团昵称
+		STAR_VOICE = 2,           //关注明星的欢迎语音,例如 http://mat1.gtimg.com/v/miaomiao/xuhaiqiao.mp3
+		H5_TAB_NAME = 3,           //doki的h5 tab名称
+		H5_TAB_URL = 4,           //doki的h5 tab链接
+		DOKI_TAB_ORDER = 5,       //doki的tab顺序,value的值 [{"id":1,"name":"h5 tab"},{"id":3,"name":"后援会"},{"id":3,"name":"明星说"},{"id":4,"name":"视频"},{"id":5,"name":"作品tab"}] 
+		                          //分别对应 h5 tab、后援会、明星说、视频、作品tab,tab的顺序与该doki存在哪些tab是完全解耦的。
+								  //举例顺序设置为[{"id":1,"name":"h5 //tab"},{"id":3,"name":"后援会"},{"id":3,"name":"明星说"},{"id":4,"name":"视频"},{"id":5,"name":"作品tab"}]，
+								  //但app只存在后援会、视频2个tab，则app下发为后援会、视频2个tab顺序
+		WEIBO_AUTH = 6,  //授权明星去掉微博标签
+		INSTAGRAM_AUTH = 7, //授权明星去掉instagram标签
+								  
+		FANS_BIG_LEVEL_PIC_1 = 11,         //路人粉大勋章的图片
+		FANS_BIG_LEVEL_PIC_2 = 12,         //迷妹粉大勋章的图片
+		FANS_BIG_LEVEL_PIC_3 = 13,         //真爱粉大勋章的图片
+		FANS_BIG_LEVEL_PIC_4 = 14,         //骨灰粉大勋章的图片
+		FANS_SMALL_LEVEL_PIC_1 = 21,       //路人粉小勋章的图片
+		FANS_SMALL_LEVEL_PIC_2 = 22,       //迷妹粉小勋章的图片
+		FANS_SMALL_LEVEL_PIC_3 = 23,       //真爱粉小勋章的图片
+		FANS_SMALL_LEVEL_PIC_4 = 24,       //骨灰粉小勋章的图片
+		
+		FANS_NAME_1 = 31,       //粉丝等级名称1
+		FANS_NAME_2 = 32,       //粉丝等级名称2
+		FANS_NAME_3 = 33,       //粉丝等级名称3
+		FANS_NAME_4 = 34,       //粉丝等级名称4
+
+		DOKI_LETTER = 40,       //团长信件
+	};
+	
+	//配置明星的粉丝团昵称、粉丝等级勋章图、语音
+	struct stStarCongfigReq
+	{
+		0 require string starId; //人名库明星id
+		1 optional int type; //见宏定义configType
+		2 optional string value;//对应的value 
+		3 optional int opType;//当点击触发生成的时候传1
+	};
+	struct stStarCongfigRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+	};
+	
+	//获取明星的粉丝团昵称、粉丝等级勋章图、语音
+	struct stStarCongfigDetailReq
+	{
+		0 require string starId; //人名库明星id
+	};
+	struct stStarCongfigDetailRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+		2 optional map<string, string> configMap;//{"1":"赵丽颖","2":"http://mat1.gtimg.com/v/miaomiao/xuhaiqiao.mp3","10":"http://puui.qpic.cn/fans_admin/0/345617981_1508735976638/0","20":"http://puui.qpic.cn/fans_admin/0/345617981_1508735976638/0"}
+	};
+	
+	
+	// 操作类型
+	enum EOperateType
+	{
+	    E_NEW_EVENT = 1,      // 增加事件
+		E_MOD_EVENT = 2,      // 修改事件
+		E_DEL_EVENT = 3,      // 删除事件
+	};
+	// 事件类型
+	enum EEventType
+	{
+	    E_ET_ALL        = 0,      //所有类型
+		E_ET_STAR_BIRTH = 1,      //明星生日
+		E_ET_STAR_SETTLE  = 2,    //明星入驻
+		E_ET_STAR_WORKS_PUB = 3,  //作品首发
+		E_ET_STAR_AWARDS = 4,     //获奖情况
+		E_ET_STAR_FANS_INCREASE = 5,  //粉丝突破
+		E_ET_STAR_POPULARITY_TOP = 6,  //人气榜登顶
+	};
+	// 操作类型
+	enum EPosition
+	{
+	    E_DOKI_SQUARE = 1,      // DOKI广场
+		E_STAR_HOMEPAGE = 2,      // 明星个人主页
+	};
+	//大事件配置
+	struct stEventConfigReq
+	{
+		0 require int optype; //详见宏定义EOperateType
+		1 optional string id; //大事件id (修改、删除的操作需要传入)
+		2 optional int type; //详见宏定义EEventType
+		3 optional int doki_type; //1为明星doki;2为剧集doki
+		4 optional long doki_id; //
+		5 optional string json_value; //前端组装的json，后台查询的时候原样吐出{"star_id":"94432","time":1510000000,"title":"","second_title":"","material":[{"type":1,"value":"voice"},{"type":2,"value":"vid"},{"type":3,"value":"pic"}],
+		// "promotion":{"is_need":true,"position":[1,2],"id":""},"action_url":"http://v.qq.com"}
+	};
+	struct stEventConfigRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+        2 optional string id;//大事件id
+	};
+	struct stEventDetail
+	{
+		0 optional string id;    //标签id
+		1 optional int type; //标签名称
+		2 optional string json_value;
+	};
+	//大事件列表
+	struct stEventListReq
+	{
+		0 optional string type_ids; //详见宏定义EEventType,多个则用逗号分隔(因为get请求接入层不支持vector<int>故而采用字符串)
+		1 optional int doki_type; //1为明星doki;2为剧集doki
+		2 optional long doki_id; //
+		3 optional int page_num;
+		4 optional int page_size;
+	};
+	struct stEventListRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+        2 optional vector<stEventDetail> list; //前端组装的json，后台查询的时候原样吐出
+		3 optional int page_num;
+		4 optional int page_totalNum;
+	};
+	
+	//明星聊天室的增、删、改
+	struct stOpStarChatRoomReq //0xf78a  http://debugaccess.video.qq.com/star_admin/op_starchat?vappid=90355472&vsecret=b5a6aa567a55d84008e258a9f69bfdb8e929aa97c4c12c24
+	{
+		0 optional int op_type; //1为增加;2为修改;3为删除
+		1 optional long id;//修改和删除的时候需要传
+		2 optional string json; //{"star_info":[{"id":"94432"},{"id":"81662"}],"pid_info":{"id":"201566"},"vid_info":{"id":"u0026vhd8bp"},"cid_info":{"id":"fjj4mhj2rzhygm2"},"full_screen_info":{"before_text":"直播前","before_btn":"直播前按钮","reservation":"预约后文案","middle_text":"直播中文案","middle_btn":"直播中按钮"},"bottom_info":{"before_text":"直播前文案","middle_text":"直播中文案"}}
+	};
+	struct stOpStarChatRoomRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+        2 optional long id;
+	};
+	//查看明星聊天室列表
+	struct stStarChatRoomListReq  //0xf78b  http://debugaccess.video.qq.com/star_admin/starchat_list?vappid=90355472&vsecret=b5a6aa567a55d84008e258a9f69bfdb8e929aa97c4c12c24
+	{
+		0 optional string json; //{"pid_info":{"id":"201566"},"vid_info":{"id":"u0026vhd8bp"},"cid_info":{"id":"fjj4mhj2rzhygm2"}}
+		1 optional int page_num;
+		2 optional int page_size;
+	};
+	struct stStarChatRoomListRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+        2 optional vector<string> list; //{"id":12345,"star_info":[{"id":"94432","name":"赵丽颖"},{"id":"81662","name":"林更新"}],"pid_info":{"id":"201566","title":"《奔跑吧2》王大陆聊天室","type_desc":"ving"},"vid_info":{"id":"u0026vhd8bp"},"cid_info":{"id":"fjj4mhj2rzhygm2"},"full_screen_info":{"before_text":"直播前","before_btn":"直播前按钮","reservation":"预约后文案","middle_text":"直播中文案","middle_btn":"直播中按钮"},"bottom_info":{"before_text":"直播前文案","middle_text":"直播中文案"}}
+		3 optional int page_num;
+		4 optional int page_totalNum;
+	};
+	
+	//操作doki短视频的硬置顶数据
+	struct stOpDokiVidConfigReq  //0xf7b5  520769:4784128  http://debugaccess.video.qq.com/star_admin/op_dokividconfig?vappid=90355472&vsecret=b5a6aa567a55d84008e258a9f69bfdb8e929aa97c4c12c24
+	{
+		0 require string dokiId; //饭团id
+		1 optional int op_type; //1为增加;2为修改;3为删除
+		2 optional string json;//对应的value {"vid":"u0026vhd8bp","rank":1}  rank(范围值3-10)
+	};
+	struct stOpDokiVidConfigRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+	};
+	
+	//doki短视频的硬置顶数据列表
+	struct stDokiVidConfigListReq  //0xf7b6   http://debugaccess.video.qq.com/star_admin/dokividconfig_list?vappid=90355472&vsecret=b5a6aa567a55d84008e258a9f69bfdb8e929aa97c4c12c24
+	{
+		0 require string dokiId; //饭团id
+	};
+	struct stDokiVidConfigListRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+		2 optional vector<string> list;//{"vid":"u0026vhd8bp","title":"标题","pic":"url","rank":1,"op_nickname":"操作人昵称","mtime":1550000000} 排序是按rank 从1到10排列
+	};
+	
+	// 操作doki推荐的干预数据  CMD_OPER_DOKI_RECOMMEND = 0xf6e4
+	struct stOperDokiRecommendReq
+	{
+		0 require int type;// 1为创建 2为修改 3为删除
+		1 optional string json; //{"doki_id":"94432","begin_time":1527436800,"end_time":1527523200,"type":1,"rank":3} type为1表示硬置顶，rank为置顶的次序
+	};
+	struct stOperDokiRecommendRsp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+		2 optional string tips;
+	};
+	
+	
+	// 拉取doki推荐的干预数据列表  CMD_DOKI_RECOMMEND_LIST = 0xf6e5
+	//http://debugaccess.video.qq.com/star_admin/dokirecommend_list?vappid=90355472&vsecret=b5a6aa567a55d84008e258a9f69bfdb8e929aa97c4c12c24&callback=back
+	struct stDokiRecommendListReq
+	{
+		0 optional string json;//{"doki_id":"94432","begin_time":1527436800,"end_time":1527523200,"type":1} 
+		1 optional int page_num;
+		2 optional int page_size;
+	};
+	
+//{"doki_id":"94432","doki_name":"赵丽颖","begin_time":1527436800,"end_time":1527523200,"type":1,"rank":3,"oper_nickname":"","status":0} type为1表示硬置顶，rank为置顶的次序
+	struct stDokiRecommendListRsp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+		2 optional vector<string> list;
+		3 optional int page_num;
+		4 optional int page_totalNum;
+	};
+};

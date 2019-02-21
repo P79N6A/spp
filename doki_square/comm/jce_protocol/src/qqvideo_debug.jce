@@ -1,0 +1,13 @@
+module jce
+{
+    //模版包裹结构体
+    struct DebugInfo
+    {
+      0 optional string info;       //调试信息
+      1 optional string info1;        //调试信息
+      2 optional string info2;        //调试信息
+      3 optional string info3;        //调试信息
+      4 optional string info4;        //调试信息
+      5 optional string info5;        //调试信息
+    };
+};

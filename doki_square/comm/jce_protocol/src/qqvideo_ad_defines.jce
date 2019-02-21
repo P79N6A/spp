@@ -1,0 +1,64 @@
+
+
+//框内广告协议
+module jce
+{
+    //跳转类型(后台抹平两边Action类型定义)
+    enum EAdActionType
+    {
+      EAdActionOpenH5                = 0,             //效果类型，广告普链跳转H5
+      EAdActionDownLoad              = 1,             //应用下载
+      EAdActionOpenApp               = 2,             //应用直达
+      EAdActionOpenJDH5              = 3,             //京东广告H5
+       
+      EAdActionOpenWx                = 100,           //跳转WxUrl
+      EAdActionOpenNativePage        = 101,           //跳转NativeUrl
+      EAdActionOpenMiniProgram       = 102,          //跳转小程序   
+      EAdActionOpenCanvas            = 103,          //跳转巨幕广告 
+
+      EAdActionNoAction              = 999,          //定义异常情况下，闪屏的点击没操作
+    };
+
+
+    //广告类型,暂停、前贴等
+    enum EAdType
+    {
+      EAdTypeUnknown                 = 0,             //未知
+      EAdTypePre                     = 1,             //前贴片广告  
+      EAdTypePause                   = 2,             //暂停广告
+      EAdTypeMiddle                  = 3,             //中插广告
+      EAdTypeBack                    = 4,             //后贴片广告
+      EAdTypeOralBroadcast           = 5,             //口播广告
+      EAdTypeIvb                     = 6,             //IVB广告
+      EAdTypeCorner                  = 7,             //角标广告
+      EAdTypeBarrage                 = 8,             //直播弹幕广告(iPad上还未实现)
+      EAdTypeLoading                 = 9,             //loading广告
+      EAdTypeProgressBar             = 10,            //进度条广告
+      EAdTypeSuperCorner             = 11,            //超级角标
+      EAdTypeDefinition              = 12,            //清晰度广告
+      EAdTypeBuyWhileWatch           = 13,            //边看边买
+      EAdTypeCreativeInsertion       = 14,            //创意中插
+      EAdTypeLiveCorner              = 15,            //直播角标
+      EAdTypeVideoIn                 = 16,            //video in
+
+    };
+
+    //打开第三方app失败时行为
+    enum EAdOpenAppFailedAction
+    {
+      EAdopenAppFailedNone           = 0,             //打开失败时啥都不做
+      EAdopenAppFailedToWebview      = 1,             //打开失败时打开webview
+      EAdopenAppFailedToDownload     = 2,             //打开失败时去下载
+    };
+
+    enum EAdPriceMode
+    {
+      EAdPriceModeCPM                = 1,             //1:CPM 
+      EAdPriceModeCPD                = 2,             //2:CPD
+    };
+    //广告ONAViewType
+    enum EAdONAViewType
+    {
+	EnumAdONALeftImageRightTextAdPoster = 150, //左图右文广告
+    };
+};

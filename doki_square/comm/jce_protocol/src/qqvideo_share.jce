@@ -1,0 +1,45 @@
+/*
+	分享相关协议
+*/
+
+#include "qqvideo_cmd.jce"
+#include "qqvideo_common.jce"
+
+module jce
+{
+	//验证腾讯微博和QZone是否开通的请求
+	struct ShareCheckRequest
+	{
+		0 require int dest;	//必填 操作目的地  1:QZone   2:腾讯微博
+	};
+	
+	//验证腾讯微博和QZone是否开通的请求返回
+	struct ShareCheckResponse
+	{
+		0 require int 	errCode;	//业务错误码
+		1 require int	isOpen;		//是否开通了腾讯微博或QZone   1:开通  0:未开通
+	};
+	
+	//分享请求
+	struct ShareRequest
+	{
+		0 require 	int 			dest;		//必填 操作目的地  1:QZone   2:腾讯微博   3:sina微博    4:朋友圈
+		1 optional 	string 			sinaAccessToken; 	//新浪登录的Token
+		2 optional 	string			title;		//分享的标题
+		3 optional	string			summary;	//QZone分享时使用summary
+		4 optional 	string			content;	//分享的内容
+		5 optional 	string			contentTail;//分享的微博时这个不能被截断
+		6 optional	string  		url;		//分享的连接
+		7 optional	vector<PicData>	imgUrls;	//分享的图片链接
+		8 optional 	string			vid;		//剧集id
+		9 optional  string			cid;		//专辑id
+		10 optional int				payType;	//视频付费类型
+	};
+	
+	//分享返回
+	struct ShareResponse
+	{
+		0 require int 	errCode;	//业务错误码
+	};
+
+};

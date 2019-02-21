@@ -1,0 +1,279 @@
+#include "qqvideo_common.jce"
+#include "qqvideo_user_info.jce"
+#include "qqvideo_capture.jce"
+
+module jce
+{
+	struct FeedUploadVideoInfo
+	{
+		0 require string vid;   // 视频vid
+		1 optional string imgUrl;  // 封面url
+		2 optional string title;  // 视频标题
+		3 optional int videoType; // 0:未定义 1:自拍视频 2:本地上传视频
+		4 optional string musicVid; // 配乐vid
+		5 optional string musicImgUrl; // 配乐海报
+		6 optional string musicTitle; // 配乐标题
+	};
+	struct PubMsgRequest
+	{
+		0  require string dataKey;
+		1  optional string content; 							//发表的内容
+		2  optional vector<CircleUploadImageUrl> imageList;	//视频截图；
+		3  optional string title; 								//该feed的title
+		4  optional string seq; 								//sequence，防止终端重复提交
+		5  optional vector<CircleShortVideoUrl>  videoList;	    //截取小视频；
+
+		6 optional int shareMask;                              //标记需要同时发表/同步到哪些平台，1是影视圈 2是Qzone 4是腾讯微博 8是新浪微博 16是SSO拉起分享 32是分享doki
+		7 optional ShareItem shareInfo;
+		8 optional ShareToken shareToken;                      //同步专门需要使用的票据，只有新浪access_token，微信和QQ因为有jce公共字段支持，这里不用冗余携带
+		9 optional int cfrom = 0;								//来源字段，0未定义 1视频详情页评论 2分享面板(包括小窗和全屏) 3录制面板(包括截图和小视频) 4饭团粉丝留言(包括饭团和V+) 5话题详情页 6电影打分 7管理台发表(后台内部枚举值占位) 8用于doki广场 9用于h5祝福卡片 10给豆瓣抓取使用 11自拍原创视频 15明星说TAB
+																// 16:问答发表(不走帖子的发表，只是统一分配一个场景) // 17:梗漫 18:发表回答  19:表情包发表
+		10 optional vector<ApolloVoiceData>  voiceList;	        //录制语音
+		11 optional string dmContentKey;                        //弹幕dataKey，跟着vid变，优先取videoItemData的DMContentKey；
+		12 optional STStarInfo userStarInfo;                    //指定发表用户明星属性，optional的，用于写索引、屏蔽用户(明星)的真实资料；
+		13 optional int dwTimePoint;                            //发表时的播放时间点, 秒为单位，同步到弹幕等需求有用
+		14 optional string wxScore;                               //微信小程序评分
+	    15 optional vector<TopicInfoLite> topicList;	//话题列表
+		16 optional vector<ActorInfo> actorInfoList;	 // doki广场增加关联多个doki
+		17 optional FeedUploadVideoInfo videoInfo;  			// 上传视频信息
+		18 optional int userCertifiedFlag; 						// 用户认证标识 0 ：未认证  1 ：已认证
+		19 optional string currentVid;							//视频底层页有续播逻辑，会不断变更vid，发表时可以指定vid
+		20 optional GpsAddressInfo gpsAddressInfo;				// 竖拍的地址信息
+		21 optional vector<RichTextLabelInfo> richTextLabelInfo;		//650新增富文本信息
+	};
+
+	struct PubMsgResponse
+	{
+		0 require int errCode; 									//0表示发表成功，其他表示失败；
+		1 optional CirclePrimaryFeed feed;						//返回发表成功的当前节点及其以下所有数据
+		2 optional int shareErrCode;                            //发表接口支持同步到其它平台时的结果code
+		3 optional string shareCircleUrl;                       //发表接口支持同步到其它平台时生成的H5着陆页面
+		4 optional string errMsg;                       		//发表失败的原因描述，比如被禁言
+		5 optional string sucMsg;                       		//发表成功提示
+	};
+
+	//发表评论
+	struct PostCommentMsgRequest
+	{
+		0   require string  parentId; 							//被评论的消息ID
+		1   require string  content; 							//评论的消息内容；
+		2   optional string seq; 		 						//sequence，防止终端重复提交
+		3   optional string dataKey;
+		4 	optional int cfrom = 0;								//来源字段，100帖子详情页(一级回复) 101消息中心 102帖子详情页(二级回复)
+		5   optional vector<CircleUploadImageUrl>  imageList;	//发表上传的图片;
+		6	optional STStarInfo userStarInfo;                   //指定发表用户明星属性，optional的，用于写索引、屏蔽用户(明星)的真实资料；
+	};
+
+	struct PostCommentMsgResponse
+	{
+		0 require int errCode; 									//0表示发表成功，其他表示失败；
+		1 optional CircleCommentFeed comment;					//评论
+		2 optional string errMsg;                       		//发表失败的原因描述，比如被禁言
+	};
+
+	//点赞/取消赞
+	struct MsgLikeRequest
+	{
+		0   require string feedId; 		                        //主贴id
+		1   require byte likeFlag; 		                        //1：表示赞；2：表示取消赞；
+		2  	optional string seq; 		                        //sequence，防止终端重复提交
+		3   optional string dataKey;
+		4   optional STStarInfo userStarInfo;                   //指定发表用户明星属性，optional的，用于写索引、屏蔽用户(明星)的真实资料；
+	};
+
+	struct MsgLikeResponse
+	{
+		0 require int errCode; 			//0表示发表成功，其他表示失败；
+	};
+
+		//举报
+	struct MsgReportRequest
+	{
+		0   require string feedId; 		                        //主贴id
+		1   optional int reportType; 		                    //举报的类型；
+		2   optional string  description; 						//用户输入的描述
+		3  	optional string seq; 		                        //sequence，防止终端重复提交
+		4   optional string dataKey;                            //后台用于标记feed的来源，需要透传给影视圈发举报接口
+	};
+
+	struct MsgReportResponse
+	{
+		0 require int errCode; 			//0表示发表成功，其他表示失败；
+	};
+
+	//消息删除请求
+	struct MsgDeleteRequest
+	{
+		0 require string feedId; 		//删除的消息ID；
+		1 optional string seq; 		    					//sequence，防止终端重复提交
+		2 optional string dataKey;
+	};
+
+	struct MsgDeleteResponse
+	{
+		0 require int errCode; 			//0表示发表成功，其他表示失败；
+	};
+
+	struct TopicDetailRequest
+	{
+		0 require string dataKey;
+		1 optional string pageContext;			//翻页上下文
+		2 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+	};
+
+	struct EmoticonDetail
+	{
+		0 optional int showEmoticon;				//0 不展示表情入口 1 展示
+		1 optional string emoticonDataKey;			//表情推荐接口的查询信息
+	};
+	struct TopicDetailResponse
+	{
+		0 require int errCode;
+		1 require TopicInfoLite topicInfo;
+		2 require TopicHead topicHead;
+		3 optional string title;
+		4 optional vector<CirclePrimaryFeed> feedList;
+		5 optional string postDataKey;          //发表帖子用
+		6 optional string pageContext;			//翻页上下文
+		7 optional bool hasNextPage;			//是否有下一页
+		8 optional ShareItem shareItem;			//用于分享的数据结构
+		9 optional PromotionBannerInfo promotionInfo;	//描述拉动条的信息，比如Doki广场的推广
+		10 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+		11 optional int postUiType;            //0,默认,  1.梗漫征集
+	    12 optional Action postAction;         // 发表拉起的action
+		13 optional TopicLeftImageCard topicCard; //话题详情页播放
+		14 optional EmoticonDetail emoticonDetail;//表情相关信息
+		15 optional bool needCheckRight = false;  //是否要发表鉴权
+	};
+	// 话题详情页ONAViews请求协议
+	struct TopicDetailONAViewsRequest
+	{
+		0 require string dataKey;
+		1 optional string pageContext;			//翻页上下文
+		2 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+	};
+
+	// 话题详情页ONAViews应答协议
+	struct TopicDetailONAViewsResponse
+	{
+		0 require int errCode;
+		1 require TopicInfoLite topicInfo;
+		2 optional string title;
+		3 optional vector<TempletLine>	uiData;		//内容数据，每一个结点，都是一行数据
+		4 optional string postDataKey;          //发表帖子用
+		5 optional string pageContext;			//翻页上下文
+		6 optional bool hasNextPage;			//是否有下一页
+		7 optional ShareItem shareItem;			//用于分享的数据结构
+		8 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+		9 optional MediaItem musicInfo;      // 拉起拍摄界面用到的背景音乐配置
+		10 optional PendantDetail pendantDetail;      // 拉起拍摄界面用到的挂件配置
+		11 optional ActionBarInfo bottomActionBar;    //底部按钮配置
+		12 optional int pageType;                   // 页面类型: 0-视频话题详情页, 1-视频地理位置聚合页
+	};
+
+	struct PubTopicListRequest
+	{
+		0 require string dataKey;
+		1 require string pageContext;			//翻页上下文
+    	2 optional int cfrom = 0;	     //来源字段，0未定义 发表：1视频详情页评论 2分享面板(包括小窗和全屏) 3录制面板(包括截图和小视频) 4饭团粉丝留言(包括饭团和V+) 5话题详情页 6电影打分 7管理台发表(后台内部枚举值占位) 8用于doki广场 9用于h5祝福卡片 10给豆瓣抓取使用 11自拍原创视频 15明星说TAB  评论：100帖子详情页(一级回复) 101消息中心 102帖子详情页(二级回复)
+										// 16:问答发表(不走帖子的发表，只是统一分配一个场景)
+		3 optional int type;           // 0:默认，2,游戏社区
+	};
+
+	struct PubTopicListResponse
+	{
+		0 require int errCode;
+		1 require vector<TopicInfoLite> topicList;
+		2 optional string pageContext;			//翻页上下文
+		3 optional bool hasNextPage;			//是否有下一页
+	};
+
+	//帖子操作
+	struct FeedDetailOperator
+	{
+		0 require string opName;					//操作名称
+		1 require int opType;						//操作代码，1删除 3加精 5取消加精 6下架 20禁言 21取消禁言 22全局禁言 23取消全局禁言
+		2 optional string confirmTips;				//二次确认弹窗文案， 不为空时需要二次alert确认
+		3 optional int opValidTime;					//操作生效时长，0表示永久生效，单位秒
+	};
+
+	struct FeedDetailOperateRequest
+	{
+		0 require string dataKey;					//必须有明星id，帖子id
+		1 require FeedDetailOperator operation;		//删除/加精/禁言操作类型
+		2 optional string seq; 						//防止终端重复提交
+	};
+
+	struct FeedDetailOperateResponse
+	{
+		0 require int errCode;						//操作的执行结果
+		1 optional string opTips;                   //toast提示文案
+	};
+
+	struct FeedDetailRequest
+	{
+		0 require string dataKey;
+		1 optional string pageContext;
+		2 optional string reportData;                   //用作上报透传数据reportKey=XXX
+	};
+
+	struct FeedDetailResponse
+	{
+		0 require int errCode;
+		1 require CirclePrimaryFeed feedInfo;
+		2 optional vector<CircleCommentFeed> commentList;
+		3 optional string pageContext;
+		4 optional bool hasNextPage;
+		5 optional bool isPrimaryFeedPage;						//标记页面是主贴详情页还是评论详情页
+		6 optional PromotionBannerInfo promotionInfo;			//描述拉动条的信息，比如Doki广场的推广
+		7 optional vector<FeedDetailOperator> operationList;	//可对帖子执行的操作列表
+		8 optional vector<CircleCommentFeed> hotCommentList;    // 热门回复，650新增
+	};
+
+	//拉起键盘的时，对键盘入口做一次后台校验
+	struct CheckKeyBoardEntranceRequest
+    {
+		0 require string dataKey;
+    	1 require int cfrom = 0;	     //来源字段，0未定义 发表：1视频详情页评论 2分享面板(包括小窗和全屏) 3录制面板(包括截图和小视频) 4饭团粉丝留言(包括饭团和V+) 5话题详情页 6电影打分 7管理台发表(后台内部枚举值占位) 8用于doki广场 9用于h5祝福卡片 10给豆瓣抓取使用 11自拍原创视频 15明星说TAB 评论：100帖子详情页(一级回复) 101消息中心 102帖子详情页(二级回复)
+										// 16:问答发表(不走帖子的发表，只是统一分配一个场景)
+		2 optional int type;           // 0:默认，2,游戏社区
+    };
+
+    struct CheckKeyBoardEntranceResponse
+    {
+		0 require int errCode;
+		1 require int entranceMask;      //键盘上入口的枚举掩码  1系统图片入口  2剧照图片入口  4小视频入口  8话题入口 16禁言返回码
+		2 optional string tips;          //禁言状态下返回的提示内容，如“对不起，您已经被管理员禁言，无法发帖和评论 T_T；X月X日禁言自动解除”
+		3 optional string contentHint;  //发表框默认文案，目前针对不同doki圈下发不同文案
+    };
+	struct FeedOperationListRequest
+	{
+		0 require string dataKey;								//帖子dataKey
+		1 require string senderId;								//发表者用户Id
+		2 optional bool isPrimaryFeed;							//是主帖还是回复
+	};
+
+	struct FeedOperationListResponse
+	{
+		0 require int errCode; 												//0表示发表成功，其他表示失败
+		1 optional vector<FeedDetailOperator> operationList;				//针对具体帖子和发表者的操作列表，可选字段
+	};
+
+	//帖子操作组
+	struct FeedOperationGroup
+	{
+		0 optional vector<FeedDetailOperator> operationList;
+	};
+
+	struct MyFeedOperationGroupRequest
+	{
+		0 optional string userId;
+	};
+
+	struct MyFeedOperationGroupResponse
+	{
+		0 require int errCode; 												//0表示发表成功，其他表示失败
+		1 optional FeedOperationGroup globalOptGroup;	    				//用户全局管理操作组，可选字段
+		2 optional map<string, FeedOperationGroup> dokiOptGroupMap;			//用户具体doki操作组，可选字段
+	};
+};

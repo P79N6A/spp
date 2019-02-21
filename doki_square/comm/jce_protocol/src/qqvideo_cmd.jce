@@ -1,0 +1,157 @@
+/*
+jarenzhang
+视频客户端命令字定义
+*/
+
+module jce
+{	
+	//登录态信息
+	struct LoginToken 
+	{
+		0	require	string			TokenAppID;			
+		1	require	byte			TokenKeyType;		
+		2	require vector<byte>	TokenValue;			
+		3 	optional string   		TokenUin;
+		4   optional bool           IsMainLogin;	//是否是主登录态,true:表示是主登录态,false:表示不是主登录态。
+    };
+	
+	// 扩展帐号体系的帐号信息
+	struct ExtentAccount
+	{
+		0 require	int	type;				//1，表示饭团
+		1 require	string	accountId;
+	};
+	
+	//获取App分桶信息
+	struct BucketConfig
+	{
+		0 require int bucketId;	
+		1 optional string extra; 
+	};
+	
+	struct ExtentData
+	{
+		0 optional int checkFlag; //审核标志
+		1 optional byte flagByte; //统一标识位，[0x01]是否调试状态标识0表示否（不要下发调试信息）
+		2 optional string extra;  //预留字段
+		3 optional BucketConfig bucketInfo;
+	};
+    struct Coordinates
+	{
+		0 optional int type;//经纬度坐标系,0:[默认]腾讯、google地图产品(中国大陆)、高德坐标, 1:GPS坐标
+		1 optional float latitude; // 纬度
+		2 optional float longitude; // 经度
+		3 optional double accuracy; // 经纬度精度半径,单位为米
+	};
+	
+    struct QUA
+    {
+    	0 require string versionName;		//app的版本名称
+    	1 require string versionCode;		//app的版本号
+    	2 optional int screenWidth;			//屏幕宽度
+    	3 optional int screenHeight;		//屏幕高度
+    	4 optional int platform;			//平台编号
+    	5 optional string platformVersion;	//平台版本信息
+    	6 optional int markerId;			//渠道信息，目前视频分配渠道为 1
+    	7 optional int networkMode;			//网络类型: 1 2G; 2 3G; 3 WiFi; 4 Unknown; 5 4G
+    	8 optional int densityDpi;			//屏幕像素密度: 160  240  480 ...
+		9 optional string channelId;		//渠道id
+		10 optional string imei;		    //android的imei
+		11 optional string imsi;		    //android的imsi
+		12 optional string idfa;			//iPhone相关字段
+		13 optional string omgId;			//OMG ID
+		14 optional string extent;			//扩展字段，填充ExtentData的jce数据（不合规范，废弃）
+		15 optional ExtentData extentData;	//扩展字段，填充ExtentData的jce数据
+		16 optional string clientKey;      //pc客户端clientkey
+		17 optional string mac;            //pc客户端mac地址
+		18 optional string serverid;       //pc客户端后台下发id
+		19 optional Coordinates coordinates; //经纬度坐标系
+		20 optional string deviceId;         //设备id
+		21 optional string deviceModel;      //设备型号
+		22 optional int deviceType;          //1:手机 2:平板 3:电视
+		23 optional int mobileISP;           //运营商信息 0:未知 1:移动 2:联通 3:电信 4:铁通
+		24 optional int areaMode;            //用户选择地域模式 0:未知(策略同内地) 1:内地 2:海外
+		25 optional int countryCode;        //国家编码 153560 美国  153505 中国 153548 泰国
+		26 optional int langCode;			//语言编码  1491963 中文 1491988 英文 1491973 泰语
+		27 optional string appSubVersion;   // 业务相关的子版本号，这里不同终端这一字段可能表示的是不同引擎版本号，比如国际版vn 
+		28 optional string v4ip;            //表示当前用户V4的出口IP
+    };
+    
+    //定义一个日志上报的统一包头
+    struct LogReport
+    {
+    	0 optional string pageId;			//页面activity名称
+    	1 optional string refPageId;		//上一个页面名称
+    	2 optional int pageStep;			//页面跳数
+    	3 optional string callType;			//打开方式
+    	4 optional int isAuto;				//当前协议是否是自动请求 0 未知 ，1 主动， 2 自动
+    	5 optional string vid;				//最后一次看过的点播id
+    	6 optional string pid;				//最后一次看过的直播id
+    	7 optional string from;				//唤起的action里面的渠道信息
+    	8 optional string channelId;		//app 发布的市场渠道编号
+    	9 optional string mid;				// MTA 上报模块的id
+    	10 optional string extent;			//扩展字段
+    };
+
+    struct SafeInfo
+	{
+		0 optional int type;  				//校验安全类型: 默认安平账号等级 1拉取验证码
+		1 optional string SafeKey;
+		2 optional vector<byte> SafeResult; //安全结果
+	};
+	struct BusinessExtent
+	{
+		0 optional int launchType; //表示用户这次前台的⽤用户操作来源 1:点击icon打开；2:push拉起；3:url外部拉起；4:3Dtouch拉起
+	};
+
+	//请求包头信息
+	struct RequestHead
+	{	
+		0 require int requestId;				//请求序列号
+		1 require int cmdId;					//命令ID
+		2 optional QUA qua;						//终端app ua信息
+		3 optional string appId;				//应用id，后台分配
+		4 optional string guid;					//push通道相关标识
+		5 optional vector<LoginToken> token;	//鉴权信息列表
+		6 optional LogReport logReport;			//统一上报的日志
+		7 optional vector<ExtentAccount> extentAccountList;//扩展帐号列表
+		8 optional int oemPlatform;             //区分OEM版本厂商：0-默认主线版本，1-oppo，2-酷比
+		9 optional int isSupportDolby;          //设备是否支持杜比
+		10 optional int contentType;        	//0（包体为JCE 默认） 1(包体为JSON) 
+		11 optional SafeInfo safeInfo;			//安全校验相关信息
+		12 optional BusinessExtent busiExtent;  //通用业务数据
+	};
+	
+	//各业务定制数据包
+	struct BusinessHead
+	{
+		0 require int type;			//类型  搜索业务：全网搜：0   doki搜索：1
+		1 optional vector<byte> head;		//业务数据，各app各自决定解析成何种数据结构
+	};
+
+	//请求包
+	struct RequestCommand
+	{
+		0 require RequestHead head;			//请求包头
+		1 optional vector<byte> body;		//请求包体
+		2 optional BusinessHead businessHead;  //业务数据 
+	};
+
+	//返回包头信息
+	struct ResponseHead
+	{	
+		0 require int requestId;			//请求序列号
+		1 require int cmdId;				//命令ID
+		2 require int errCode;				//错误码
+		3 require string sUserid;			//增加一个返回的用户id
+	};
+	
+	//返回包
+	struct ResponseCommand
+	{
+		0 require ResponseHead head;		//请求包头
+		1 optional vector<byte> body;		//请求包体
+		2 optional BusinessHead businessHead;  //业务数据 
+	};
+	
+};

@@ -1,0 +1,15 @@
+#include "qqvideo_fantuan.jce"
+
+module jce
+{
+    struct GetStarCardDyStateRequest
+    {
+        0 require string strDataKey; //当前不需要，不填值
+    };
+
+    struct GetStarCardDyStateResponse
+    {
+        0 require   int errCode;
+        1 optional  ONADokiMovementCardList starCardList;
+    };
+};

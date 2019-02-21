@@ -1,0 +1,910 @@
+#include "qqvideo_common.jce"
+#include "qqvideo_ona.jce"
+
+module jce
+{
+	//游客会员信息（本结构仅针对iPhone）
+	struct VisitorUserInfo
+	{
+		0 require bool isVip;				//是否已经开通会员
+		1 optional long beginTime;			//开通时间
+		2 optional long endTime;			//到期时间
+	};
+
+	//vip附属卡信息
+	struct VipSupplementaryInfo
+	{
+		0 optional bool isSupplementaryVip;	//是否是附属卡用户
+		1 optional string iconUrl;		 	//附属卡会员等级图标url;
+	};
+	//视频会员信息
+	struct VipUserInfo
+	{
+		0 require string uin;				//QQ 号码
+		1 require bool isVip;				//是否已经开通会员
+		2 optional long beginTime;			//开通时间
+		3 optional long endTime;			//到期时间
+		4 optional int level;				//会员级别
+		5 optional bool isAnnualVip;		//是否年会会员
+		6 optional string logoUrl;			//会员logo 
+		7 optional string jsonData;			//透传的json格式串，用于和H5的交互
+		8 optional bool canImport;			//是否可从某个QQ号中导入好莱坞特权
+		9 optional string endMsg;           //过期提示语
+		10 optional string serviceType;     //service类型
+		11 optional long annualBeginTime;   //年费会员开通时间
+		12 optional long annualEndTime;     //年费会员到期时间
+
+		//13、14仅针对iPhone
+		13 optional int isLoginCheckFail;	//检测登录态
+		14 optional VisitorUserInfo visitorUserInfo;//游客会员信息
+		
+		15 optional bool isLevelUp;          //会员级别是不是升级了  0，没有 1 升级
+		16 optional int levelUpVersion;     //会员等级升级后新的级别
+		17 optional string longVipIconUrl; // 会员等级长角标;
+		18 optional string shortVipIconUrl; // 会员等级短角标;
+		19 optional VipSupplementaryInfo vipSupplementaryInfo;//VIP的附属卡信息
+	};
+	
+	//视频用户订单信息
+	struct VipOrderItem
+	{
+		0 require string oid;				//订单id
+		1 optional int c_status;			//0为已付费&有效，1为未付费&有效，2为未付费&失效，3为付费&失效，4为未付费&删除，5为付费&删除，10为免费
+		2 optional int valid_days;			//订单有效天数
+		3 optional long beginTime;			//订单开始时间
+		4 optional long endTime;			//订单结束时间
+		5 optional string lid;
+		6 optional string cid;
+		7 optional string vid;
+		8 optional string title;			//影片标题
+		9 optional string discount;			//影片折扣信息
+		10 optional string singlePrice;		//影片单价
+		11 optional string vipPrice;		//影片vip价格
+		12 optional long endDate;			//影片付费截止时间(过了这个时间就不需要付费了，或者下架)
+		13 optional int productType;		//影片类型：1为好莱坞电影；2为非好莱坞影片；3为教育片；4为直播演唱会
+		14 optional int playRight;			//影片平台状态
+		15 optional bool drm;				//是否 drm 影片 1 为是，0为否
+		16 optional string webUrl;			//跳转web播放的地址
+		17 optional int checkupGrade;       //查看影片状态(是否下架等)
+		18 optional int payType;			//付费类型8：全部免费
+		19 optional string pic;			//海报图片
+	};
+	
+	//请求用户的会员信息
+	struct VipUserInfoRequest
+	{
+		0 optional int test;		//占位用，无意义
+	};
+	
+	struct VipUserInfoResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 optional VipUserInfo vipUserInfo;			//会员信息
+	};
+	
+
+	struct VipConfigRequest
+	{
+		0 optional int test;//占位符
+	};
+	struct VipConfigResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 require map<string, string> vipConfig;   //会员相关配置信息, key对应业务，value对应配置json字符串
+	};
+	struct PlayerPayViewCopyWriting
+	{
+		0 optional string topStr;					// 主标题
+		1 optional string topSubStr;					// 副标题
+		2 optional string leftBtnStr;		// 左按钮文案
+		3 optional string rightBtnStr;		// 右按钮文案
+		4 optional string belowStr;					// 下文案
+		5 optional string titleBtnStr;		// 右上角常驻按钮文案
+	};
+
+	struct VipPayCopyWriting
+	{
+		0 optional int sceneType;	//场景类型，代表这个文案是针对哪种场景的。 0：未登录 1：非会员登录未购买 2：会员登录未购买
+		1 optional PlayerPayViewCopyWriting playerPayCopyWriting;	// 付费面板
+		2 optional DialogViewCopyWriting payDlgCopyWriting;			// 购买弹框
+	};
+	//查询影片是否付费
+	struct GetVideoPayInfoRequest
+	{
+		0 optional string lid;		//栏目id
+		1 optional string cid;		//专辑id
+		2 optional string vid;		//视频id
+		
+		/*
+		type的取值
+		0 表示正常的视频付费，   此时cid，vid值均有效，如果有vid则表示单集付费
+		1 表示 直播付费，		 此时cid 即为直播id
+		2 表示道具付费			 此时cid 即为 道具的产品id
+		3 表示直播机位付费		 此时cid 即为直播id vid即为机位id
+		*/
+		3 optional int type;		//0 点播， 1 直播， 2 道具, 3 直播机位付费
+		4 optional int queryType;  // 0,查询付费信息  1,查询影片是否可以下载  2,查询付费信息和影片是否可以下载
+		5 optional int payStatus;  // 来自详情页的付费类型
+	};
+	
+	struct GetVideoPayInfoResponse
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string lid;			//栏目id
+		2 optional string cid;			//专辑id
+		3 optional string vid;			//视频id
+		4 optional int payState;		// 0 未购买，1 已支付，2 会员免费
+		5 optional long startTime;		//可免费观看的开始时间
+		6 optional long endTime;		//可免费观看的结束时间
+		7 optional string singlePrice;	//价钱信息，在单点的时候用到
+		8 optional string vipPrice;		//会员的价钱信息，在单点的时候用到
+		
+		9 optional int canUsedCount;	//可以使用的次数，< 0 表示可以无限制使用，0 表示不可使用  ，> 0 表示可以使用的次数
+		10 optional int downloadState;  // 0,不可以下载  1,可以下载
+
+		11 optional map<int, ActionBarInfo> moreActionBar;  //通用付费时显示右侧按钮文案和跳转  3：试看前or结束文案；4：试看中文案
+		12 optional map<int, string> copywriteConfig;   	//按照约定位置下发文案0：上方；1：下方；2：下方action下发；3：试看前or结束文案；4：试看中文案
+		
+		13 optional string iapSinglePrice;                  // iap价格
+		14 optional string iapVipPrice;                  // iap vip 价格
+		15 optional string iapNonVipAppleId;                  // iap 商品id
+		16 optional string iapVipAppleId;                  // iap 会员 商品id
+		
+		17 optional int displayStyle;	//显示样式枚举  0：默认显示样式 1：强化单片购买的显示样式
+		18 optional bool canUseTicket;	//是否支持用券(针对payState == 4 || payState == 5)
+		19 optional int noIapDay; // 券使用的有效天数
+		20 optional int iapDay; //用于iphone支付的有效天数
+		21 optional string giftInfo;	//通过赠片领取该影片的附带的信息
+		22 optional int specialPayType; //571添加。0 ：普通好莱坞场景，不适用下面的文案 ; 1：特殊场景，目前只有迪士尼小包
+		23 optional vector<VipPayCopyWriting> vipPayCopyWritingList; //播放器下载付费相关文案
+		24 optional int videoStatus; 			//视频状态（0：默认正常状态 ，1：下架）
+		25 optional bool isExclusivePrivilegePayState;			//当前账号观看视频-专属鉴权通过（lv7观看单片付费类型视频无需购买）
+
+		26 optional int payWay;				//支付方式
+											//0：仅现金支付（原有的购买逻辑）
+											//1：仅支持钻石支付
+											//2：支持钻石+现金支付
+		27 optional string diamondVipPrice;			//钻石会员支付价 例如：400钻
+		28 optional string diamondNormalPrice;		//钻石非会员价格 例如：800钻
+		29 optional string diamondPayH5Url;			//钻石h5购买页
+		30 optional float exchangeRate;			//钻石和人民币之间的汇率 例如：0.01
+	};
+
+	//钻石支付协议
+	struct DiamondPayRequest
+	{
+		0 require int senceType;							//支付场景
+		1 require string productId;							//视频cid
+		2 require string aid;						
+		3 optional int subSenceType;						//二级支付类型，单片使用默认值0
+		4 optional vector<string> subProductIdList;			//vid列表
+	};
+	
+	struct DiamondPayResponse
+	{
+		0 require int errCode;					//业务错误码 0 表示支付成功
+		1 require string errMsg;				//错误信息
+	};
+
+	//单片购买云支付 token 和 url_params 请求
+	struct PriceCloudRequest
+	{
+		0 require string cid;		//专辑id
+		1 optional string vid;		//视频id
+		
+		/*
+		type的取值
+		0 表示正常的视频付费，  此时cid，vid值均有效，如果有vid则表示单集付费
+		1 表示 直播付费，		 此时cid 即为直播id
+		2 表示道具付费			 此时cid 即为 道具的产品id
+		*/
+		2 optional int type;			
+		3 optional string offerId;	//米大师的offerId
+		4 optional string aid;	//支付来源
+	};
+	
+	struct PriceCloudResponse
+	{
+		0 require int errCode;			//业务错误码   0 表示获取成功
+		1 optional string token;		//下单的唯一标示
+		2 optional string url_params;	//［重要］前端调用云支付接口时使用的url参数
+	};
+	
+	//获取用户订单列表
+	struct VipOrderListRequest
+	{
+		0 optional string pageContext;		//翻页上下文
+	};
+	
+	struct VipOrderListResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 optional int total;							//订单总数
+		2 optional string pageContext;					//翻页上下文
+		3 optional vector<VipOrderItem> orderItemList;	//订单列表
+		4 optional bool hasNextPage;					//是否还有下一页
+	};
+	
+	//获取用户有效的观影券信息
+	struct GetTicketListRequest
+	{
+		0 optional int  test;		//占位
+	};
+	
+	struct GetTicketListResponse
+	{	
+		0 require int errCode;		//业务错误码 0 表示获取成功
+		1 optional int total;		//返回用户可用券的总数
+		2 optional int visiterTotal;//返回当前游客用户可用券的总数
+	};
+	
+	//观影券购买单片，这个接口会自动去获取用户是否有可用的券
+	struct TicketTradeRequest
+	{
+		0 optional string lid;		//栏目id
+		1 optional string cid;		//专辑id
+		2 optional string vid;		//视频id
+		3 optional int type;        // 0,观看视频，1,下载视频
+		4 optional int userType;    // 0,当前登录用户，1,游客用户
+	};
+	
+	struct TicketTradeResponse
+	{
+		0 require int errCode;		//业务错误码 0 表示购买成功
+		1 optional string errMsg;	//错误描述信息
+		2 optional string cid;
+		3 optional string vid;
+	};
+	
+	///////////////////////////////////////////////////////////////////
+	
+	//开通会员的产品列表
+	struct VIPPayProduct
+	{
+		0 require IconTagText productName;	//产品名称
+		1 require string serviceCode;		//服务代码
+		2 require string goodSid;			//产品代码
+		3 optional string wxServiceCode;	//微信帐号服务代码
+		4 optional string wxGoodSid;			//微信帐号产品代码
+	};
+
+	//会员开通产品信息请求
+	struct VIPPayProductListRequest
+	{
+		0 optional int flag;		//占位无意义
+	};
+	
+	struct VIPPayProductListResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 optional string VipImageUrl;					//开通或续费好莱坞广告图片地址
+		2 optional string SkipAdImageUrl;			    //跳过广告图片地址
+		3 optional vector<VIPPayProduct> productList;	//产品列表
+		4 optional bool isAutoRenew;					//是否自动续费
+	};
+	
+	
+	//获取道具列表
+    struct GetLiveGiftListRequest
+    {
+    	0 require string pid;				//直播时传递pid，点播时传递h5页面给的key，好声音投票传递该模块给的key
+		1 optional int keyType;				//描述pid字段的类型。0:直播(这个是扩展字段默认0，兼容老版本),1直播，2vid，3cid，4lid，5v+账号，6组id
+		2 optional string actorId;			//送道具的明星id
+		3 optional string propsDataKey;		//透传后台下发的datakey。
+		4 optional long pointTime;			//点播打点的时间
+		5 optional int model;				//表示拉起道具列表的来源上报，1直播的竖屏、2直播的全屏、3点播的竖屏、4点播的横屏，5频道页的排行榜，6二级页的排行榜，7直播人气榜页卡  10showroom场景
+		6 optional int idType;				//描述actorId的类型，默认是0， 表示普通明星id，6表示粉丝直播主播vuserId
+	};
+    
+    struct GetLiveGiftListResponse
+    {
+    	0 require int errCode;						//业务错误码
+    	1 optional string giftTitle;				//道具标题
+    	2 optional string giftDes;					//道具描述
+    	3 optional vector<LiveGiftItem> giftList;	//道具列表
+    	4 optional int freeGiftCount;				//可以获赠的免费道具数量
+    	5 optional ActionBarInfo qzTopicBarInfo; 	//话题圈入口
+    };
+    
+    //使用道具的请求
+    struct ApplyGiftRequest
+    {
+    	0 require string  productId;		//道具的产品id
+    	1 optional string actorId;			//接收道具的用户id
+    	2 optional string pid;				//直播时传递pid，点播时传递h5页面给的key，好声音投票传递该模块给的key
+		  3 optional int keyType;				//描述pid字段的类型。0:直播(这个是扩展字段默认0，兼容老版本),1直播，2vid，3cid，4lid，5v+账号，6组id
+		  4 optional string propsDataKey;		//透传后台下发的datakey。
+		  5 optional int model;				//表示拉起道具列表的来源上报，1直播的竖屏、2直播的全屏、3点播的竖屏、4点播的横屏，5频道页的排行榜，6二级页的排行榜，7直播人气榜页卡
+		  6 optional long productNum;  //赠送数量
+		  7 optional int productType; //0 普通赠送，1，踢榜2，超越
+		  8 optional int overRank;    //表示要超越或者踢榜第几名
+		  9 optional int idType;		//描述actorId的类型，默认是0， 表示普通明星id，6表示粉丝直播主播vuserId
+	};
+	
+	struct ApplyGiftResponse
+	{
+		0 require int errCode;				//业务错误码
+		1 optional LiveGiftItem giftItem;	//这里要带回详细信息，包括可用的次数
+		2 optional long rank;				//用户当前的排名
+		3 optional int productType; //0:普通赠送1:踢榜2:超越
+	};
+	
+    //废弃   查询影片是可以下载
+	struct GetVideoDownloadInfoRequest
+	{
+		0 optional string lid;		//栏目id
+		1 optional string cid;		//专辑id
+		2 optional string vid;		//视频id
+	};
+	
+	struct GetVideoDownloadInfoResponse
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string lid;			//栏目id
+		2 optional string cid;			//专辑id
+		3 optional string vid;			//视频id
+		4 optional int downloadState;  // 0,不可以下载  1,可以下载
+		5 optional string tips;        //不可以下载 点击的提示
+		6 optional Action action;    //不可以下载 点击的跳转
+		7 optional string negativeBtn; //取消按钮的文案
+		8 optional string positiveBtn; //确定按钮的文案
+	};
+
+	// 付费专辑的价格信息(单位：分)                                                           
+    struct CoverPrice                                                               
+    {                                                                               
+        0 optional int ordinaryPrice;       // 非会员非IAP价格                      
+        1 optional int vipPrice;            // 会员非IAP价格                        
+        2 optional int ordinaryIapPrice;    // 非会员IAP价格                        
+        3 optional int vipIapPrice;         // 会员IAP价格                          
+    };
+	// 批量查询下载好莱坞信息的批量结果
+	struct CheckDownloadCopyrightResult		//下载权限的结果是按照实际付费动作聚合的，如：某视频第20集～第25集可以通过一次开通好莱坞操作完成，则对第20集～第25集聚合返回
+	{
+		0 optional vector<VideoBaseParams> requestItems;		//可聚合的视频信息列表
+		1 optional int downloadState;  						// 0,不可以下载  1,可以下载
+		2 optional int detailCode;     						//不可以下载的详细返回码：1,版权原因被限制 2 没有登录 4 不是vip会员 8 用卷视频没有购买  16 用卷视频没有购买(用户没有用卷了)  32 没有用钱购买
+		3 optional string detailTips;   					//不可以下载的提示
+		4 optional bool cacheCheckVip;      					//缓存的视频是否要检查vip身份
+		5 optional int errorCode;						//错误码
+		6 optional CoverPrice priceInfo;		//当前视频的价格信息
+	};
+
+	//批量查询影片是下载权限
+	struct CheckDownloadCopyrightListRequest
+	{
+		0 optional vector<VideoBaseParams> downloadCopyrightItems;		// 查询下载权限的信息
+ 	};
+	
+	struct CheckDownloadCopyrightListResponse
+	{
+		0 require int errCode;			//业务错误码
+		1 optional vector<CheckDownloadCopyrightResult> downloadCopyrightResults;		// 返回查询下载权限的结果
+	};
+
+	//查询影片是可以下载
+	struct CheckDownloadCopyrightRequest
+	{
+		0 optional string lid;		//栏目id
+		1 optional string cid;		//专辑id
+		2 optional string vid;		//视频id
+		3 optional int type;       	// 0,按照视频vid纬度（缓存列表，播放器全屏下载入口）,1,按照cid纬度（详情页入口） 
+ 	};
+	
+	struct CheckDownloadCopyrightResponse
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string lid;			//栏目id
+		2 optional string cid;			//专辑id
+		3 optional string vid;			//视频id
+		4 optional int downloadState;  		// 0,不可以下载  1,可以下载
+		5 optional int detailCode;     		//不可以下载的详细返回码：1,版权原因被限制 2 没有登录 4 不是vip会员 8 用卷视频没有购买  16 用卷视频没有购买(用户没有用卷了)  32 没有用钱购买
+		6 optional string detailTips;   	//不可以下载的提示
+		7 optional bool cacheCheckVip;      	//缓存的视频是否要检查vip身份
+		8 optional CoverPrice priceInfo;		//当前视频的价格信息
+	};
+	
+	//好莱坞提示条请求信息,包头登录态也是重要信息
+	struct VipTipsInfoViewRequest
+	{
+		0 optional string lid;		//栏目id
+		1 optional string cid;		//专辑id
+		2 optional string vid;		//视频id
+		3 optional string pid;		//直播id
+		4 optional string streamid;	//流id
+ 	};
+	
+	struct VipTipsInfoViewResponse
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string content;		//提示条显示的文本（支持html格式）
+		2 optional string background;		//背景样式
+		3 optional Action action;		//页面跳转链接
+	};
+	
+	//好莱坞催费提示条请求
+	struct GetVipTipsRequest
+	{
+		0 require int requestType;   //请求类型 0：好莱坞tab页 1：频道页
+	};
+
+	struct GetVipTipsResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 optional int type;						//类型 0|特权文案,1|催费文案,2|活动文案,3|站内信
+		2 optional int displayTime;					//显示时间单位为秒，超过这个时间自动消失，如果为-1，一直显示
+		3 optional ActionBarInfo leftContentInfo; 	//一般为描述信息
+		4 optional ActionBarInfo rightContentInfo;  //一般为跳转信息
+		5 optional string tipsId;					//消息id，目前使用在站内信
+	};
+
+	struct VipCommonMsg
+	{
+		0 optional string id;				// 视频妹id
+		1 require int displayTime;			// 展示时间
+		2 optional string text;				// 视频妹文案
+		3 optional string actionUrl;		// 视频妹跳转Url
+		4 optional string bgImageUrl;		// 视频妹背景图Url
+		5 optional int showMode;			// 0默认视频妹弹窗，1打开h5展示
+		6 optional vector<ExtraReportKV> extraReportKVs; //额外上报参数
+	};
+	//好莱坞通用文案配置请求
+	struct VipCommonMsgRequest
+	{
+		0 require int type;  //0-好莱坞tab页弹窗
+		1 optional string id; // 本地上一次展示的id，默认为""表示用户没有出现过视频妹         
+		2 optional int localShowedTimes;   // 本地显示次数，默认为0
+	};
+	struct VipCommonMsgResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 optional map<string, long> numberMap;		//数值型配置
+		2 optional map<string, string> stringMap; 	//字符串型配置
+		3 optional vector<ExtraReportKV> extraReportKVs; //额外上报参数
+		4 optional string dataVersion;					 //版本号
+		5 optional vector<VipCommonMsg> vipCommonMsgs; 	 //视频妹信息列表
+	};
+
+	 // 检查赠送影片
+    struct CheckGiveRequest {
+		0 optional string cid;          
+		1 optional string vid;          
+		2 optional string lid;          
+		3 optional string pid;  
+		4 optional int type;	//0-小窗 1-全屏      
+    };
+
+    struct CheckGiveResponse {
+		0 require int errCode;        			 // 错误码
+		1 optional string errMsg;     		 	 // 错误信息
+		2 optional int leftNum;       			 // 剩余赠送次数
+		3 optional string dataKey;      		 // 透传字段
+		4 optional ShareItem shareItem;   	     // 分享的url
+		5 optional ONAPosterTitle tips;		 	 //分享面板头部
+		6 optional bool canGive;				 //是否能赠送
+		7 optional vector<string> wishList;		 // 赠言数组
+		8 optional string score;				 // 用户评分，若未评分默认为空
+		9 optional bool hasGive;                 //是否已经赠送过
+
+    };
+	
+	//分享影片扣除剩余分享次数
+	struct GiveMovieRequest {
+		0 require string dataKey;      	// 透传字段
+		1 optional string cid;          // 专辑id
+		2 optional string vid;          // 专辑id
+		3 optional string lid;          // 专辑id
+		4 optional string pid;          // 专辑id
+		5 optional string nickName;     //	用户昵称
+		6 optional string headerUrl;    //	用户头像url
+		7 optional string channel;		//分享渠道
+		8 optional string score;		// 用户评分，若未评分默认为空
+		9 optional string wishWords;	// 用户选中的赠言
+
+    };
+
+    struct GiveMovieResponse {
+		0 require int errCode;         // 错误码
+		1 optional string errMsg;      // 错误信息
+		2 optional int leftNum;        // 剩余赠送次数
+    };
+
+    //检查绑定帐号是否是会员
+    struct CheckBindAccountRequest {
+    	0 optional int type;		//暂时没用
+    };
+
+    struct CheckBindAccountResponse {
+    	0 require int errCode;
+    	1 optional bool isVip;		//绑定帐号是否是会员 
+    	2 optional string text;		//好莱坞页卡Tips文案
+    	3 optional string tabTips;	//好莱坞tab的提示文案
+    	4 optional string playerTips;//播放器上的提示文案
+    };
+	
+	//赠片小红点协议
+	struct CheckNewPresentRightRequest {
+    	0 require int version; //版本号
+    };
+
+    struct CheckNewPresentRightResponse {
+    	0 require int errCode;
+    	1 require int version;  //版本号
+    	2 require int count;	//当前还剩多少赠片机会
+    };
+	
+	   //营销专区预约
+    struct MarketAttentRequest {
+    	0 require vector<MarketAttentItem> attentKeyList;		//预约项的key,支持批量操作
+		1 require byte option;		//操作类型 0-预约 1-取消预约
+    };
+
+	//营销专区预约操作返回结果
+	struct MarketAttentResponse
+	{
+		0 require int errCode;									//业务错误码
+		1 optional vector<MarketAttentItem> attentItemList;		//在添加预约的时候请返回这个结构
+	};
+
+	//查询我的所有预约
+    struct QueryUserMarketAttentRequest {
+    	0 optional int type; //目前没用，占位
+    };
+
+    struct QueryUserMarketAttentResponse {
+    	0 require int errCode;									
+		1 optional vector<MarketAttentItem> attentItemList;		
+    };
+
+    //营销专区海报局部更新协议
+    struct QueryUserMarketDataRequest {
+    	0 require vector<string> activityId;	//营销专区海报活动Id
+    };
+
+    struct QueryUserMarketDataResponse {
+    	0 require int errCode;
+    	1 optional map<string, string> lines;		//营销专区局部更新字段：剩余分数的显示文本
+    };
+
+    struct ActionButton
+    {
+        0 optional string title;                        // 按钮文字
+        1 optional Action action;					  	// 跳转Action
+        2 optional int type;						    	// 0：默认 1：忽略Action，在小窗上加载透明WebView
+		3 optional string buttonBackgroundColor;  // 按钮背景色，格式："#FFAAAAAA"
+		4 optional string buttonTextColor;        // 按钮文字颜色，格式："#FFAAAAAA"
+		5 optional FrameRect targetPageFrame; //跳转页面的Frame
+	};
+	
+    struct AccountPlayPermissionRequest 
+    {
+    	0 optional int playerErrorCode;					// 播放器播放错误码
+    	1 optional int isCheckBannedOnly;				// 是否仅查询封号状态 1->是, 0->否(会额外返回封号文案信息)
+    };
+
+    struct AccountPlayPermissionResponse 
+    {
+    	0 require int errCode;
+    	1 require int hasPermission;					// 是否具有解封资格（首次被封用户是YES，正常用户和非首次解封用户是NO）
+    	2 optional string message;						// 提示文字
+    	3 optional vector<ActionButton> buttons;		// 播放按钮，按顺序展示
+    	4 optional int isBanned;						// 是否被封号 1->是, 0->否
+    };
+
+	// 个人中心-开通VIP模块数据请求
+	struct UserCenterVipEntryRequest
+    {
+    	0 optional int type;	// 占位符，无意义
+    };
+
+	// 个人中心-开通VIP模块返回数据（数据包含活动、站内信、默认文案）
+    struct UserCenterVipEntryResponse
+    {
+		0 require int errCode;
+		1 optional string iconUrl;	// 图标
+		2 optional string title;	// 主标题
+		3 optional string subtitle;	// 副标题
+    };
+	
+	struct TitleBarConfig
+    {
+        0 optional string bgUrl;                        //  背景图url
+        1 optional string bgColor;						// 背景图color，格式："#FFAAAAAA"
+        2 optional string title;						//  顶部文案,支持html格式
+		3 optional string openVipText;					//  开通vip按钮文案,支持html格式
+		4 optional string openVipBgColor;				//  顶部vip按钮背景color，格式："#FFAAAAAA"
+		5 optional string searchIconColor;              // 顶部搜索按钮color
+		6 optional long startTime;              		// 配置开始时间
+		7 optional long endTime;              			// 配置结束时间
+	};
+	
+	struct TabBarConfig
+    {
+        0 optional string bgUrl;                        //  背景图url
+        1 optional string bgColor;						// 背景图color，格式："#FFAAAAAA"
+        2 optional string vipIconNormal;				//  vip tab 活动未选中图片
+		3 optional string vipIconSelected;              // vip tab 活动选中图片
+		4 optional string textColor;					// tab 名字color："#FFAAAAAA"
+		5 optional string iconColor;              		// tab 图片color，格式："#FFAAAAAA"
+		6 optional long startTime;              		// 配置开始时间
+		7 optional long endTime;              			// 配置结束时间
+	};
+	
+	struct OpenVipConfig
+    {
+        0 optional string tryLookText;                  // 试看视频开通vip配置文案
+        1 optional string wholeText;					// 会员看全集视频开通vip配置文案
+		2 optional string tryLookSubscript;             // 试看结束开通vip按钮配置角标
+        3 optional string definitionSubscript;			// 1080p清晰度角标
+		4 optional long startTime;              		// 配置开始时间
+		5 optional long endTime;              			// 配置结束时间
+	};
+
+
+	struct ChannelNameColorConfig
+    {
+		0 optional string bgColor;						// 背景图color，格式："#FFAAAAAA"
+		1 optional long startTime;              		// 配置开始时间
+		2 optional long endTime;              			// 配置结束时间
+		3 optional string slideImgUrl;                  // 底部滑动图片   5.1.0 新增
+		4 optional string slideBoardColor;              // 底部滑动图片边框颜色   5.1.0 新增
+	};
+	
+	// vip 活动配置请求
+	struct VipActivityConfigRequest 
+    {
+    	0 optional int type;							// 占位符	
+    };
+
+    struct VipActivityConfigResponse 
+    {
+    	0 require int errCode;
+    	1 optional TitleBarConfig titleBarConfig;					// 顶部bar配置
+    	2 optional TabBarConfig tabBarConfig;						// 底部bar配置
+    	3 optional PullRefreshConfig pullRefreshConfig;				// 下拉刷新图片配置
+		4 optional OpenVipConfig openVipConfig;						// 开通vip相关配置
+		5 optional LoadingConfig loadingConfig;						// 加载图片配置
+		6 optional ChannelNameColorConfig channelNameColorConfig;	//频道页名字颜色的配置
+		7 optional map<string, TabBarConfig> tabBarConfigs;               // app tab 配置, key: "HomeTab":首页 "VPlusTab":热点, "VipTab":好莱坞, "FindTab":直播, "ProfileTab":个人中心
+		8 optional PullRefreshConfig otherPullRefreshConfig;              // 非vip频道下拉刷新  5.1.0 新增
+		9 optional ChannelNameColorConfig otherChannelNameColorConfig;    // 非vip频道标题配置  5.1.0 新增
+		10 optional vector<LoadingConfig> loadingConfigs;	         // 加载图片配置,支持配置多个前端随机选取，5.4.0新增
+    };
+    //可以拉取H5游戏的图片配置
+    struct H5GameImageConfig
+    {
+    	0 optional string imgUrl;
+    	1 optional bool isPullH5;	//是否可以拉取H5
+    	2 optional int showNum;	//0：每次都出 1：只出1次
+    };
+
+    //游戏 VipTab的Icon在不同状态下的配置
+    struct H5GameVipIconConfig
+    {
+    	0 optional H5GameImageConfig entryTabIcon;		//游戏开始入口Tab icon
+    	1 optional string normalGameIcon;                     // 游戏过程tab 未点击icon
+	2 optional string pressGameIcon;                     // 游戏过程tab 点击icon 
+    };
+	
+	// 单场游戏配置
+	struct H5GameConfig 
+    {
+		0 optional string gameID;              		// 单场活动id
+		1 optional long startTime;              	// 配置开始时间
+		2 optional long endTime;              		// 配置结束时间
+		3 optional string gameUrl;                  // 游戏Url
+		4 optional string entryGameTipImgUrl;		//游戏开始时候的引导图
+		5 optional string h5LoadingImgUrl;	//撑满全屏后H5显示前的loading图
+		6 optional string closeIconUrl;	//全屏后右上角App的X图
+		7 optional int pullWay;	//0：内嵌 1：全屏
+		8 optional bool vipOnly;		//是否是会员专场
+		9 optional int pullNum;	//下拉刷新H5页面可以拉取的次数 0：无限次
+		10 optional H5GameVipIconConfig vipTabIconConfig;		//Vip Tab icon的配置
+		11 optional H5GameImageConfig entryGameTipImage;		//游戏开始时候的引导图
+		12 optional PullRefreshConfig pullRefreshConfig;		//单场游戏的下拉刷新配置
+		13 optional string moreIconUrl;		//全屏后更多按钮图
+		14 optional string h5LoadingBgImgUrl;		//撑满全屏后H5显示前的loading背景图
+		15 optional bool isAutoShowH5;			//该用户该游戏第一次进入VIPTab是否自动触发H5展示
+    };
+	
+	// 游戏配置数据
+	struct H5GameConfigData
+    {
+		0 optional string activityID;              			// 活动id
+		1 optional string entryTabIcon;                     //  游戏开始入口Tab icon
+		2 optional string normalGameIcon;                     // 游戏过程tab 未点击icon
+		3 optional string pressGameIcon;                     // 游戏过程tab 点击icon
+		4 optional vector<H5GameConfig> gameItems;	         // 周期内游戏配置
+		5 optional vector<PullRefreshConfig> pullRefreshConfigs;	// 周期内下拉刷新图片配置
+    };
+
+	// vip四周年活动
+	struct VipH5GameConfigRequest 
+    {
+    	0 optional int type;							// 占位符	
+    };
+
+	// vip四周年活动回包
+    struct VipH5GameConfigResponse 
+    {
+		0 require int errCode;
+		1 optional H5GameConfigData h5GameConfigData;              	// 游戏配置数据
+		2 optional long serverTime;              					// 后台时间
+		3 optional string dataVersion;              				// 数据版本号，配置内容修改后变更
+    };
+	//对于iap支付失败后，获取当前登录态是否有绑定手机号
+	struct GetBindPhoneRequest
+	{
+		0 optional int type;//纯占位，无意义
+	};
+	
+	struct GetBindPhoneResponse
+	{
+		0 require int errCode;
+		1 require int bindFlag;	//0:未绑定 1：已绑定
+		2 optional string msg;
+		3 optional int act;		//是否参加过活动
+		4 optional string act_url;	//没有绑定手机返回跳转url
+		5 optional string phone;	//手机号
+	};
+	struct OrderRequest{
+		1 require string hlw_singlepayid; 
+		2 optional string product_key; //
+		3 optional int pf; 				//请求方的平台号
+		4 optional string actid; 		//请求方所在的活动号,请利用此字段做价格干预
+		5 optional string version; 		//请求方所在的版本号
+		6 optional string ex_params;	//商品自定义参数 如专辑ID。此参数会从前端透传
+		7 optional unsigned int pay_count;//购买数量，如果填0就是1.
+		8 optional string aid;			// 前端传来的aid 
+		9 optional string offerid;		//计平测offerid 
+		10 optional string platform; 	//计平的平台号
+		11 optional string ip;			//用户的ip
+		12 optional string refer;		//用户的refer
+		13 optional int iaptype;		//0:非iap 1:iap
+	};
+	
+	struct OrderResponse{
+		0 require int retcode;							//错误码
+		1 optional string error_msg;					//错误信息
+		2 optional string url_params;					//支付url
+		3 optional string payitem;
+		4 optional string apple_id;
+	};
+
+	struct WhiteListRequest
+	{
+		1 require int version;
+		2 require string rule_name;		//固定值app_iap
+	};
+
+	struct WhiteListResponse 
+	{
+		1 require int ret;
+		2 require string errmsg;
+		3 require int is_auth;		//1是灰度策略，其余未命中策略
+	};
+	struct VipCommonConfigRequest 
+    {						
+    	0 optional int type;	// 占位符	
+    };
+
+	struct VipSpokesPersonConfig
+	{
+	   	0 optional map<string,string> imageUrlMap;	//各种场景的key如下：
+													//giveVideoIdolImageUrl(赠片指引代言人图片)
+													//giveVideoDialogIdolImageUrl(赠片Alert弹框代言人图片)
+													//giveVideoDialogBgImageUrl(赠片Alert弹框)
+													//bubbleCommentIdolImageUrl(气泡弹幕代言人图片) 
+													//bubbleVipAlertBgImageUrl(会员弹幕Alert弹框)
+													//bubbleVipAlertIdolImageUrl(会员弹幕Alert代言人图片)
+													//parallelDownloadImageUrl(并行下载)
+													//downloadAndPlayImageUrl(边下边播)
+													//downloadDialogBgImageUrl（下载鉴权Alert弹框）
+													//downloadDialogIdolImageUrl（下载鉴权Alert代言人图片）
+													//playerSkipAdIdolImageUrl(播放器顶部跳过广告提示代言人图片)
+													//playerSkipLiveAdIdolImageUrl(播放器顶部跳过直播广告提示代言人图片)
+													//player1080pIdolImageUrl(播放器顶部1080p提示代言人图片)
+													//playerVipContentIdolImageUrl(播放器顶部会员专享提示代言人图片)
+	};
+
+	//频道弹层推广位，等级升级/生日弹层，在会员的精选页展示的
+	struct VipPromotionInfoConfig
+	{
+		0 optional string promationPageUrl;		//h5页面地址
+	};
+
+	//lv7专属特权配置信息
+	struct VipExclusivePrivilegeInfoConfig
+	{
+		0 optional string animationFileUrl;			 //动画文件下载地址
+		1 optional string beginColor; 				 //按钮背景渐变开始色，颜色值的格式："#FFAAAAAA"
+		2 optional string endColor;					 //按钮背景渐变结束色，颜色值的格式："#FFAAAAAA"
+		3 optional string levelPageUrl; 		 	 //等级页面地址
+		4 optional string levelUpTips; 		 		 //等级体系的提示文案. 示例：V7会员可免费观看所有影片，[升级V7]
+		5 optional string btnTitle; 		 		 //等级体系的提示文案. 示例：LV7免费观看
+	};
+
+	//PUGC 会员only视频底层页支付条运营文案
+	struct PUGCVideoPromotionInfoConfig
+	{
+		0 optional string promationTips;		//运营文案
+	};
+
+	struct VipCommonConfigResponse 
+    {
+    	0 require int errCode;
+		1 optional VipSpokesPersonConfig spokesPersonConfig;	         
+		2 optional VipPromotionInfoConfig promotionInfoConfig;         
+		3 optional VipExclusivePrivilegeInfoConfig exclusivePrivilegeInfoConfig;
+		4 optional PUGCVideoPromotionInfoConfig pugcVideoPromotionInfoConfig;
+    };
+
+	//lv7专属特权视频在播放的时候，上报后台的流水请求
+    struct ExclusivePrivilegePayVideoPlayRequest
+    {
+    	0 optional string cid;
+		1 optional string lid;
+		2 optional string vid;
+    };
+
+	struct ExclusivePrivilegePayVideoPlayResponse 
+	{
+    	0 require int errCode;
+	};
+
+	//积分商城信息请求
+	struct PointStoreInfoRequest
+	{
+		0 optional int type;//占位符
+	};
+
+	struct PointStoreInfoResponse
+	{	0 require int errCode;
+    	1 optional string tips;
+		2 optional string title;
+		3 optional string subTitle;
+		4 optional string jumpUrl;
+	};
+
+    // 视频观看时长上报，目前只上报 PUGC 类型视频
+    struct VideoPlayTimeReportRequest
+	{
+		0 require int videoFlag;					// 视频类型（0: pugc视频）
+		1 require int videoPlayDuration;			// 视频播放了多久（精确到秒）
+		2 require int videoCurrentPlayTime;			// 当前视频播放位置 
+		3 optional string vid;						// 视频 vid
+		4 optional string cid;						// 视频 cid
+		5 optional string lid;						// 栏目 lid
+	};
+
+	struct VideoPlayTimeReportResponse
+	{
+		0 require int errCode;
+	};
+
+	// 用户学习模块单独拉取协议
+	struct UserStudyListRequest
+	{
+		0 require map<string,string> data;			// 透传后台下发的 extraData
+	};
+
+	struct UserStudyListResponse
+	{
+		0 require int errCode;							// 错误码
+		1 require ONAUserStudyPoster studyPosterList;	// 学习海报列表
+	};
+
+	// PUGC付费类型视频专辑学习时长请求
+	struct KnowledgeVideoStudyTimeRequest
+	{
+		1 optional string cid;						// 视频 cid
+		2 optional string vid;						// 视频 vid
+		3 optional string lid;						// 直播 lid
+	};
+
+	struct KnowledgeVideoStudyTimeResponse
+	{
+		0 require int errCode;						// 错误码
+		1 require string studyTips;					//返回学习百分比文案 例如:你已学习此专辑2%
+	};
+};

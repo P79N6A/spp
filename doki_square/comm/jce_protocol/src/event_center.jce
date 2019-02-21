@@ -1,0 +1,148 @@
+/*
+@brief: 事件中心
+auth：beepeng
+time：2018.01.04
+*/
+
+module JceEventCenter
+{
+ 	/*
+	@brief:机器环境信息
+	测试L5:	920449:65536
+	线上L5: 920449:131072
+	*/
+	
+	enum EEventCmd
+	{
+	    CMD_OP_EVENT_ITEM        = 0xf3a4,   //单个doki事件的增删改
+	    CMD_OP_EVENT_LIST        = 0xf3a5,   //读取doki事件列表
+		CMD_SETTING_UPDATE       = 0xf3a6,   //doki管理台 配置 变更
+		CMD_DOKI_EVENT_BROADCAST = 0xf3a7,   //doki事件中转命令
+	}; 
+	
+	enum ModuleErrCode
+	{
+		E_SUC = 0, 
+	};   
+	
+	// 操作类型
+	enum EOperateType
+	{
+	    E_NEW_EVENT = 1,      // 业务方 增加事件
+		E_MOD_EVENT = 2,      // doki管理台 修改事件
+		E_DEL_EVENT = 3,      // doki管理台 删除事件
+		E_TRIGGER_EVENT = 4,  // 定时程序， 触发特定事件
+	};
+	
+	enum ETriggerType
+	{
+		E_TRIGGER_IMMEDIATE = 1,  //立即触发
+		E_TRIGGER_ALARM     = 2,  //定时触发
+	};
+	
+	// 事件类型
+	enum EEventType
+	{
+	    E_ET_ALL        = 0,      //所有类型
+		E_ET_STAR_BIRTH = 1,      //明星生日
+		E_ET_STAR_SETTLE  = 2,    //明星入驻
+		E_ET_STAR_WORKS_PUB = 3,  //作品首发
+		E_ET_STAR_AWARDS = 4,     //获奖情况
+		E_ET_STAR_FANS_INCREASE = 5,  //粉丝突破
+		E_ET_STAR_POPULARITY_CHANGE = 6,  //人气榜变动
+	};	
+	
+	// 事件子类型
+	enum EEventSubType
+	{
+	    E_EST_NONE       = 0,      //无定义
+		E_EST_POPULARITY_TOP = 1,  //人气榜登顶
+		E_EST_FANS_INCR_1 = 2,     //突破10万
+		E_EST_FANS_INCR_2 = 3,     //突破50万
+		E_EST_FANS_INCR_3 = 4,     //突破100万
+		E_EST_FANS_INCR_4 = 5,     //突破200万
+		E_EST_FANS_INCR_5 = 6,     //突破500万
+		E_EST_FANS_INCR_6 = 7,     //突破1000万
+	};	
+	
+	struct stEventDetail
+	{
+		0 optional int    iEventType;   // 事件类型 
+	    1 optional string strEventId;   // 事件ID: 删除、修改传入；格式：{tableid}_{表内ID}
+		2 optional long   lDokiId;      // 可见明星：饭团ID, 非可见明星： doki ID
+
+		3 optional byte   bTriggerType; // 详见ETriggerType
+		4 optional long   lTriggerTime; // 事件触发时间
+		5 optional string strData;      // JSON数据，业务相关
+		6 optional string strResId;     // 关联UI素材ID - 譬如：doki管理台配置素材 --
+		7 optional byte   triggered;    // 是否已触发
+		
+		8 optional long   lStartTime;    // 开始展示时间
+		9 optional long   lEndTime;      // 失效展示时间
+		
+		10 optional int   iEventSubType; // 事件子类型 —— 人气变动： 登顶、20名以内变动
+	};
+	
+
+	// ========== CMD_OP_EVENT_ITEM        = 0xf3a4 ======
+	// ========== 单个事件操作：增删改
+	struct stEventItemReq
+	{
+		0 require stEventDetail stDetail; // 事件详细信息
+		1 optional byte bOption;	       //操作类型 详见：EOperateType
+		2 optional byte bScene;            //事件来源, 1: doki管理台 2:  扫描程序
+	};
+
+	// 单个事件操作：增删改
+	struct stEventItemRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strEventId;   // 事件ID: 删除、修改传入；格式：{tableid}_{表内ID}
+		2 optional string strErrMsg;
+	};
+	
+	// ========== CMD_OP_EVENT_LIST        = 0xf3a5 ======
+	// ========== 列表读取
+	struct stEventListReq
+	{
+		0 require long lDokiId;             //可见明星：饭团ID, 非可见明星： doki ID
+		1 require byte iEventType;	        //详见：EEventType
+		2 optional string strPageContext;	//翻页上下文
+	};
+	
+	// 事件列表
+	struct stEventListRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional vector<stEventDetail> vecEventList;
+		2 optional bool bHasNextPage;		//是否有下一页
+		3 optional string strPageContext;	//翻页上下文
+		4 optional string strErrMsg;
+	};
+	
+	
+	// ========== CMD_SETTING_DATA_UPDATE    = 0xf3a6 ======
+	// ========== 素材资源更新 ==============================
+	struct stSettingUpdateReq
+	{
+	    0 require  string strSettingId; // 资源ID
+		2 optional long   lDokiId;      // 可见明星：饭团ID, 非可见明星： doki ID
+		3 optional byte   cUpdateType;  // 1: 更新 2：删除
+		4 optional string strData;      // 配置数据，JSON格式，业务配置相关
+	};
+	
+	// 更新结果
+	struct stSettingUpdateRsp
+	{
+		0 require int errCode;			//业务错误码
+	};	
+	
+	
+	// ========== CMD_NOTIFY_EVENT_UPD      = 0xf3a7 ======
+	// ========== 事件通知中转 ==============================
+	struct stEventTransMsg
+	{
+	    0 require stEventDetail stEvent;
+		1 optional byte bOption;	       // 操作类型: EOperateTyp
+	};	
+};

@@ -1,0 +1,249 @@
+/*
+@brief:影星吧数据读模块
+auth：diaryyang
+time：2017.8.25
+*/
+#include "fans_growth_h5.jce"
+module CFtNewRank
+{
+/**************************基础信息**********************/
+	/*
+	@brief:机器环境信息
+    TestL5:520769:5373952
+	正式环境L5：827457:131072
+
+	cmd:
+		0xf127   //doki排行榜列表请求 FanTuanStarRankMenuReq
+		0xf126  //doki排行榜详情请求	FanTuanStarRankInfoReq
+		0xf21d  //doki排行榜批量详情请求 FanTuanStarRankInfoBatchReq
+		0xf2cb  // doki星耀榜--粉丝赠送道具跑马灯数据 DokiRankFansGiftDataReq
+	*/
+
+	// 飙升榜只有周榜
+	// 目前只支持每次拉取单个榜单的信息，不支持同时拉取多个榜单。（2017-11-03）
+	
+/***********************结构体定义*************************/
+	
+    //饭团明星分数详情
+    struct FanTuanScoreInfo
+    {
+        1   require unsigned int dwFanTuanId;					  // 饭团ID
+        2   optional string strStarTotalScore;                     // 明星总得分 
+        3   optional long ddwVideoView;						      //全站相关作品播放量
+		4   optional long ddwSearchCnt;							  //全站搜索量
+        5   optional long ddwFollowCnt;                           //doki关注数
+		6   optional long ddwWeChatIndex;                         //微信指数
+		7   optional long ddwPopularity;							//人气值
+		8	optional long ddwStarReplyCnt;							  //在线回复数
+		9	optional long ddwStarCommentCnt;					  //发表评论数
+		10	optional long ddwStarFanPaiCnt;						      //翻牌数
+		11	optional long ddwStarOnlineCnt;							//在线直播数
+		12	optional long ddwStarBefallCnt;						  //驾到次数
+        13   optional unsigned int dwLastRank;					  //上次排名
+        14   optional unsigned int dwCurRank;                     //本次排名
+
+		15   optional double dfVideoScore;						      //全站相关作品播放量得分
+		16   optional double dfSearchScore;						      //全站搜索量得分
+		17   optional double dfFollowScore;			 			      //doki关注数得分
+		18   optional double dfWechatScore;						      //微信指数得分
+
+		20	optional long ddwStarCommentScore;						//发表评论数得分
+		21	optional long ddwStarFanPaiScore;						      //翻牌数得分
+		22	optional long ddwStarOnlineScore;							//在线直播数得分
+		23	optional long ddwStarBefallScore;						  //驾到次数得分
+
+		// 影响力榜(周榜)本次排名和上次排名，飙升榜需要。
+		24   optional unsigned int dwLastInfluenceWeekRank;					  //影响力榜上次排名
+        25   optional unsigned int dwCurInfluenceWeekRank;                     //影响力榜本次排名
+    };
+      
+	// 饭团详情
+	struct FanTuanDetailInfo
+	{
+		1 require unsigned int dwFanTuanId;					//饭团id
+		2 require unsigned int dwStarId;					//明星id
+		3 require unsigned int iStarType;					//明星类别
+		4 optional string strName;							//明星名字
+		5 optional string strDesc;							//饭团描述
+		7 optional string strHeader;						//头像	
+        8 optional byte bAttention;							//关注状态
+        9 optional FanTuanScoreInfo stFanTuanScoreInfo;		//饭团分数结构
+		// 5.8.1 新榜单新增字段
+		10 optional string strHotShow;						//当前热播作品
+		11 optional string strDataKey;						//道具赠送datakey
+		12 optional int iPosition;							// 参演明星榜排序用 无实际意义
+	};  
+	
+	  	// 背景图
+	struct BannerImg
+	{
+		1 require string people;						//人物背景图
+		2 require string bg;							//背景图
+		3 require string name;							//榜单名字图
+	};  
+
+	struct FanTuanLink
+	{
+		1 optional string strRenqiLink;						//人气link
+		2 optional string strVideoLink;						//看视频跳转
+	};
+
+	struct RankRule
+	{
+		1 optional string strRuleDesc;						//规则简介
+		2 optional string strRuleTitle;						//规则名
+	};
+
+	// 用户信息
+	struct STPersonData
+	{
+		0 require long lUserid;
+		1 require string strNick;
+		2 require string strHead;
+		3 require string strCity;
+		4 require string strCountry;
+		5 require string strSex;
+		6 require unsigned byte cFrom;
+		7 require unsigned int dwCreateTime;
+		8 require unsigned int dwStatus;
+		9 optional long lGiftPoint;	
+	};
+
+	// 人气榜粉丝信息
+	struct STFansInfo
+	{
+		0 require STPersonData stPersonData;
+		1 require long		   lGiftPoint;	// 贡献人气值
+		2 optional string	   strPersonalLink;//粉丝个人页
+		3 optional FansAdapt::stBadgeLevel	   stBadgeLevelInfo;//用户徽章信息
+	};
+
+	// ---------- 请求和响应结构 ---------- //
+    //排行榜影星榜 请求结构
+    struct FanTuanStarRankMenuReq
+    {
+        1 require unsigned byte cRankType;					//1:影响力榜 2:人气榜 4:新秀榜 8:飙升榜 16:发糖榜 32:参演明星人气榜 64:明星对应的粉丝贡献榜
+        2 optional unsigned short wPageFlags;				//翻页规则，0：分数从高到低 1：分数从低到高
+        3 optional unsigned short cTimeType;                //时间类型（周榜1,总榜2,日榜3,月榜4）
+        4 optional long dwRankTime;							//请求时间戳（为0）则默认为最新一期
+        5 optional unsigned int dwReqNum;					//每页数量
+        6 optional unsigned int dwPage;						//页数（从0开始） 
+		7 optional string strDataKey;						//底层页播放剧集DataID
+		8 optional int bFrom;								 //请求来源（1：搜索 2:V站榜单 3:web doki 4:打榜任务 5:doki推荐 6:加入更多doki）
+
+		// cRankType = 64:明星对应的粉丝贡献榜 所需数据
+		9 optional unsigned int dwStarId;                  //明星ID 
+    };
+    
+    //排行榜影星榜 响应结构
+	struct FanTuanStarRankMenuRsp
+	{
+		1 require int iErrCode;				 										        //业务错误码
+		2 optional string strErrMsg;												        //业务错误原因
+		3 optional map<unsigned byte, vector<FanTuanDetailInfo> > mapFtStarRankInfo;		//饭团详情列表
+        4 optional unsigned int dwPeri;														//当前期数
+		5 optional bool bHasNextPage=false;													//是否有下一页
+		// 5.8.1 新增
+		6 optional BannerImg stBannerImg;											//排行榜头部图，page=0返回
+		7 optional int iTimeStamp;													//dwRankTime=0返回
+
+		// cRankType = 64:明星对应的粉丝贡献榜 所需数据
+		8 optional vector<STFansInfo> vecUserInfo;		 // 粉丝贡献榜 size = min(10, 所有送礼粉丝数)
+    };
+    
+    
+    //排行榜影星榜详情 请求结构
+    struct FanTuanStarRankInfoReq
+    {
+        1 require unsigned int dwFanTuanId;					//饭团ID
+        2 optional long dwRankTime;							//请求时间戳（为0）则默认为最新一期
+		3 require unsigned byte cRankType;					//1:影响力榜 2:人气榜 4:新秀榜 8:飙升榜 16:发糖榜 32:参演明星人气榜 64:明星对应的粉丝贡献榜
+        4 optional unsigned int cTimeType;					//时间类型（周榜1，总榜2）
+        5 optional unsigned int dwStarId;                  //明星ID
+        6 optional int bFrom;                             //请求来源（1：搜索 2:V站榜单 3:web doki 4:打榜任务 5:doki推荐）
+    };
+    
+    //排行榜影星榜详情 响应结构
+    struct FanTuanStarRankInfoRsp
+    {
+        1 require int iErrCode;				 										        //业务错误码
+		2 optional string strErrMsg;												        //业务错误原因
+		3 optional FanTuanDetailInfo stCurDetailInfo;						   				//当前饭团详情结构
+        4 optional FanTuanScoreInfo stBackGoundScore;										//前一名饭团分数结构
+		5 optional FanTuanLink stFanTuanLink;												//链接
+		6 optional vector<STFansInfo> vecUserInfo;											// （人气榜返回）粉丝贡献榜 size = min(3, 所有送礼粉丝数)
+    };
+
+	//排行榜影星榜详情 批量请求结构
+    struct FanTuanStarRankInfoBatchReq
+	{
+		1 require vector<FanTuanStarRankInfoReq> vecInfoBatchReq;		// list长度限制为10
+	};
+    
+	//排行榜影星榜详情 响应结构
+    struct FanTuanStarRankInfoBatchRsp
+	{
+		1 require int iErrCode;				 										        //业务错误码
+		2 optional string strErrMsg;												        //业务错误原因
+		3 optional map<int, FanTuanStarRankInfoRsp> mapInfoBatchRsp;						// starid->数据
+	};
+
+	// doki星耀榜 粉丝赠送道具跑马灯 请求数据
+    struct DokiRankFansGiftDataReq
+	{
+		1 require int iStarId;					// 单个请求starid
+	};
+    
+	//doki星耀榜 粉丝赠送道具跑马灯 返回数据
+    struct DokiRankFansGiftDataRsp
+	{
+		1 require int iErrCode;				 									//业务错误码
+		2 optional string strErrMsg;											//业务错误原因
+		3 optional vector<STFansInfo> vecUserInfo;								// 粉丝贡献值跑马灯数据 size <= 50
+	};
+
+	/***************** 拉取用户信息部分 ********************/
+	/*
+		@brief:机器环境信息
+		TestIp:10.177.130.230
+		TestPort:40942
+		TestL5:301249:1310720
+		OnlineL5:382977:131072
+		enum ModuleCmd
+		{
+			CMD_GET_RS_INFO 	= 0xe954,
+			CMD_GET_USER_INFO 	= 0xe955,
+		};
+	
+		enum ModuleErrCode
+		{
+			RT_SUC = 0,
+			RT_FAIL = 1,
+			RT_RS_NO_EXIST = 1001,			//关系链数据不存在
+			RT_INPUT_INVALID = 1002,		//输入不合法
+			RT_SERVER_ERROR = 1003,			//服务内部错误	
+			RT_READ_RS_FAIL = 1004,			//读取关系链失败
+			RT_READ_RS_TIME_OUT = 1005,		//读取关系链超时
+			RT_READ_INFO_FAIL = 1006,		//读资料信息失败
+			RT_READ_INFO_TIME_OUT = 1007,	//读资料信息超时
+		};
+	*/
+	
+	
+	/**********************协议定义***************************/
+
+	//批量获取好友基础信息请求协议
+	struct STGetUserInfoReq
+	{
+		0 require long lUserid;							//用户userid
+		1 require vector<long> vecUserids;				//需要批量获取用户信息的id
+	};
+	
+	//批量获取好友基础信息回包协议
+	struct STGetUserInfoRsp
+	{
+		0 require int iErrCode;
+		1 optional string strErrMsg;
+		2 optional map<long, STPersonData> mapUserInfo;
+	};
+};     

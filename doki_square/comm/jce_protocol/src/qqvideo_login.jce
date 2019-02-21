@@ -1,0 +1,310 @@
+/*
+   登录相关协议，cwyuan
+ */
+#include "qqvideo_cmd.jce"
+
+module jce
+{
+	enum LoginErrCode
+	{
+		SUCC = 0,
+		FAIL = 1,                       	// 通用错误
+		ERR_REQ_PACKAGE=1001,				// 入包错误
+		ERR_TIMEOUT_WXPROXY=1002,			// WXProxy响应超时
+		ERR_INVALID_WXTOKEN=1003,			// 无效TOKEN
+		ERR_CREATE_VUSER=1004,				// 创建用户失败
+		ERR_UPDATE_ID=1005,					// 更新帐号失败
+		ERR_UPDATE_PROFILE=1006,			// 更新帐号资料失败
+		ERR_OVERLOAD=1007,					// overload
+		ERR_SNS_UPDATE=1008,				// 更新关系链失败
+		ERR_TIMEOUT_M2UREAD=1009,			// M2U读响应超时
+		ERR_WXPROXY=1010,					// WXPorxy错误(非超时错误)
+		ERR_M2UREAD=1011,					// OPENID反查错误(非超时错误)
+		ERR_WRITE_UIN=1012,					// 写入新用户错误
+		ERR_GET_VIDEOTOKEN=1013,			// 更新内部票据错误(非超时错误)
+		ERR_GET_VIDEOTOKEN_TIMEOUT=1014,	// 更新内部票据超时
+		ERR_CHECK_VIDEOTOKEN=1015,			// CHECK VIDEOTOKEN ERROR
+		ERR_CHECK_VIDEOTOKEN_TIMEOUT=1016,	// CHECK VIDEOTOKEN TIMEOUT
+		ERR_GET_WXQQ=1017,					// WX QQ RESP ERROR
+		ERR_READ_PROFILE_TIMEOUT=1018,		// 读取用户资料超时
+		ERR_READ_PROFILE=1019,				// 读取用户资料失败(非超时)
+		ERR_CHECK_PTLOGIN=1020,				// CHECK PTLOGIN ERROR
+		ERR_CHECK_PTLOGIN_TIMEOUT=1021,		// CHECK PTLOGIN TIMEOUT
+		ERR_READ_QQ_PROFILE = 1022,			//读qq资料失败
+	};
+	
+	enum DevicePlatType
+	{
+		DEV_PLAT_IPAD=5,
+		DEV_PLAT_APAD=6,
+		DEV_PLAT_IPHONE=7,
+		DEV_PLAT_APHONE=8
+	};
+	
+	struct STDevInfo {
+	1	require unsigned short wDevPlatType;	// 设备类型
+	2	optional string pushToken;				// push token
+	3	optional string guid;					// guid
+	4	optional string devid;					// devid
+	5	optional string strFromInfo;			// 包头里的frominfo，格式：平台号_appversion_appver,最后一个是app的版本号
+	};
+	
+	// 绑定的单个设备信息
+	struct STBindDevInfo
+	{
+	1	require long ddwBindTime;
+	2	require STDevInfo stDevInfo;
+	};
+	
+	// 资料中存储设备信息的FIELDVALUE
+	struct STBindDevInfoArr
+	{
+	1	require vector<STBindDevInfo> devInfos;
+	};
+	
+	//当前进行切换的登陆态；
+	struct CurLoginToken 
+	{
+		0	require	string			TokenAppID;			
+		1	require	byte			TokenKeyType;		
+		2	require vector<byte>	TokenValue;			
+		3	optional long			TokenUin;	
+		4	optional string 		TokenID;    		//登陆账号信息，如openid
+		5	optional bool 			bMainLogin = false;	//app端的主登录态表示，true：表示为主登录态。false:表示为从登录态
+		100 optional string			TokenValueString; 	//tokenValue String
+	};
+
+	//微信的票据
+	struct STWxLoginToken 
+	{
+		1	optional string	appID;					//登录态APPID
+		2	require	unsigned short	wTokenType;		//登录态类型，填写1
+		3	require string openId;					//登录态ID
+		4	require string accessToken;				//登录态串
+		5	optional string refreshToken;			//登录态refresh串
+	};
+
+	//内部的票据
+	struct STInnerToken 
+	{
+		1	require long ddwVuser;			//内部登陆态ID
+		2	require string vsessionKey;		//内部登陆态串
+		3	optional unsigned int dwExpireTime;		//票据过期时间，单位秒
+	};
+
+	//获取GUID, 
+	struct StGuidGetRequest
+	{
+		0	require int iMarketid; 					//填写1表示QQlive
+		1	require int iPlatform; 					//2:表示APHONE,3:表示ipad,4:表示iphone
+		2	optional unsigned int nUnixtime; 		//终端Unix时间戳
+	};
+
+	struct StGuidGetResponse
+	{
+		0   require int errCode;          		// 返回结果值 0-成功 非0-失败
+		1   require string strErrMsg;     		// 错误描述
+		2	require string strGuid;       		// 返回的guid
+		3	require unsigned int nUnixtime; 	// 返回当前服务器的unixTime
+	};
+
+
+	// 票据请求,1，这是一个纯粹业务侧的命令字，服务器不会为业务返回新的内部票据，当包头返回102，业务要调用login协议；
+	struct STWxRefreshTokenRequest
+	{
+		1 optional STDevInfo stDevInfo;			//设备信息	
+		2 optional vector<CurLoginToken> vecLoginToken;	//登录态列表，包含qq和vuserid+vsessionkey登录态信息
+	};
+
+	// 登刷新票据返回
+	struct STWxRefreshTokenResponse
+	{
+		1	require	unsigned int errCode;		//错误码
+		2	require string strErrMsg;			//返回信息
+	};
+
+	/***************************************
+	  登陆请求（主登陆态在包头里面带，有可能为空）
+
+	  客户端有如下三种情况：
+	    场景1：无内部帐号（或者内部帐号完全无效）：curLoginTokenList为当前新的帐号，包头填写内部帐号+已经有的帐号；
+		场景2：有内部帐号，绑定新的帐号（包括全新帐号的登录）：curLoginTokenList为当前新的帐号，包头填写内部帐号+已经有的帐号；
+		场景3：有内部帐号，续期操作：curLoginTokenList为空；包头填写内部帐号+已经有的帐号；
+
+		服务器login执行流程如下：
+		流程一：查询内部票据，如果内部帐号不存在（无内部id或者内部id非法），以场景1处理；如果内部账户存在，curLoginTokenList为空，以场景3处理；否则以场景2处理；
+		流程二：按照不同的场景，做如下处理：
+		场景1：
+		1）检查curLoginTokenList，如果无效或者为空，返回客户端1001；
+		2）如果有效，调用注册接口，获取curLoginTokenList对应的vuserid；
+		3）为vuserid生成内部票据，并获取帐号资料；
+		场景2：
+		1）调用帐号读取接口，获取curLoginTokenList下关联的vuserid2以及内部帐号关联vuserid1的账户信息；
+		2）如果vuserid2不存在，或者vuserid2信息全面度<vuserid1；调用建立绑定接口；当前app账户为vuserid=vuserid1；
+		3）如果vuserid2信息全面度>vuserid1，当前登陆app账户为vuserid=vuserid2；
+		4）为vuserid生成内部票据，并获取帐号资料；
+		场景3：
+		1）检查包头所带票据是否合法；如果微信票据存在，但无效；返回1001；如果QQ票据存在，但无效；返回1002；
+		2）获取包头合法票据里的账户，调用注册接口，获取vuserid；
+		3）为vuserid生成内部票据，并获取帐号资料；
+
+		错误码说明：
+		1001：微信票据无效；
+		1002：QQ票据无效；
+		1003: 票据异常，请清空本地的内部票据，过来请求；
+		其他错误码：异常，服务器错误，重试或者其他操作
+		*****************************************************************************************************************/
+	
+	//登录请求协议
+	struct STLoginRequest
+	{
+		0 optional vector<CurLoginToken> curLoginTokenList;		//当前登陆的登陆态，QQ会有多个票据，wx 只有一个
+		1 optional int from;									//来源，1=个人中心页卡；2：点击添加好友关系链触发登录；3：表示好莱坞；4：分享登录；
+		2 optional STDevInfo stDevInfo;
+		3 optional unsigned int dwAppType;					//1:影视圈 5:视频先锋 6:视频 PC 端和 H5  8:好莱坞  9:iPad
+	};
+
+	//登陆返回协议
+	struct STLoginResponse
+	{
+		0 require int errCode;					//错误码
+		1 require STInnerToken innerToken;		//内部票据
+		2 optional long qqUin;					//QQ号码
+		3 optional string qqNickName;			//QQ昵称
+		4 optional string qqFaceImageUrl; 		//QQ头像
+		5 optional string wxNickName;			//微信昵称
+		6 optional string wxFaceImageUrl;		//微信头像
+		7 optional string strErrMsg;			//出错原因
+		8 optional string wxOpenId;				//微信openid，如果用另外一个微信帐号重新登录时，登录后要做检查；
+		9 optional int flag;					//flag=0x01:表示已绑定成功；flag=0x02：表示可以绑定终端需要提示绑定，用户点击绑定，调用绑定协议；flag=0x04：表示提示是否切换帐号，当用户点击切换账户后，将返回的内部替换当前的内部票据；否则忽略内部票据；flag=0x08：超过频率限制，不能再绑定；
+		10 optional string infomsg;				//flag=0x02时显示：与微信号xx原绑定的QQ号不符，是否替换成zz；flag=0x04时显示:是否替换当前登录态；flag=0x08时显示：已绑定过2个QQ号，未防止隐私泄漏，不能再绑定新的QQ号码；
+		11 optional string pagetext;			//登录带回去的上下文
+		12 optional vector<ExtentAccount> extentAccountList;//扩展帐号列表
+	};
+	
+	//解绑相关账号请求
+	struct STUnBindRequest
+	{
+		0 require int unBindLoginType;		//当前需要解除的绑定账号类型。1 表示wx，2表示 手Q 
+		1 optional vector<CurLoginToken> curLoginTokenList;		//当前解绑帐号的登录态
+	};
+	
+	//绑定相关账号请求
+	struct STBindRequest
+	{
+		0 require int BindLoginType;							//当前需要绑定的账号类型。1 表示wx，2表示手Q 
+		1 optional vector<CurLoginToken> curLoginTokenList;		//当前绑定帐号的登录态
+		2 optional int from;
+		//来源，1=个人中心页卡；2：点击添加好友关系链触发登录；3：表示好莱坞；
+		3 optional string pagetext;								
+		//登录带回去的上下文，pagetext格式类似：type=1&scence=bind
+	};
+
+	struct STBindResponse
+	{
+		0 require int errCode;				//错误码
+		1 optional string strErrMsg;		//错误原因
+	};
+	
+	struct STUnBindResponse
+	{
+		0 require int errCode;				//错误码
+		1 optional string strErrMsg;		//错误原因
+	};
+	
+	// 登出请求，在登出时需要调用
+	struct STLogoutRequest
+	{
+		0 require int majorLoginType;		//主要登陆态定义 1 表示 wx ，2 表示 手Q
+		1 optional STDevInfo stDevInfo;
+	};
+	
+	// 登出返回
+	struct STLogoutResponse
+	{
+		0 require int errCode;				//错误码
+		1 optional string strErrMsg;		//错误原因
+	};
+	
+	struct STCheckLoginRequest
+	{
+		0 require vector<CurLoginToken> vecLoginToken;	//登录态列表，包含qq和vuserid+vsessionkey登录态信息
+	};
+	
+	struct STCheckLoginResponse
+	{
+		0 require unsigned short wRetCode;			//返回码
+		1 optional string strErrMsg;				//错误原因
+		2 optional long ddwUserid;					//vuserid
+		3 optional long ddwUin;						//qq
+		4 optional string strOpenid;				//微信openid
+	};
+	
+	struct STLoginRequestToInnerRelay
+	{
+		1 	require vector<CurLoginToken> vecLoginToken;	//当前登录态
+		2	require STInnerToken	stInnerToken;			//内部票据
+		3	optional bool bNewUser = false;					//是否新用户首次登陆
+		4	optional string strCallScene;					//调用场景，透传app提供的字符串
+		5	optional unsigned byte cLoginType = 0;			//0，表示微信登录；1表示qq登录；2、表示qq登出
+		6	optional STDevInfo stDevInfo;					//设备信息
+	};
+	
+	
+	/********************************************************************
+	校验登录态流程：
+	场景一：只带ptlogin登录态或者内部登录态
+	流程：
+		校验票据，并且返回对应的账号
+	场景二：带ptlogin登录态和内部登录态
+	流程：
+	1、校验ptlogin登录态和内部登录态
+	2、如果两个登录态校验都失败，返回错误码。
+	3、如果ptlogin登录态校验成功，内部登录态校验失败，主账号返回qq。
+	4、如果ptlogin登录态校验失败，内部登录态校验成功，主账号返回vuserid。
+	5、如果两个登录态校验都成功，查询qq是否与微信绑定到了vuserid2，是，主账号返回vuserid2；
+		否，cType=0，主账号返回vuserid。cType=1，主账号返回qq。
+	*********************************************************************/
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,1173 @@
+/*
+@brief:饭团数据读模块
+auth：bluentzhao
+time：2016.2.24
+*/
+
+module CFtReadPro
+{
+/**************************基础信息**********************/
+	/*
+	@brief:机器环境信息
+	OnlineL5:531457:65536
+  TestL5:301249:4194304
+	*/
+	
+	/*
+       消息类型
+        0-普通feed 1-视频feed 2-焦点图feed 3-热门推荐的feed 4-快报feed 5-排行榜
+    */
+    enum FeedType
+	{
+		FEED_TYPE_NORMAL = 0,
+       	FEED_TYPE_VIDEO = 1,
+       	FEED_TYPE_FORCPIC = 2,
+   		FEED_TYPE_HOTPOST = 3,
+       	FEED_TYPE_ARTICLE = 4,   
+		FEED_TYPE_DABANG = 5,
+		FEED_TYPE_USELESS = 6
+    };
+
+	// 上报用的推荐类型
+	enum ReasonType
+	{
+		REASON_NONE		 		= 0,					// 非推荐算法
+		REASON_FIRST_CATE		= 101,
+		REASON_SECOND_CATE		= 102,
+		REASON_TAG				= 103,
+		REASON_LBS				= 104,
+		REASON_TITLE			= 105,
+		REASON_USER_GROUP		= 106,
+	};
+
+	
+	enum ModuleCmd
+	{
+		CMD_READ_MYFT = 0xec19,
+		CMD_READ_MYPOST = 0xec1a,
+		CMD_READ_MYCOMMENT = 0xec1b,
+		CMD_READ_MYMSGCNT = 0xec1c,
+		CMD_READ_MYMSGLIST = 0xec1d,
+		CMD_READ_POSTDETAIL = 0xec20,
+		CMD_READ_POSTLIST = 0xec1e,	
+		CMD_READ_HOTPOSTLIST = 0xec1f,	
+		CMD_READ_USERINFTINFO = 0xec21,
+		CMD_READ_FTRANK = 0xec22,
+		CMD_READ_FTRANKMENU = 0xec5b,
+		CMD_READ_FTFANSRANK = 0xec7a,
+		CMD_READ_FTDETAIL = 0xec83,
+		CMD_READ_HOTFT = 0xec91,
+		CMD_READ_FTFANS = 0xeca7,
+		CMD_READ_RECOMMPOSTLIST = 0xed4e,
+		CMD_READ_RTIME_RECOMMPOST = 0xedd9,
+    CMD_READ_FTSTARRANK = 0xee4c,
+    CMD_READ_FTSTARRANKDETAIL = 0xee4d,
+    CMD_READ_FTEXCLFEEDS = 0xee67,
+    CMD_READ_FTDYNCFEEDS = 0xee66,
+    CMD_READ_FTSTARHISTLIST = 0xeebe,
+    CMD_READ_FTTOURTAB = 0xeec4,
+    CMD_READ_FTTOPICLIST = 0xef79,
+    CMD_READ_FTTOPNEWSLIST = 0xef94,    
+    CMD_READ_FTFOCUSINFO = 0xf026,
+    CMD_READ_MYALLFT = 0xf1bc,
+    CMD_READ_FTBASEINFO = 0xf41b,
+	};
+	
+	enum ModuleErrCode
+	{
+		RT_SUC = 0,
+		RT_ERR_PACKET = 1001,
+		RT_INPUT_INVALID = 1002,
+		RT_SERVER_ERROR = 1003,
+		RT_ENCODE_RSP_PKG_FAIL = 1004,
+		RT_READ_MYFT_FAIL = 1005,
+		RT_READ_MYPOST_FAIL = 1006,
+		RT_READ_MYCOMMENT_FAIL = 1007,
+		RT_READ_MYMSGCNT_FAIL = 1008,
+		RT_READ_MYMSGLIST_FAIL = 1009,
+		RT_READ_POSTDETAIL_FAIL = 1010,
+		RT_READ_POSTLIST_FAIL = 1011,	
+		RT_READ_HOTPOSTLIST_FAIL = 1012,	
+		RT_READ_USERINFTINFO_FAIL = 1013,
+		RT_READ_FTRANK_FAIL = 1014,
+		RT_READ_FTRANKMENU_FAIL = 1015,
+		RT_READ_FTFANSRANK_FAIL = 1016,
+		RT_READ_FTDETAIL_FAIL = 1017,
+		RT_READ_HOTFT_FAIL = 1018,
+		RT_READ_FTFANS_FAIL = 1019,
+		RT_READ_RTIME_REC_CACHE_NO_DATA = 1020,
+		RT_READ_RTIME_REC_REPEAT = 1021,
+		RT_READ_RTIME_NO_RECOMM = 1022,
+    RT_READ_FTSTARRANK_FAIL = 1023,
+    RT_READ_FTSTARRANKDETAIL_FAIL =1024,
+    RT_READ_FTFOCUS_FAIL = 1025,
+	};
+/***********************结构体定义*************************/
+	// ---------- 依赖的基础结构 ---------- //
+	
+	struct FanTuanImageInfo
+	{
+		0   require unsigned int dwPlayTime; 			//dwPlayTime播放时间；（秒）
+		1   require string strImageUrl;					//图片的URL链接；原图或者涂鸦的图片URL
+		2   optional string strWaterFlagUrl;			//加上水印后的图片
+		3   optional string strHandWriteInfo;			//涂鸦信息，是一段文字；
+		4 	optional int iWidth; 
+		5	optional int iHeight;
+        6   optional unsigned byte cImageType;       //图片类型
+	};
+	
+	struct FanTuanShortVideoInfo
+	{
+		0 require string strVid;				//视频vid
+		1 require string strH5Url;			    //分享url
+		2 require unsigned int dwPlayTime;		//对应的小视频时长（秒）
+		3 require string strImageUrl;			//海报url
+		4 optional string strPlayUrl;			//播放url，备用字段
+		5 optional string strDesc;				//视频描述，备用字段
+		6 optional bool bIsDemoVideo=false;   	//是否是demo视频
+	};
+
+	//饭团视频分享结构
+    struct STFtShareItem
+    {
+    	1 optional string shareUrl;						//分享h5链接地址
+		2 optional string shareTitle;					//分享使用的主标题
+		3 optional string shareSubTitle;				//分享使用的副标题
+		4 optional string shareImgUrl;					//分享图片链接
+		5 optional string circleShareKey;				//用于分享到影视圈的key
+    };
+
+	struct STFtVideoAttentItem
+	{
+		0 require string attentKey; //数据项的key
+	};
+
+	struct FanTuanLongVideoInfo
+	{
+		0 require string strVid;				//视频vid           
+		1 require unsigned int dwPlayTime;		//播放时间
+		2 require string strTitle;				//标题
+		3 require string strImageUrl;			//海报url
+		4 optional string strPlayUrl;			//播放url，备用字段^M    
+		5 optional string strPlayRight;			//播放权限 
+		6 optional string strSecondTitle;		//次标题
+		7 optional unsigned byte cFromFlag;		//=0x01：来自微视；=0x02：来自ugc；
+        8 optional STFtShareItem stFtShareItem; //饭团视频分享结构
+        9 optional string strDefn;      //视频文件大小
+		10 optional STFtVideoAttentItem stFtAttentItem;  //饭团视频关注结构
+        11 optional long ddwPlayCount; 	//播放量
+	};
+
+	struct FanTuanLiveInfo
+	{
+		0  require unsigned int dwPid; 				//直播ID
+		1  optional unsigned byte cPidType; 					//直播类型
+	};
+
+	
+	// 用户信息
+	struct FanTuanUserInfo
+	{
+		1 require long ddwUserId;							//用户id
+		2 require string strAccount;						//账号,uin或者wx的openid/unionid
+		3 require short sThirdLogin;						//第三方登录方式0：qq 1：weixin 2：rtx 3：新浪微博
+		4 require short sAccoutType; 						//wThirdLogin为0时，0：uin；wThirdLogin为1时，1：openid 2：unionid
+		5 optional string strNick;   						//用户的昵称
+		6 optional string strHead;   						//用户的头像
+		7 optional string strRegion;    					//地域信息
+		8 optional short sGender = 0;   					//性别,0:未定义,1:男,2:女
+		9 optional long lRegisterTime; 						//注册饭团时间
+		10 optional long lCoralUserid; 						//珊瑚用户id
+		11 optional short sCheckStatus = 0;  				//用户状态,0:正常,1:拉黑
+		12 optional long ddwMeal = 0;  						//总饭量
+		13 optional long ddwPostNum = 0;					//发表主题数量
+		14 optional long ddwDeletePostNum = 0;				//发表主题数量
+		15 optional long ddwCommentNum = 0;  				//发表主题数量
+		16 optional long ddwDeleteCommentNum = 0;  			//被删除评论数量
+		17 optional long ddwCommentedNum = 0;  				//被评论数量
+		18 optional long ddwUpedNum = 0;  					//被赞数量
+		19 optional string strLable;   						//用户标签
+		20 optional short sLevel = 1;     					//用户级别 
+	};
+
+    
+    //饭团明星分数详情
+    struct FanTuanScoreInfo
+    {
+        1   require unsigned int dwFanTuanId;                  //饭团ID
+        2   optional string strStarScore;                            //饭团分数 
+        3   optional long ddwVideoView;						      //作品播放量
+        4   optional long ddwNewView;                             //资讯播放量
+        5   optional long ddwAttNum;                               //关注数
+        6   optional long ddwActNum;                               //互动数
+        7   optional long ddwLiveNum;                              //直播播放量
+        8   optional unsigned int dwLastRank;                   //上次排名
+        9   optional unsigned int dwCurRank;                    //本次排名
+        10 optional string strTopScore;                             //最高分数
+    };
+  
+      
+   struct CircleMsgImageUrl
+	{
+		0 require string strUrl;				//图片url
+		1 optional string strThumbUrl;			//缩略图url
+		2 optional long ddwTime;				//对应的影片播放时间（秒）
+	};
+    
+    struct CircleCommentFeed 
+	{
+		0 require string strFeedId;				//评论id
+		1 require string strContent;			//内容
+		2 require long ddwTime;					//创建时间
+		5 optional string parentCommentId;		//父消息id
+		6 optional string seq;					   //sequence，防止终端重复提交
+		7 optional string dataKey;             //后台用于标记feed的来源，需要透传给影视圈发点赞接口
+        8 optional string strActorName;     //评论者昵称
+        9 optional string strFaceImageUrl; //评论者头像
+        10 optional byte userType;            //用于区分用户，评论需要支持大V(明星)特权，0 普通用户 1 大V(明星)用户；    
+    };
+	
+    struct CircleVoiceFeed
+    {
+        0 require string strVoiceId;
+        1 optional int dwDuration;
+		2 optional bool bPermanent;             //是否是永久存储，可扩展性差，已废弃
+        3 optional byte storageFlag;             //存储标记，默认0表示只存7天，1表示永久存储
+    };
+
+		//焦点图    
+		struct stFTFocusInfo
+		{
+			0 require string title;
+			1 require string pic;
+			2 optional string vid;
+			3 optional string cid;
+			4 optional string pid;
+			5 optional string url;
+			6 optional string feedid;
+			7 optional string topicid;
+		};
+    
+    struct FanTuanMsgUserInfo
+	{
+		0  optional unsigned byte cUserType;	//用户type，0:默认值,普通用户发表；1、明星用户发表
+		1  optional string strHead;				//头像
+		2  optional string strNick;				//昵称
+		3  optional string strStarId;			//明星id
+		4  optional string strFtId;				//明星对应的饭团id
+	};
+	
+	 // 用于上报BucketId、算法Id以及其他一些用于统计推荐质量，进行分析的数据
+   struct ReportInfo
+	{
+		0	require		string bucketId;				// 桶ID
+		1	require		string algId;					// 算法ID
+		2	optional	unsigned int reasonType;			// 推荐类型，上报用
+		3	optional	string reason;					// 上报用的显示字符串
+        4  optional string strategyId;              //策略ID
+        5  optional unsigned int dwSeqNum;  //顺序ID
+	};
+	
+	 //饭团直播信息结构
+   struct STFTLiveInfo
+	{
+		1  optional string strPid;
+		2  optional long ddwStartTime;                   //活动开始时间
+		3  optional long ddwEndTime;                     //活动结束时间
+		4  optional long ddwBookCount;	             //预订量
+		5  optional long ddwViewCount;	             //播放量
+		6  optional string strImgtag;			            //角标图片
+		7  optional STFtVideoAttentItem stFtAttentItem;  //饭团视频关注结构
+        8  optional int dwPlayStatus;                         //播放状态(3  预设直播，1  直播中，4  直播结束点播未成功，5  直播结束点播成功，2  下架)
+        9  optional vector<int> vecFantuanId;        //相关饭团ID列表
+        10 optional string strTitle;                          //直播标题
+        11 optional string strCoverUrl;                    //直播海报
+        12 optional string strLiveType;   // fans： 粉丝直播 style=1
+        13 optional string streamStyle;   // 0 :横屏 1:竖屏
+    };
+
+		struct STFTSourceInfo
+		{
+				1	optional string vid;
+				2 optional string cid;
+				3 optional string lid;
+				4 optional string strTitle;
+				5 optional string  posterUrl;
+				6 optional STFtVideoAttentItem attentInfo;
+		};
+		
+		struct FTArticleInfo
+		{
+				1 require  string  strArticleId;       //文章ID
+				2 require  string  strArticleTitle;   //文章标题
+				3 optional string  strIntroduction;   //文章简介
+				4 optional string  strContent;        //文章内容
+				5 optional string  strMediaId;       //发表媒体ID
+				6 optional string  strMediaName;     //发表媒体名称
+				7 optional string  strMediaIcon;     //媒体图标 
+		};
+		
+	
+		    
+	//饭团消息基础信息
+	struct FanTuanMsgComm
+	{
+		1  require string strTitle;									//主贴标题
+		2  require string strContent;								//主贴内容
+		3  optional string strLable;									//标签
+		4  optional vector<FanTuanImageInfo> vecImageList;			//图片列表
+		5  optional vector<FanTuanShortVideoInfo> vecShortVideoList;	//小视频列表
+		6  optional vector<FanTuanLongVideoInfo> vecLongVideoList;	//长视频列表
+		7  optional string strJumpUrl;								//跳转url
+        8  optional string strVoteId;                               //投票ID
+		9  optional string strCid; 									//专辑ID
+		10 optional FanTuanLiveInfo stLiveInfo; 					//直播
+		11 optional STFTSourceInfo  stVideoSrc;          //视频截取来源信息
+		12 optional FTArticleInfo   stArticleInfo;       //OM文章信息
+     };
+     
+     	//饭团消息详细信息
+	struct FanTuanMsgInfo
+	{
+		1 require long ddwMsgId;  							//消息id 
+		2 require long ddwUserId; 							//发表者id
+		3 require unsigned int dwPubTime;					//发表时间
+		4 require unsigned int dwMsgType;					//消息类型，1：原创；8：评论；9：赞；
+		5 require unsigned int dwStatus;					//消息状态，取值待定义，比如删除状态等。0，待审核；1，通过；2，删除
+		6 require unsigned int dwFanTuanId;					//消息所属饭团id
+		7 optional unsigned int dwUpNum;					//点赞数
+		8 optional unsigned int dwCommentNum;				//评论数
+		9 optional unsigned int dwFloorNum;					//评论总共楼层数
+		10 optional FanTuanMsgComm stFtMsgComm;				//消息基础信息
+		11 optional long ddwParentMsgId;					//父节点消息id
+		12 optional long ddwParentUserId; 					//父节点用户id
+		13 optional long ddwRootMsgId;						//根节点消息id
+		14 optional long ddwRootUserId; 					//根节点用户id
+		15 optional unsigned int dwMsgFlags;				//消息标志位，0x01：图文混排；0x02：内容超过4K；0x04 管理员发表；0x08快报数据；0x10 动态发表；0x20独家转存； 0x40 OM资讯 0x80 独家运营资讯 0x100 话题
+		16 optional unsigned int dwOpFlags;					//操作标志位，0x01：加精；0x02：置顶；0x04：下沉
+		17 optional unsigned int dwInFloorNum;				//评论所在楼层
+		18 optional unsigned int dwLastCmtTime;				//最新的评论时间，主贴才有该字段，表示该主贴下最新的评论时间
+		19 optional unsigned byte cFeedType;				                //消息类型,0-普通feed 1-短视频feed 2-焦点图feed 3-热门推荐的feed 4-快报feed
+		20 optional long dwIncreaseId;        	                    //消息所在索引ID
+        21 optional ReportInfo stReportInfo;                            //上报数据结构
+        //由于历史原因，22不在使用
+        23 optional FanTuanMsgUserInfo stUserInfo;             //发表者信息
+        24 optional byte isLike;                                           //对于主贴id的点赞状态  1：点赞 0：没有赞
+        25 optional vector<unsigned int> vecRelFantuanId;    //消息相关饭团id
+		26 optional long ddwReadCnt;                         //帖子阅读量
+    };
+    
+   struct STFTTourInfo
+	{
+		1 optional string strTitle;              //行程描述
+		2 optional long ddwActTime;         //行程时间
+		3 optional string strAction;			  //行程地址
+    4 optional string strTourPic;          //行程图片
+    5 optional int dwSerial;                //行程顺序
+	};
+	
+	 //饭团明星评论附加结构
+    struct FanTuanStarMsgExtendInfo
+    {
+        
+        0  optional STFtVideoAttentItem stVideoAttentItem;		        //供关注视频的key
+        1  optional string strContent;						                        //内容
+        2  optional long ddwTime;							                        //创建时间，毫秒
+        3  optional string strVideoTitle;					                        //视频信息，可为null
+        4  optional int dwFollowCount;						                    //视频关注的数量
+        5  optional int dwLikeCount;                                               //视频赞的数量
+        6  optional vector<CircleMsgImageUrl> stPhotos;	            //图片信息，可为null
+		7  optional vector<CircleCommentFeed> stComments;	        //评论列表，可位null
+        8  optional string strActUrl;                                                 //跳转URL
+        9  optional vector<FanTuanShortVideoInfo> stShortVideo;   //小视频列表结构
+        10 optional string strFeedId;                                               //评论feedId
+        11 optional string strCoverUrl;                                             //专辑海报图
+        12 optional int dwCommentCount;                                       //消息评论数
+        13 optional vector<CircleVoiceFeed> stVoices;                     //语音评论数
+        14 optional long ddwCacheTime;                                    //上次缓存时间
+		15 optional byte isLike;                                          //是否点赞
+    };
+    
+    struct STFTVoteInfo
+    {
+        1 optional string strVoteId;       //投票ID
+        2 optional long ddwVoteNum;         //投票数
+    };
+    
+
+   //饭团最新动态
+   struct STLatesFeedsInfo
+	{
+    1   optional long ddwShowTime;                                           //发布时间
+		2   optional unsigned int dwType;				                          //类型（1：作品，2：直播，3：弹幕，4：明星专题，5：vip活动，6：明星聊天室，7:娱乐资讯，8:互动投票，9:明星入驻 10:资讯头条,11:OM资讯, 100：明星评论，101：推荐列表，102：未来直播列表, 103:明星入驻）
+		3   optional unsigned int dwSourceId;                                   //来源（1：新浪微博，2：行程，3：微博大号@，4：快报新闻，5：热门话题，6：热门话题', '微博热搜，7：独家 8:独家发帖 13:instagram
+		4   optional string strTitle;					                                //标题
+		5   optional string strSubTitle;				                                //副标题
+		6   optional vector<string> vecPicUrl;			                          //图片列表
+		7   optional STFtShareItem shareItem;						         //分享结构
+		8   optional string strContent;			                                    //消息内容
+    9 optional FanTuanLongVideoInfo stVideoInfo;                     //视频结构  
+		10 optional string strCid;            			                              //专辑ID  
+		11 optional STFTLiveInfo stLiveInfo;                                    //直播结构  
+		12 optional FanTuanMsgInfo stFtMsgInfo;			                  //主消息   
+	  13 optional FanTuanMsgInfo stFtCommInfo;	                      //评论消息 
+	  14 optional vector<int> vecRecFtIdList;                               //饭团推荐ID列表    
+    15 optional STFTTourInfo stFtTourInfo;                                //行程信息
+    16 optional string strLinkURL;                                            //VIP活动跳转链接
+    17 optional FanTuanStarMsgExtendInfo stStarMsgExtInfo;      //影视圈消息补充            
+		18 optional long ddwExclMid; 						                     //独家序列ID
+		19 optional STFTVoteInfo stFtVoteInfo;                                //投票信息
+   };   
+    
+    
+	// 饭团详情
+	struct FanTuanDetailInfo
+	{
+		1 require unsigned int dwFanTuanId;					//饭团id
+		2 optional string strStarAccount;					//明星账号?
+		3 optional string strTitle;							//标题
+		4 optional string strSubTitle;						//子标题
+		5 optional string strDesc;							//饭团描述
+		6 optional string strinFansNick;					//粉丝昵称?
+		7 optional string strBanner;						//头图
+		8 optional string strAppBanner;						//app头图
+		9 optional string strAppBannerBack;					//app头图背景
+		10 optional string strHeader;						//头像
+		11 optional string strAppHeader;					//app头像		
+		12 optional vector<unsigned int> vecRelativeList;	//相关饭团id列表
+		13 optional vector<string> vecRelativeStar;			//相关明星id列表
+		14 optional long ddwPostNum;						//饭团主贴数
+		15 optional long ddwFanNum;							//饭团粉丝数
+		16 optional long ddwMealNum;						//饭团总饭量/人气值
+		17 optional unsigned int dwRank;					//饭团所在排行榜的排名
+		18 optional string strRankName;						//饭团所属排行榜的名字
+		19 optional vector<FanTuanUserInfo> vecLeader;		//团长列表
+		20 optional vector<FanTuanUserInfo> vecFuLeader;	//副团长列表
+		21 optional int iType;								//type（1:国内，2:影视，3:国外）
+		22 optional int iPubStatus;							//发布状态，0：未发布 1：已发布 2：已删除/不可见
+		23 optional unsigned int dwTargetid;				//饭团关联的targetid
+        24 optional byte bAttention;							//关注状态
+        25 optional FanTuanScoreInfo stFanTuanScoreInfo; //饭团分数结构
+        26 optional int dwUpdateNum;                               //更新数量
+        27 optional unsigned int dwVuid;                            //明星Vuid
+        28 optional STLatesFeedsInfo   latestDyncFeeds;  //最新一条动态feeds
+		29 optional byte cDokiType;                        //0- 普通明星 1 - 专辑doki  2 - 栏目doki
+		30 optional string strCidList;
+		31 optional string strLidList;
+		32 optional string strUpdateTxt;                    //更新至xx集
+		33 optional string strSeriesId;                     //系列ID
+		34 optional string strSeriesTitle;                  //系列名称
+		35 optional int    ctype;                           //专辑类型
+		36 optional int    positive_trailer;                //正片
+	};    
+
+
+
+    
+
+
+	// 用户加入饭团状态和签到次数
+	struct FanTuanUserInFTInfo
+	{
+		1 require long ddwUserId;							//用户id
+		2 require unsigned int dwFanTuanId;					//饭团id
+		3 optional unsigned byte cStatus;					//0,没有加入饭团；1，加入了饭团
+		4 optional unsigned byte cSignToday;				//今天是否已经签到。0：没有签到；1：已经签到
+		5 optional unsigned int dwSignCnt;	    			//总的签到次数
+		6 optional unsigned int dwIdentityFlags;			//身份标志位，0x01：被拉黑，0x02：被禁言，0x04:团长；0x08：副团长；
+		7 optional unsigned int dwAuthFlags;				//副团长的权限标志位，0x01：删除权限；0x02：置顶权限；0x04：加精权限；0x08：禁言权限；0x16：拉黑权限
+		8 optional unsigned int dwRank;						//用户在饭团的粉丝排行榜中的排名
+		9 optional unsigned int dwMealNum;					//用户在饭团贡献的人气数，目前跟签到数一致。
+
+	};
+	
+	struct FanTuanRankMenu
+	{
+		1 require unsigned int dwTime;						//时间戳
+		2 optional unsigned byte cWeekNum;					//第几周
+		3 optional string strTitle;							//导航标题
+	};
+	
+	// ---------- 请求和响应结构 ---------- //
+	
+	// 我的饭团 请求结构
+	struct FanTuanMyFTReq
+	{
+		1 require long ddwUserId;							//用户id
+		2 optional unsigned short wPageFlags;				//翻页规则，0：加入顺序从新到旧 1：加入顺序从旧到新
+		3 optional unsigned int dwFanTuanId;				//翻页的饭团id
+		4 optional unsigned int dwReqNum;					//翻页数量
+		5 optional string strWeight;						//翻页锚点对应的权重
+		6 optional unsigned short iFlag;        //0:独家查询，1:明星关注查询
+	};
+
+	// 我的饭团 响应结构
+	struct FanTuanMyFTRsp	
+	{
+		1 require int iErrCode;							 	//业务错误码
+		2 optional string strErrMsg;						//业务错误原因
+		3 optional vector<FanTuanDetailInfo> vecMyFtList;	//我的饭团关注列表，填充“我的饭团”中所需要用到的关键信息+基本信息即可
+		4 optional unsigned int dwFanTuanId;				//翻页的饭团id
+		5 optional bool bHasNextPage=false;					//是否有下一页数据
+		6 optional string strWeight;						//翻页锚点对应的权重
+	};
+		
+	// 我的原创 请求结构
+	struct FanTuanMyPostReq
+	{
+		1 require long ddwUserId;							//用户id
+		2 optional unsigned short wPageFlags;				//翻页规则，0：从新到旧 1：从旧到新
+		3 optional long ddwPostId;							//翻页主贴id
+		4 optional unsigned int dwReqNum;					//翻页数量
+		5 optional string strWeight;						//翻页锚点对应的权重
+	};
+	
+	// 我的原创 响应结构
+	struct FanTuanMyPostRsp
+	{
+		1 require int iErrCode;							 					//业务错误码
+		2 optional string strErrMsg;										//业务错误原因
+		3 optional vector<FanTuanMsgInfo> vecFtMsgInfo;						//我的原创列表
+		4 optional map<unsigned int, FanTuanDetailInfo> mapFtDetailInfo;	//涉及到的饭团详情
+		5 optional long ddwPostId;											//翻页主贴id
+		6 optional bool bHasNextPage=false;									//是否有下一页数据
+		7 optional string strWeight;										//翻页锚点对应的权重
+	};
+	
+	// 我的评论 请求结构
+	struct FanTuanMyCommentReq
+	{
+		1 require long ddwUserId;							//用户id
+		2 optional unsigned short wPageFlags;				//翻页规则，0：从新到旧 1：从旧到新
+		3 optional long ddwCommentId;						//翻页的评论id
+		4 optional unsigned int dwReqNum;					//翻页数量
+		5 optional string strWeight;							//翻页锚点对应的权重
+	};
+	
+	// 我的评论 响应结构
+	struct FanTuanMyCommentRsp
+	{
+		1 require int iErrCode;							 					//业务错误码
+		2 optional string strErrMsg;										//业务错误原因
+		3 optional vector<FanTuanMsgInfo> vecFtMsgInfo;						//我的评论列表
+		4 optional map<long, FanTuanUserInfo> mapFtUserInfo;				//涉及到的用户详情
+		5 optional map<unsigned int, FanTuanDetailInfo> mapFtDetailInfo;	//涉及到的饭团详情
+		6 optional map<long, FanTuanMsgInfo> mapFtCommentParentInfo;		//涉及到的被评论消息的详情
+		7 optional long ddwCommentId;										//翻页的评论id
+		8 optional bool bHasNextPage=false;									//是否有下一页数据
+		9 optional string strWeight;										//翻页锚点对应的权重
+	};
+	
+	// 未读消息计数 请求结构
+	struct FanTuanUnReadMsgCountReq
+	{
+		1 require long ddwUserId;							//用户id
+		2 optional long ddwMsgId;							//当前位置看过的最新的id
+		3 optional string strLastSeqId;						//本地最新的一条消息的seqid
+	};
+	
+	// 未读消息计数 响应结构
+	struct FanTuanUnReadMsgCountRsp
+	{
+		1 require int iErrCode;								//业务错误码
+		2 optional string strErrMsg;						//业务错误原因
+		3 optional int dwUnReadMsgNum;						//未读消息数
+		4 optional vector<FanTuanUserInfo> vecFtUserInfo;	//最新消息作者的基础信息
+	};
+	
+	// 所有消息，未读消息 请求结构
+	struct FanTuanMsgListReq
+	{
+		1 require long ddwUserId;							//用户id		
+		2 require int iType;								// 0 所有消息，1 未读消息
+		3 optional unsigned short wPageFlags;				//翻页规则，0：从新到旧 1：从旧到新
+		4 optional long ddwMsgId;							//翻页的消息id
+		5 optional unsigned int dwReqNum;					//翻页数量
+		6 optional string strWeight;						//翻页锚点对应的权重
+		7 optional string strLastSeqId;						//本地最新的一条消息的seqid
+	};
+	
+	// 所有消息，未读消息 响应结构
+	struct FanTuanMsgListRsp
+	{
+		1 require int iErrCode;												//业务错误码
+		2 optional string strErrMsg;										//业务错误原因
+		3 optional vector<FanTuanMsgInfo> vecFtMsgInfo;						//消息列表	
+		4 optional map<long, FanTuanUserInfo> mapFtUserInfo;				//涉及到的用户详情
+		5 optional map<unsigned int, FanTuanDetailInfo> mapFtDetailInfo;	//涉及到的饭团详情
+		6 optional map<long, FanTuanMsgInfo> mapFtCommentParentInfo;		//涉及到的被评论消息的详情
+		7 optional long ddwMsgId;											//翻页的消息id
+		8 optional bool bHasNextPage=false;									//是否有下一页
+		9 optional string strWeight;										//翻页锚点对应的权重
+		10 optional string strLastSeqId;									//当前最新的一条消息的seqid
+	};
+	
+	//饭团的主贴列表 请求结构
+	struct FantuanPostListReq
+	{
+		1 require unsigned int dwFanTuanId;
+		2 optional unsigned short wPageFlags;				//翻页规则，0：倒序，从新到旧 1：正序，从旧到新
+		3 optional long ddwPostId;							//翻页的评论id
+		4 optional unsigned int dwReqNum;					//翻页数量
+		5 optional string strWeight;						//翻页锚点对应的权重
+		6 optional unsigned int cDetailFlag=0;				//默认值为0，返回饭团基础信息；=1，返回饭团详细信息
+	};
+	
+	//饭团的主贴列表 响应结构
+	struct FantuanPostListRsp
+	{
+		1 require int iErrCode;							 					//业务错误码
+		2 optional string strErrMsg;										//业务错误原因
+		3 optional vector<FanTuanMsgInfo> vecFtMsgInfo;						//主贴列表
+		4 optional map<long, FanTuanUserInfo> mapFtUserInfo;				//涉及到的用户详情
+		5 optional long ddwPostId;											//翻页主贴id
+		6 optional bool bHasNextPage=false;									//是否有下一页数据
+		7 optional string strWeight;										//翻页锚点对应的权重
+		8 optional map<unsigned int, FanTuanDetailInfo> mapFtDetailInfo;	//涉及到的饭团详情
+	};
+	
+	//广场页的热门主贴列表 请求结构
+	struct FantuanHotPostListReq
+	{
+		1 optional unsigned short wPageFlags;				//翻页规则，0：倒序，从新到旧 1：正序，从旧到新
+		2 optional long ddwPostId;							//翻页的主贴id
+		3 optional unsigned int dwReqNum;					//翻页数量
+		4 optional string strWeight;						//翻页锚点对应的权重
+	};
+	
+	//广场页的热门主贴列表 响应结构
+	struct FantuanHotPostListRsp
+	{
+		1 require int iErrCode;							 					//业务错误码
+		2 optional string strErrMsg;										//业务错误原因
+		3 optional vector<FanTuanMsgInfo> vecFtMsgInfo;						//热门主贴列表
+		4 optional map<unsigned int, FanTuanDetailInfo> mapFtDetailInfo;	//涉及到的饭团详情
+		5 optional long ddwPostId;											//翻页主贴id
+		6 optional bool bHasNextPage=false;									//是否有下一页数据
+		7 optional string strWeight;										//翻页锚点对应的权重
+		8 optional map<long, FanTuanUserInfo> mapFtUserInfo;				//涉及到的用户详情
+	};
+	
+	//查询话题列表
+	struct FantuanTopicListReq
+	{
+		1 optional unsigned short wPageFlags;				//翻页规则，0：倒序，从新到旧 1：正序，从旧到新
+		2 optional long ddwPostId;							//翻页的主贴id
+		3 optional unsigned int dwReqNum;					//翻页数量
+		4 optional string strWeight;						//翻页锚点对应的权重
+	};
+	struct FantuanTopicListRsp
+	{
+		1 require int iErrCode;							 					//业务错误码
+		2 optional string strErrMsg;										//业务错误原因
+		3 optional vector<FanTuanMsgInfo> vecFtMsgInfo;						//热门主贴列表
+		4 optional map<unsigned int, FanTuanDetailInfo> mapFtDetailInfo;	//涉及到的饭团详情
+		5 optional long ddwPostId;											//翻页主贴id
+		6 optional bool bHasNextPage=false;									//是否有下一页数据
+		7 optional string strWeight;										//翻页锚点对应的权重
+		8 optional map<long, FanTuanUserInfo> mapFtUserInfo;				//涉及到的用户详情
+	};
+	
+	//查询资讯头条
+	struct FantuanTopNewsListReq
+	{
+		1 optional unsigned short wPageFlags;				//翻页规则，0：倒序，从新到旧 1：正序，从旧到新
+		2 optional long ddwPostId;							//翻页的主贴id
+		3 optional unsigned int dwReqNum;					//翻页数量
+		4 optional string strWeight;						//翻页锚点对应的权重
+	};
+	struct FantuanTopNewsListRsp
+	{
+		1 require int iErrCode;							 					//业务错误码
+		2 optional string strErrMsg;										//业务错误原因
+		3 optional vector<FanTuanMsgInfo> vecFtMsgInfo;						//热门主贴列表
+		4 optional map<unsigned int, FanTuanDetailInfo> mapFtDetailInfo;	//涉及到的饭团详情
+		5 optional long ddwPostId;											//翻页主贴id
+		6 optional bool bHasNextPage=false;									//是否有下一页数据
+		7 optional string strWeight;										//翻页锚点对应的权重
+		8 optional map<long, FanTuanUserInfo> mapFtUserInfo;				//涉及到的用户详情
+	};
+	
+	
+	// 主贴详情页 请求结构 
+	struct FanTuanPostDetailReq
+	{
+		1 require long ddwPostId;  							//主贴id 
+		2 optional unsigned short wPageFlags;				//翻页规则，0：倒序，从新到旧 1：正序，从旧到新
+		3 optional long ddwCommentId;						//翻页的评论id
+		4 optional unsigned int dwReqNum;					//翻页数量
+		5 optional string strWeight;						//翻页锚点对应的权重
+		6 optional unsigned int dwCurPages;					//当前页码
+		7 optional unsigned byte cType=1;					//拉取方式，1：看全部，按权重翻页；2、只看楼主；3、看全部，按页码翻页
+	};
+	
+	// 主贴详情页 响应结构
+	struct FanTuanPostDetailRsp
+	{
+		1 require int iErrCode;											//业务错误码
+		2 optional string strErrMsg;									//业务错误原因
+		3 optional FanTuanMsgInfo stFtMsgInfo;							//主贴数据，从消息列表或者我的评论跳转详情页的的时候需要这个
+		4 optional vector<FanTuanMsgInfo> vecFtMsgInfo;					//主贴详情页的评论列表
+		5 optional map<long, FanTuanUserInfo> mapFtUserInfo;			//涉及到的用户详情
+		6 optional map<long, FanTuanMsgInfo> mapFtCommentParentInfo;	//涉及到的被评论消息的详情
+		7 optional map<unsigned int, FanTuanDetailInfo> mapFtDetailInfo;//涉及到的饭团详情
+		8 optional long ddwCommentId;									//翻页的评论id
+		9 optional bool bHasNextPage=false;								//是否有下一页
+		10 optional string strWeight;									//翻页锚点对应的权重
+		11 optional unsigned int dwPageNum;								//总的页数
+	};
+	
+	// 批量查询关注状态+签到次数 请求结构
+	struct FanTuanUserInFTInfoReq
+	{
+		0 require long ddwUserId;							//用户id
+		1 require vector<unsigned int> vecFtIdList;			//饭团id列表
+		2 require unsigned int dwDataType;					//0x01,基础信息(包括加入饭团时间、签到次数、今天是否签到、身份、权限等)；0x02,用户在饭团粉丝排行榜中的排名信息；
+	};
+	
+	// 批量查询关注状态+签到次数 响应结构
+	struct FanTuanUserInFTInfoRsp
+	{
+		1 require int iErrCode;									//业务错误码
+		2 optional string strErrMsg;							//业务错误原因
+		3 optional vector<FanTuanUserInFTInfo> vecFtUserInFtInfo;//批量关注的结果
+        4 optional map<long, FanTuanUserInfo> mapFtUserInfo;    //饭团用户信息
+	};	
+	
+	//排行榜导航条 请求结构
+	struct FanTuanRankMenuReq
+	{
+		1 require unsigned byte cRankType;					//0x01:国内傍 0x02:国外榜 0x04:影视榜  0x08:推荐列表
+		2 optional unsigned short wPageFlags;				//翻页规则，0：签到数从高到低 1：签到数从低到高
+		3 optional unsigned int dwTime;						//请求时间戳
+		4 optional unsigned int dwReqNum;					//翻页数量
+		5 optional string strWeight;						//翻页锚点对应的权重
+	};
+	
+	//排行榜导航条 响应结构
+	struct FanTuanRankMenuRsp
+	{
+		1 require int iErrCode;				 										//业务错误码
+		2 optional string strErrMsg;												//业务错误原因
+		3 optional vector<FanTuanRankMenu> vecFtRankMenuList;						//饭团导航列表
+		4 optional unsigned int dwTime;												//翻页的饭团id
+		5 optional bool bHasNextPage=false;											//是否有下一页
+		6 optional string strWeight;												//翻页锚点对应的权重
+	};
+	
+	//排行榜 请求结构
+	struct FanTuanRankReq
+	{
+		1 require unsigned byte cRankType;					//异或取值0，0x01:国内傍 0x02:国外榜 0x04:影视榜
+		2 optional unsigned int dwTime;						//请求时间戳，供后台算出相应的周数
+		3 optional unsigned short wPageFlags;				//翻页规则，0：签到数从高到低 1：签到数从低到高
+		4 optional unsigned int dwFanTuanId;				//翻页的饭团id
+		5 optional unsigned int dwReqNum;					//翻页数量
+		6 optional string strWeight;						        //翻页锚点对应的权重
+		7 optional unsigned int cDetailFlag=0;				//默认值为0，返回饭团基础信息；=1，返回饭团详细信息
+	};
+	
+	//排行榜 响应结构
+	struct FanTuanRankRsp
+	{
+		1 require int iErrCode;				 										//业务错误码
+		2 optional string strErrMsg;												//业务错误原因
+		3 optional map<unsigned byte, vector<FanTuanDetailInfo> > mapFtRankList;	//饭团排行榜列表
+		4 optional unsigned int dwFanTuanId;										//翻页的饭团id
+		5 optional bool bHasNextPage=false;											//是否有下一页
+		6 optional string strWeight;												//翻页锚点对应的权重
+		7 optional map<unsigned byte, vector<string> > mapRankPicUrl;				//排行榜的运营配图
+	};
+	
+	//粉丝排行榜 请求结构
+	struct FanTuanFansRankReq
+	{
+		1 require unsigned int dwFanTuanId;					//饭团id
+		2 optional unsigned short wPageFlags;				//翻页规则，0：签到数从高到低 1：签到数从低到高
+		3 optional long ddwUserId;							//翻页的用户id
+		4 optional unsigned int dwReqNum;					//翻页数量
+		5 optional string strWeight;						//翻页锚点对应的权重
+	};
+	
+	//粉丝排行榜 响应结构
+	struct FanTuanFansRankRsp
+	{
+		1 require int iErrCode;				 										//业务错误码
+		2 optional string strErrMsg;												//业务错误原因
+		3 optional vector<FanTuanUserInFTInfo> vecFtUserInFtInfo;					//用户在饭团中的状态
+		4 optional map<long, FanTuanUserInfo> mapFtUserInfo;						//涉及到的用户详情
+		5 optional long ddwUserId;													//翻页的用户id
+		6 optional bool bHasNextPage=false;											//是否有下一页
+		7 optional string strWeight;												//翻页锚点对应的权重
+		8 optional long ddwTotal;                           //粉丝总数
+	};
+	
+	// 饭团详情 请求结构
+	struct FanTuanDetailReq
+	{
+		1 require unsigned int dwFanTuanId;						//饭团id
+	};
+
+	// 饭团详情 响应结构
+	struct FanTuanDetailRsp	
+	{
+		1 require int iErrCode;							//业务错误码
+		2 optional string strErrMsg;					//业务错误原因
+		3 optional FanTuanDetailInfo stFtDetailInfo;	//涉及到的饭团详情;
+	};
+	
+	//热门推荐饭团 请求结构
+	struct FanTuanHotFtReq
+	{
+		1 optional unsigned int dwFanTuanId;				//翻页的主贴id
+		2 optional unsigned int dwReqNum;					//翻页数量
+		3 optional string strWeight;						//翻页锚点对应的权重
+	};
+	
+	//热门推荐饭团 响应结构
+	struct FanTuanHotFtRsp
+	{
+		1 require int iErrCode;				 										//业务错误码
+		2 optional string strErrMsg;												//业务错误原因
+		3 optional vector<FanTuanDetailInfo> vecFtDetailInfo;						//推荐饭团列表
+		4 optional unsigned int dwFanTuanId;										//翻页的饭团id
+		5 optional bool bHasNextPage=false;											//是否有下一页
+		6 optional string strWeight;												//翻页锚点对应的权重
+	};
+	
+	//饭团粉丝列表 请求结构
+	struct FanTuanFtFansReq
+	{
+		1 optional unsigned int dwFanTuanId;				//翻页的主贴id
+		2 optional unsigned int dwReqNum;					//翻页数量
+		3 optional long ddwUserid;							//翻页的用户id
+		4 optional string strWeight;						//翻页锚点对应的权重
+	};
+	
+	//饭团粉丝列表 响应结构
+	struct FanTuanFtFansRsp
+	{
+		1 require int iErrCode;				 										//业务错误码
+		2 optional string strErrMsg;												//业务错误原因
+		3 optional vector<FanTuanUserInfo> vecFtUserInfo;							//粉丝列表
+		4 optional unsigned int ddwUserid;											//翻页的用户id
+		5 optional bool bHasNextPage=false;											//是否有下一页
+		6 optional string strWeight;												//翻页锚点对应的权重
+	};
+	
+	//饭团广场页个性化推荐数据 请求结构
+	struct FanTuanRecPostListReq
+	{
+		1 require long ddwUserId;
+		2 optional unsigned short wPageFlags;				//翻页规则，0：拉新数据；1、拉历史数据
+		3 optional long ddwPostId;							//翻页的主贴id
+		4 optional unsigned int dwReqNum;					//翻页数量
+		5 optional string strWeight;						//拉取最新推荐数据的上下文
+		6 optional string strOldWeight;						//翻页历史数据对应的上下文
+	};
+	
+	//饭团广场页个性化推荐数据 响应结构
+	struct FanTuanRecPostListResp
+	{
+		1 require int iErrCode;							 					//业务错误码
+		2 optional string strErrMsg;										//业务错误原因
+		3 optional vector<FanTuanMsgInfo> vecFtMsgInfo;						//主贴列表
+		4 optional map<long, FanTuanUserInfo> mapFtUserInfo;				//涉及到的用户详情
+		5 optional long ddwPostId;											//翻页主贴id
+		6 optional bool bHasNextPage=false;									//是否有下一页数据
+		7 optional string strWeight;										//翻页锚点对应的权重
+		8 optional map<unsigned int, FanTuanDetailInfo> mapFtDetailInfo;	//涉及到的饭团详情
+		9 optional vector<FanTuanUserInFTInfo> vecFtUserInFtInfo;			//批量关注的结果
+		10 optional vector<FanTuanDetailInfo> vecDaBangFtDetailInfo;		//打榜的饭团详细信息
+		11 optional string strOldWeight;									//翻页历史数据对应的上下文
+	};
+	
+	struct STRecCacheData
+	{
+		1 require vector<FanTuanRecPostListResp> vecFtRecPostList;					//用户的个性化推荐缓存数据
+	};
+    
+    //饭团广场页实时插入推荐数据 请求结构
+	struct FanTuanRTimeRecPostReq
+	{
+		1 require long ddwUserId;
+		2 require unsigned int dwFanTuanId;					//请求所属饭团id
+		3 optional vector<string> vecShortVidList;			//请求视频列表
+		4 optional unsigned byte cFeedType;					//消息类型,0-普通feed 1-视频feed 2-焦点图feed 3-热门推荐的feed 4-快报feed
+		5 optional string strOldWeight;						//
+		6 optional long dwIncreaseId;						//
+	};
+	
+	//饭团广场页实时插入推荐数据 响应结构
+	struct FanTuanRTimeRecPostResp
+	{
+		1 require int iErrCode;							 					        //业务错误码
+		2 optional string strErrMsg;										        //业务错误原因
+		3 optional map<string, FanTuanMsgInfo> mapFtMsgInfo;						//推荐信息
+		4 optional map<unsigned int, FanTuanDetailInfo> mapFtDetailInfo;			//涉及到的饭团详情
+	};
+    
+    //饭团缓存数据结构
+	struct STRecCacheIndexData
+	{
+		1 require unsigned int dwTimestamp;								            //时间戳
+		2 optional FanTuanMsgInfo stFtMsgInfo;							            //0-普通feed 1-视频feed 2-焦点图feed 3-热门推荐的feed 4-快报feed消息数据
+		3 optional vector<FanTuanDetailInfo> vecDaBangFtDetailInfo;					//打榜的饭团详细信息
+	};
+    
+    //排行榜影星榜 请求结构
+    struct FanTuanStarRankMenuReq
+    {
+        1 require unsigned byte cRankType;					//0x01:国内傍 0x02:国外榜 0x04:影响力榜 0x08:新人榜 0x16:突破榜
+        2 optional unsigned short wPageFlags;				//翻页规则，0：分数从高到低 1：分数从低到高
+        3 optional unsigned short cTimeType;                //时间类型（周榜1，总榜2）
+        4 optional unsigned int dwTime;						//请求时间戳（传当前时间）
+        5 optional unsigned int dwReqNum;				  //每页数量
+        6 optional unsigned int dwPage;						  //页数（从0开始）
+    };
+    
+    //排行榜影星榜 响应结构
+	struct FanTuanStarRankMenuRsp
+	{
+		1 require int iErrCode;				 										        //业务错误码
+		2 optional string strErrMsg;												        //业务错误原因
+		3 optional map<unsigned byte, vector<FanTuanDetailInfo> > mapFtStarRankInfo;		//饭团详情列表
+		4 optional unsigned int dwTime;												//响应应时间
+        5 optional unsigned int dwPeri;                                                 //当前期数
+		6 optional bool bHasNextPage=false;											//是否有下一页
+    };
+    
+    //影星榜历史榜单请求结构
+    struct FanTuanStarHistRankReq
+    {
+        1 require unsigned byte cReqNum;					//请求月数（不超过半年）
+    };
+    
+    //影星榜历史榜单响应结构
+    struct FanTuanStarHistRankRsp
+    {
+        1 require int iErrCode;				 										        //业务错误码
+		2 optional string strErrMsg;												        //业务错误原因
+        3 optional vector<unsigned int> vecStartTime;                             //开始时间
+    };
+    
+    //排行榜影星榜详情 请求结构
+    struct FanTuanStarRankInfoReq
+    {
+        1 require unsigned int dwFanTuanId;              //饭团ID
+        2 optional unsigned int dwTime;					//请求时间戳
+        3 optional unsigned int cTimeType;				//时间类型（周榜1，总榜2）
+        4 optional unsigned int dwStarId;                  //明星ID
+        5 optional byte bFrom;                                //请求来源（1：搜索）
+    };
+    
+    //排行榜影星榜跳转结构
+    struct FanTuanStarRankLink
+    {
+        1 optional string strDyncLink;                          //去关注
+        2 optional string strVideoLink;                         //看咨询
+        3 optional string strLiveLink;                           //看直播
+        4 optional string strProdLink;                          //看作品
+        5 optional string strActLink;                            //去点赞
+        6 optional string strRankLink;                          //打榜链接
+    };
+    
+    //排行榜影星榜详情 响应结构
+    struct FanTuanStarRankInfoRsp
+    {
+        1 require int iErrCode;				 										        //业务错误码
+		2 optional string strErrMsg;												        //业务错误原因
+		3 optional FanTuanDetailInfo stCurDetailInfo;						   	//当前饭团详情结构
+        4 optional FanTuanScoreInfo stBackGoundScore;					    //背景饭团分数结构
+        5 optional FanTuanStarRankLink stRankLink;                          //跳转链接
+    };
+
+		//明星入驻特殊信息，其他信息共用feeds信息    
+    struct stFTStarCommingInfo
+    {
+    		1 optional long   dwVersion;     //版本号，前端控制单用户弹窗一次
+    		2 optional int    bTips;       //是否弹窗提示，1:是 0 否
+    		3 optional string strImageUrl;   //弹窗图
+    		4 optional string strTitle;      //弹窗文案
+    		5 optional string cid;           
+    		6 optional string vid;
+    		7 optional string pid;
+    		8 optional string strUrl;				//跳转Url
+    		9 optional long  dwStartTime;   //弹窗生效开始时间
+    		10 optional long  dwEndTime;    //弹窗生效结束时间
+    };
+
+    //饭团独家Feeds结构
+    struct STExclusiveFeedsInfo
+	{
+        1   optional long ddwShowTime;                                           //发布时间
+		2   optional vector<FanTuanDetailInfo> vecFantuanDetail;     //相关饭团信息
+		3   optional unsigned int dwType;				                          //类型（1：作品，2：直播，3：弹幕，4：明星专题，5：vip活动，6：明星聊天室，7:娱乐资讯，8:互动投票，9:明星入驻 10:资讯头条,11:OM资讯,100：明星评论，101：推荐列表，102：未来直播列表 ）
+		4   optional unsigned int dwSourceId;                                   //来源（1：新浪微博，2：行程，3：微博大号@，4：快报新闻，5：热门话题，6：热门话题', '微博热搜，7：独家 8:独家发帖 13:instagram）
+		5   optional string strTitle;					                                //标题
+		6   optional string strSubTitle;				                                //副标题
+		7   optional vector<string> vecPicUrl;			                          //图片列表
+		8   optional STFtShareItem shareItem;						         //分享结构
+		9   optional string strContent;			                                    //消息内容
+        10 optional FanTuanLongVideoInfo stVideoInfo;                     //视频结构  
+		11 optional string strCid;            			                              //专辑ID  
+		12 optional STFTLiveInfo stLiveInfo;                                    //直播结构  
+		13 optional FanTuanMsgInfo stFtMsgInfo;			                  //主消息   
+	    14 optional FanTuanMsgInfo stFtCommInfo;	                      //评论消息 
+	    15 optional vector<int> vecRecFtIdList;                               //饭团推荐ID列表    
+        16 optional STFTTourInfo stFtTourInfo;                                //行程信息
+        17 optional string strLinkURL;                                            //VIP活动跳转链接
+        18 optional FanTuanStarMsgExtendInfo stStarMsgExtInfo;      //影视圈消息补充            
+		19 optional long ddwExclMid; 						                     //独家序列ID
+		20 optional STFTVoteInfo stFtVoteInfo;                                //投票信息
+		21 optional stFTStarCommingInfo  stStarCommingInfo;              //明星入驻信息
+    }; 
+    
+    //饭团独家Feeds请求结构
+    struct STExclusiveFeedsReq
+    {
+        1 optional unsigned int dwType;				                          //类型
+        2 optional string pageContext;                                          //翻页上下文
+        3 optional unsigned int dwReqNum;                                   //请求数量
+    };
+    
+    //饭团独家Feeds响应结构
+    struct STExclusiveFeedsResp
+    {
+        1  require int iErrCode;							 					                            //业务错误码
+		2  optional string strErrMsg;										                            //业务错误原因
+        3  optional string pageContext;                                                               //翻页上下文startTime>=endTime（startTime=123&endTime=123&reqType=1）reqType:1上翻，2:下翻
+        4  optional vector<STFTLiveInfo> vecLiveInfo; 		                                //预定列表
+        5  optional vector<STExclusiveFeedsInfo> vecExclusiveList;                    //独家列表
+        6  optional map<unsigned int, FanTuanDetailInfo> mapFtDetailInfo;        //饭团详细信息
+        7  optional STExclusiveFeedsInfo   starEnterInfo;                        //最新一条明星入驻消息
+    };
+    
+    //行程导航
+    struct STFTTourTab
+    {
+        1 optional unsigned int dwStartTime;                    //当月开始时间戳
+        2 optional unsigned int dwEndTime;                     //当月结束时间戳
+    };
+    
+    //饭团明星动态Feeds请求结构
+    struct STStarDyncFeedsReq
+    {
+        0 optional unsigned int dwFanTuanId;                                //饭团ID
+        1 optional unsigned int dwSourceId;				                   //动态源（1：新浪微博，2：行程，3：微博大号@，4：快报新闻，5：热门话题，6：热门话题', '微博热搜，7：独家）
+        2 optional string pageContext;                                           //翻页上下文
+        3 optional unsigned int dwReqNum;                                   //请求数量
+        4 optional long ddwUserId;                                                //用户ID
+        5 optional bool bNewReq;                                                  //是否新请求消除小红点
+        6 optional STFTTourTab stTourTab;                                    //行程请求Tab
+    };
+    
+    
+    
+    //饭团明星动态Feeds响应结构
+    struct STStarDyncFeedsResp
+    {
+        1  require int iErrCode;							 					      //业务错误码
+		2  optional string strErrMsg;										      //业务错误原因
+        3  optional string pageContext;                                        //翻页上下文startTime>=endTime（starTime=123&endTime=123&hasNext=[1,2]&reqType=1）reqType:1下翻，2:上翻，hasNext:1:有下一页，2:没有下一页
+        4  optional vector<STExclusiveFeedsInfo> vecExclusiveList;//动态列表
+        5  optional FanTuanDetailInfo stFanTuanDetailInfo;
+        6  optional vector<STFTTourInfo> vecFtTourInfo;
+    };
+    
+    
+    
+    //饭团动态行程请求结构
+    struct STTourTabReq
+    {
+        1 require unsigned int dwFanTuanId;                                //饭团ID
+    };
+    
+    //饭团动态行程响应结构
+    struct STTourTabResp
+    {
+        1  require int iErrCode;							 					                            //业务错误码
+		2  optional string strErrMsg;										                            //业务错误原因
+        3  optional vector<STFTTourTab> vecTabInfo; 		                                //预定列表
+    };
+    
+    //饭团焦点图
+    struct STFTGetFocusReq
+    {
+    	0  optional string strId;  //占位
+    };
+		struct STFTGetFocusRsp
+		{
+				0  require int iErrCode;
+				1  optional string strErrMsg;
+				2  optional vector<stFTFocusInfo>  vecFocusInfo;
+		};
+	
+	struct STFTFollowInfo
+	{
+			0  require long ddwFtId;			//饭团ID
+			1	 optional int dwFollwTime;	//关注时间
+	};
+		
+	// 我的饭团 请求结构
+	struct FanTuanMyAllFTReq
+	{
+			0 require long ddwUserId;							//用户id 
+			1 optional int iOption;                             //0: 关注列表 1：关注数
+			2 optional int iOrder;                              //排序：0：自新到旧 1：自旧到新 
+	};
+
+	// 我的饭团 响应结构
+	struct FanTuanMyAllFTRsp	
+	{
+			0 require int iErrCode;							 	//业务错误码
+			1 optional string strErrMsg;						//业务错误原因
+			2 optional vector<STFTFollowInfo> vecMyFtList;	    //饭团信息
+			3 optional int iFollowCount;                            //关注数
+	};      
+	
+	//Doki公共接口 600版本后
+	
+	struct FtImageInfo
+	{
+			0  	optional  string  strHeadImg;   //头图
+			1		optional	string  strBackImg;   //背景图
+			2		optional  string  strColorImg;  //抠图
+	};
+	
+	struct VideoFtInfo
+	{
+			0		optional string strLids;  //栏目Id集
+			1		optional string strCids;  //专辑ID集
+			2		optional string strKeyWords; //剧集关键词
+			3		optional string	strLabel;    //剧集标签
+			4		optional int    dwStatus;   //剧集状态
+	};
+	
+	struct FtBaseInfo
+	{
+			0		require long ddwFtId;    //饭团ID
+			1		optional long ddwStarId;  //明星ID
+			2		require int  dwCategory; //饭团类别  0:明星  1:剧集 2:兴趣
+			3		optional FtImageInfo  stFtImageInfo;   //饭团头像信息
+			4		optional string   strName;      //饭团名称，剧集名称
+			5		optional long  ddwFansNum;    //粉丝数
+			6		optional VideoFtInfo  stVideoFtInfo;  //剧集Doki信息
+			7   optional int   dwDelFalg;         //0-未删除(有效)，1-删除(无效)
+			8   optional int   dwType;        //1:国内，2:影视，3:国外
+	}; 
+	
+	struct GetFtBaseInfoReq
+	{
+			0		require		vector<long>  vecFtId;      //饭团ID
+			1		require   int 					dwFlag;       //饭团ID、明星ID，类别,饭团名称为基础数据，必然返回，其他数据根据标志位出数据  0:所有数据  1:饭团头像数据  2:粉丝数 4:剧集Doki信息
+	};
+	
+	struct GetFtBaseInfoRsp
+	{
+			0  require int iErrCode;
+			1  optional string strErrMsg;
+			2  optional map<long, FtBaseInfo>  mapFtBaseInfo;  //饭团基础数据
+	};
+	
+};     

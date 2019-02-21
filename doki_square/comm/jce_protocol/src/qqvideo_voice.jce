@@ -1,0 +1,140 @@
+#include "qqvideo_common.jce"
+#include "qqvideo_live.jce"
+
+module jce
+{
+	// 资产 或 价格
+	struct ChargesItem
+	{
+		0 require int propertyType;   		// 0：默认是实体钱币，1:钻石，2：金币
+		1 require long num; 				//数量或价格
+		2 optional string icon; 			//icon Url
+		3 optional string unit; 			//单位
+		4 optional string desc; 			//描述，如名称钻石，金币
+	};
+	
+	//我的贡献item
+	struct ContributionsItem
+	{
+		0 require ActorInfo actor;   		//支持对象
+		1 optional string time; 			//时间
+		2 optional string values; 			//icon Url
+		3 optional string offerColor; 		//假设+是橘色-是蓝色如此
+	};
+	
+	//好声音横滑列表：直接下发ActorList或者下发datakey走DynamicDataRequest请求一个相同的ONA控件替换其中的数据
+	struct ONAChinaVoiceList
+	{
+		0 optional string type;						//请求类型
+		1 optional string dataKey;					//请求参数
+		2 optional vector<ActorInfo> actorInfoList;	//用户数据
+		3 optional string propsDataKey;				//由后台下发作为请求道具或者其他的参数
+		4 optional string title;					//主标题
+		5 optional string subhead;					//副标题
+		6 optional Action action;					//标题行点击后执行的动作，如果没有此字段，不会有右向箭头	
+		7 optional vector<MarkLabel> markLabelList;	//脚标列表，对主标题起作用
+		8 optional vector<string> optFlags;			//由后台下发，0表示未操作标识，1表示已操作标识，默认本地用火		
+		9 optional string unit;						//单位，没有下发默认为“人气”
+		10 optional string desc;					//后台下发业务描述
+		11 optional ShareItem shareItem;			//用于分享
+		12 optional string reportParams;			//上报参数
+		13 optional vector<string> blackList; 		//屏蔽黑名单
+		14 optional string reportKey;				//上报参数
+		15 optional vector<int> groupSizeList;		//每个分组用户数目；多个榜单，每个榜单明星数目列表
+	};	
+	
+	//人气榜页面页面主信息请求
+	struct SuperRankRequest
+	{
+		0 optional string type;					//请求类型，在子类请求中如果需要标识请求类型，使用本字段
+		1 optional string dataKey;				//请求参数，可用作占位
+	};
+	
+	struct SuperRankResponse
+	{
+		0 require int errCode;									//业务错误码
+		1 require vector<LiveTabModuleInfo> moduleList;			//需要加载的模块列表101排行榜102我的贡献
+		2 optional ShareItem shareItem;							//用于分享
+		3 optional vector<string> optFlags;						//由后台下发，0表示未操作标识，1表示已操作标识，无下发默认用本地
+		4 optional string unit;									//单位，没有下发默认为“人气”
+	};
+	
+	// 人气榜列表请求
+	struct PopularityListRequest
+	{
+		0 optional string dataKey;			//请求条件
+		1 optional string pageContext;		//翻页上下文
+	};
+	
+	struct PopularityListResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 require vector<ActorInfo> actorInfoList;	//用户数据
+		2 optional string propsDataKey;				//由后台下发作为请求道具或者其他的参数
+		3 optional string pageContext;				//翻页上下文
+		4 optional bool isHaveNextPage;				//是否还有下一页
+        5 optional string pluginTitle;		  //人气榜插件标题
+		6 optional vector<string> blackList; 		//屏蔽黑名单
+		7 optional int bizType;						//0-赠送，1-订阅
+	};
+	
+	// 我的代币贡献
+	struct MyContributionsRequest 
+	{
+		0 require string dataKey;		 //跟道具购买记录相关，key区分场景
+		1 optional string pageContext;	 //翻页上下文
+	};
+	
+	// 我的代币贡献返回
+	struct MyContributionsResponse 
+	{
+		0 require int errCode;			 					//业务错误码
+		1 require vector<ContributionsItem> itemList;		//用户数据
+		2 optional string pageContext;	 					//翻页上下文
+		3 optional bool isHaveNextPage;						//是否还有下一页
+	};
+	
+	// 查询用户投票数据
+	struct UserVoteRequest 
+	{
+		0 require string dataKey;		 //跟道具购买记录相关，key区分场景
+	};
+	
+	// 查询用户投票数据返回
+	struct UserVoteResponse 
+	{
+		0 require int errCode;			 					//业务错误码
+		1 require vector<VoteData> voteList;				//用户数据
+	};
+	
+	// 我的粉丝榜排名请求
+	struct MyFansRankRequest
+	{
+		0 optional string dataKey;			//请求条件
+		1 optional int iNeedUserInfoFlag;	//需要用户信息标记
+	};
+	
+	// 我的粉丝榜排名返回
+	struct MyFansRankResponse
+	{
+		0 require int errCode;	
+		1 require int iRankNum;				//我的排名
+		2 require int iScore;				//我的贡献分数
+		3 optional string strNick;			//用户昵称
+		4 optional string strFaceUrl;		//用户头像
+	};
+
+	// 多组对战pk人气榜列表请求(周榜和总榜)
+	struct PKPopularityListRequest
+	{
+		0 optional string dataKey;			//请求条件
+	};
+	
+	struct PKPopularityListResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 require map<int, string> groupConfigs;	//状态分块配置，以此配置来决定显示多少状态的数据
+		2 require vector<PKGroupInfo> vecGroupInfo;	//人名组列表
+		3 optional string propsDataKey;				//由后台下发作为请求道具或者其他的参数
+	};
+};

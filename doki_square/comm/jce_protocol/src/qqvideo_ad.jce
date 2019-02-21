@@ -1,0 +1,166 @@
+
+#include "qqvideo_common.jce"
+#include "qqvideo_ad_common.jce"
+module jce
+{
+    struct ONAAdPoster
+    {
+	    0 optional string adId;//广告标识
+	    1 optional string title;//广告标题
+	    2 optional string subtitle;//广告副标题（xx广告主 提供广告）
+	    3 optional AdCorner corner;//广告角标文本（右下角）
+	    4 optional vector<MarkLabel> markLabelList;		//脚标
+	    5 optional string imageUrl;				//图片地址
+	    6 optional map<string, AdReport> report;//约定key:exposure-曝光，click-点击，play-播放，effect-效果（下载状态），feedback-负反馈
+	    7 optional int type;//效果类型，0-非京东广告普链，1-非京东广告应用下载 2-非京东广告应用直达 3-京东广告
+	    8 optional int picType; //0-大图广告 1-小图广告
+        9 optional string downloadUrl; //iOS侧跳转App Store链接
+        10 optional AdShareItem shareItem;  
+        11 optional int uiStyle;  //UI样式：0-首页专栏样式（没有灰色边）  1-视频信息流样式 （下边带灰色边）
+		12 optional map<string,string> extraParam;//额外的参数   约定channelId-频道Id seq-广告的相对位置 absSeq-广告的绝对位置 debugMsg-Debug信息（广告信息名称 & 广告ID & 广告主ID & 商品ID & 商品类型 & 行业 & 广告相对位置 & 广告绝对位置）adPos-广告位
+		13 optional string adReportKey; //广告上报透传reportkey字段
+		14 optional string adReportParams; //广告上报透传reportParams字段
+		15 optional int downloadType; //跳转行为类型类型，0:不处理，1:预加载
+		16 optional map<string,string> adExperiment;  //广告实验参数
+		17 optional string vid;//视频广告vid
+    };
+
+    struct ONAVideoAdPoster
+    {
+	    0 optional string adId;//广告标识
+	    1 optional string title;//广告标题
+	    2 optional string subtitle;//广告副标题（xx广告主 提供广告）
+	    3 optional AdCorner corner;//广告角标文本（右下角）
+	    4 optional vector<MarkLabel> markLabelList;		//角标
+	    5 optional string imageUrl;				//图片地址
+	    6 optional Action action;  				//跳转地址
+	    7 optional string vid;//视频广告vid
+	    8 optional map<string, AdReport> report;//约定key:exposure-曝光，click-点击，play-播放，effect-效果（下载状态），feedback-负反馈
+	    9 optional int type;//效果类型，0-非京东广告普链，1-非京东广告应用下载 2-非京东广告应用直达 3-京东广告
+        10 optional string downloadUrl; //iOS侧跳转App Store链接
+        11 optional AdShareItem shareItem;
+		12 optional map<string,string> extraParam;//额外的参数   约定channelId-频道Id seq-广告的相对位置 absSeq-广告的绝对位置 debugMsg-Debug信息（广告信息名称 & 广告ID & 广告主ID & 商品ID & 商品类型 & 行业 & 广告相对位置 & 广告绝对位置）adPos-广告位
+		13 optional bool isAutoPlayNext = false;    //是不是自动续播下一个短视频
+		14 optional string adReportKey; //广告上报透传reportkey字段
+		15 optional string adReportParams; //广告上报透传reportParams字段
+		16 optional map<string,string> adExperiment;  //广告实验参数
+		17 optional bool isAutoPlayer = false; //广告视频是否自动播放
+    };
+    //品牌氛围卡ONAView
+    struct ONABrandVideoAdPoster
+    {
+		0 require  string  orderId;                          //订单Id
+        1 optional AdInSideVideoExposureItem exposureItem;    //曝光数据上报数据
+        2 optional AdPositionItem positionItem;              //订单位置信息
+	    3 optional string brandPhotoUrl;			//广告主头像地址
+	    4 optional string brandName;				//广告主名称
+	    5 optional string slogan;					//广告语
+	    6 optional AdActionButtonInfo actionButtonInfo;	    //广告行动按钮
+	    7 optional string imageUrl;					//图片地址
+	   	8 optional AdAction brandAction;  			//品牌跳转action
+	    9 optional AdAction videoAction;  			//视频跳转action
+	    10 optional string vid;						//视频广告vid
+        11 optional AdShareItem shareItem;          //分享shareItem
+		12 optional bool isAutoPlayer = true;      //广告视频是否自动播放
+		13 optional string debugMsg;               //debugMsg-Debug信息（广告信息名称 & 广告ID & 广告主ID & 商品ID & 商品类型 & 行业 & 广告相对位置 & 广告绝对位置）（沿用旧协议设计）
+    };
+
+
+    //APP换量ONAView
+    struct ONAAppPullAdPoster
+    {
+        0 optional string title;      //标题
+	    1 optional string subtitle;   //副标题
+	    2 optional AdCorner corner;   //行动按钮
+	    3 optional string imageUrl;	  //图片地址 
+	    4 optional int type;          //效果类型  0-了解详情类型 1-下载应用类型
+	    5 optional int uiStyle;       //UI样式：0-首页专栏样式（没有灰色边）  1-视频信息流样式 （下边带灰色边）
+	    6 optional Action action;     //跳转action
+	    7 optional string reportKey;  //上报key
+	    8 optional string reportParam;//上报参数
+	    9 optional string downloadUrl; //下载地址
+    };
+    //左图右文SPA信息流广告
+    struct ONALeftImageRightTextAdPoster
+    {
+        0 require int seq;                        //广告插入的位置
+	    1 optional string adId;                   //广告标识
+	    2 optional string title;                  //广告标题
+	    3 optional string subtitle;               //广告副标题
+	    4 optional AdCorner corner;               //广告角标文本
+	    5 optional MarkLabel markLabel;		      //角标
+	    6 optional string imageUrl;				  //图片地址
+	    7 optional map<string, AdReport> report;  //约定key:exposure-曝光，click-点击，play-播放，effect-效果（下载状态），feedback-负反馈
+	    8 optional int type;                      //效果类型，0-非京东广告普链，1-非京东广告应用下载 2-非京东广告应用直达 3-京东广告
+        9 optional string downloadUrl;            //iOS侧跳转App Store链接
+		10 optional map<string,string> extraParam;//额外的参数   约定channelId-频道Id seq-广告的相对位置 absSeq-广告的绝对位置 debugMsg-Debug信息（广告信息名称 & 广告ID & 广告主ID & 商品ID & 商品类型 & 行业 & 广告相对位置 & 广告绝对位置）adPos-广告位
+		11 optional string adReportKey; //广告上报透传reportkey字段
+		12 optional string adReportParams; //广告上报透传reportParams字段
+		13 optional map<string,string> adExperiment;         //广告实验参数
+    };
+
+    //焦点图广告数据结构
+	struct AdFocusPoster
+    {
+		0 optional string adId;						//广告标识
+	    1 optional string title;					//广告标题
+	    2 optional string subtitle;					//广告副标题（xx广告主 提供广告）
+	    3 optional AdCorner corner;					//广告角标文本（右下角）
+	    4 optional vector<MarkLabel> markLabelList;	//脚标
+	    5 optional string imageUrl;					//图片地址
+		
+		6 optional AdReport clickReport; 			//广告点击上报
+        7 optional AdReport exposureReport; 		// 广告的曝光上报
+        8 optional AdReport effectReport; 			// 效果上报,主要是下载类广告
+	    9 optional int type;						//效果类型，0-非京东广告普链，1-非京东广告应用下载 2-非京东广告应用直达 3-京东广告
+        10 optional string downloadUrl; 			//iOS侧跳转App Store链接
+		11 optional map<string,string> extraParam;	//额外的参数   约定channelId-频道Id seq-广告的相对位置 absSeq-广告的绝对位置 debugMsg-Debug信息（广告信息名称 & 广告ID & 广告主ID & 商品ID & 商品类型 & 行业 & 广告相对位置 & 广告绝对位置）adPos-广告位
+		12 optional int insertIndex;				//广告插入焦点图位置,从0开始
+		13 optional string adReportKey;				//广告上报透传reportkey字段
+		14 optional string adReportParams;			//广告上报透传reportParams字段
+		15 optional int downloadType;			//跳转行为类型，0:不处理，1:预加载
+		16 optional AdReport playReport;		//播放上报结构
+		17 optional string vid;					//视频焦点图广告vid
+		18 optional map<string,string> adExperiment;         //广告实验参数
+    };
+
+    //焦点图广告数据结构
+	struct AdFocusInfo
+    {
+	    0 optional int adStrategy;							//0广平占位原方案，1-透传广平数据到广平SDK，2-Spa广告
+		1 optional vector<AdFocusPoster> adFocusPostor; 	//焦点图图片广告 绝对位置,小位置优先
+		2 optional AdSdkResponseInfo sdkResponseInfo;		//广平广告回包信息，透传给sdk
+		
+    };
+
+    //推荐搜索广告信息
+    struct AdRecommendSearchItem
+    {
+        0 optional AdBaseInfo adBaseInfo;	//广告信息
+	    1 optional string title;		    //广告标题  
+	    2 optional string adIcon;		    //广告icon
+	    3 optional string adIconColor;		//广告icon颜色
+	    4 optional Action action;           //跳转action
+	    5 optional string reportKey;  		//曝光上报reportKey		
+		6 optional string reportParams; 	//曝光上报reportParams	
+    };
+
+    //推荐搜索广告onaview
+	struct ONASearchRecommendAdPoster
+    {
+	    0 optional vector<AdRecommendSearchItem> adRecommendList;		    //推荐搜索广告    
+    };
+
+    //冠名广告数据结构
+	struct AdTitleInfo
+    {
+	    0 optional AdBaseInfo adBaseInfo;			//广告基本数据结构
+	    1 optional Poster adPoster;					//广告poster        
+    };
+
+    //广告空单占位onaview，ui上不展示，但需要做空单上报
+	struct ONAAdEmptyOrderPoster
+    {
+	    0 optional AdBaseInfo adBaseInfo;		    //广告基本数据结构 
+    };
+};

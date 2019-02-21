@@ -1,0 +1,71 @@
+// 统一推荐接口依赖的结构体
+module UniRecStruct
+{
+    // 推荐通用的header
+    struct CommonHeader
+    {
+        0 require string seq_num;  // 请求序列号，唯一标识一个推荐请求
+        1 require string src_key;  // 业务标识
+    };
+
+    // 推荐返回状态
+    struct  ResponsStatus
+    {
+        0 require int     rsp_code;  // 推荐返回码，0为正常，其它为异常
+        1 optional string rsp_msg;   // 推荐返回日志
+    };
+
+    // 参数说明
+    // 	   场景： DOKI推荐
+	//            rec_scene = 2
+	//            ctx_paras  
+	//                     key: module_num        value:需要的模块数量
+	//                     key: module_item_num   value:每个模块需要的帖子数量
+	
+    // 推荐上下文
+    struct RecContext
+    {
+        0 require int                  rec_scene;  // 推荐场景类型，限定在 RecDic::RecSceneType 中
+        1 optional map<string, string> ctx_paras;  // 各个业务特定的推荐上下文参数
+    };
+
+    // 推荐条目
+    struct RecItem
+    {
+        0 require string               item_id;     // 条目ID
+        1 require int                  item_type;   // 条目类型，限定在 RecDic::RecItemType 中
+        2 optional map<string, string> item_paras;  // 其它需要的条目信息
+    };
+
+    // 推荐模块
+    struct RecModule
+    {
+        0 require string               module_id;     // 模块ID
+        1 require int                  module_type;   // 模块类型，限定在 RecDic::RecModuleType 中
+        2 optional vector<RecItem>     rec_items;     // 模块中包含的推荐条目
+        3 optional map<string, string> module_paras;  // 其它需要的模块信息
+    };
+};
+
+// 统一的推荐接口
+module UniRecInterface
+{
+    // 命令字
+    const int UNI_REC_COMMAND_ID = 0xf7aa;
+    
+    // 请求
+    struct RecReq
+    {
+        0 require UniRecStruct::CommonHeader header;   // 请求header
+        1 require UniRecStruct::RecContext   rec_ctx;  // 推荐上下文
+    };
+
+    // 返回
+    struct RecRsp
+    {
+        0 require UniRecStruct::CommonHeader       header;       // 返回header，内容同请求header
+        1 require UniRecStruct::ResponsStatus      status;       // 返回状态
+        2 optional vector<UniRecStruct::RecModule> rec_modules;  // 推荐的模块 
+        3 optional map<string, string>             rsp_paras;    // 其它需要的返回信息
+    };
+};

@@ -1,0 +1,366 @@
+/*
+视频播放JCE结构
+*/
+
+/*
+TOC:
+CGIInfo
+    TVK_UserInfo
+    TVK_AppInfo
+    TVK_BaseInfo
+    TVK_VIDNode
+    TVK_FormatDetail
+    TVK_FormatNode
+    TVK_URL
+    TVK_URLNode
+    TVK_WatermarkNode
+    TVK_PictureNode
+    TVK_SoftNode
+    TVK_GetInfoRequest
+    TVK_GetInfoResponse
+伪代码
+    付费+试看流程
+    地址拼接流程
+*/
+
+module jce {
+    
+    struct TVK_UserInfo {                           // 用户信息
+        0   optional    string      flowID;         // 前端用户流水ID
+        1   require     string      ckey;           // 客户端鉴权ckey
+        2   require     string      ckeyVersion;    // ckey版本号
+        3   optional    long        ckeyRandNum;    // ckey随机值
+        4   optional    string      ckeyQuery;      // 特殊权限标志信息, 示例 guid=xxx&plyordwn=0&stdfrom=v5000&mode=1&toushe=1&dlna=0&ottflag=11&force=1
+        5   optional    int         netType;        // 网络类型, 0:无网络; 1:wifi; 2:2g; 3:3g; 4:4g; 10:有线
+        6   optional    int         netOperator;    // 接入运营商类型, 0:未知; 1:电信; 2:联通; 3:移动
+        7   optional    int         speed;          // 用户网速(单位kBps)
+        8   optional    vector<int> speedList;      // 历史多次网速(单位kBps)
+        9   optional    int         freeISP;        // 免流运营商, 0:未知; 1:电信; 2:联通; 3:移动
+        10  optional    string      freeCode;       // 免流伪码, 对应HTTP版unicom/telcom参数
+        11  optional    int         freeType;       // 免流业务类型, 注意与之前定义不一样, 0:非免流用户; 1:普通免流; 2:小王卡; 3:大王卡
+        12  optional    long        authFrom;       // 第三方独立鉴权ID, SNG教育/OMG课堂等使用
+        13  optional    string      authExt;        // 第三方独立鉴权拓展参数, SNG教育/OMG课堂等使用
+        14  optional    string      adk;            // 网吧参数, PC客户端使用
+        15  optional    string      encMac;         // 加密的mac地址, PC客户端使用
+        16  optional    string      privKey;        // 客户端与服务端加密传送的数据, 后台留用
+    };
+
+    /*
+    ckeyQuery: 特殊权限标志信息, 计算hash值存放ckey用于校验
+    guid    :   用户的guid
+    plyordwn:   播放or下载, 0:播放; 1:下载
+    sdtfrom :   用于带宽统计, 示例: aphone:v5000, 见http://lg.webdev.com/bdwcfg/bdwcfg?
+    mode    :   模式, 0:none; 1:网络诊断模式
+    toushe  :   投摄, 0:none; 1:TV投摄
+    ottflag :   ott投射标识
+    force   :   续下载强制走指定格式, 0:否; 1:强制走
+    */
+
+    struct TVK_AppInfo {                            // App信息
+        0   require     long        platform;       // 播放平台号, 见http://lg.webdev.com/bdwcfg/bdwcfg?
+        1   require     string      appVersion;     // app版本号, 当前取自qv包头AccessInfo.QUAInfo.versionName
+        2   optional    int         incVersion;     // app每次发版递增
+        3   optional    int         downloadVersion;// 下载组件每次发版递增
+        4   optional    int         deviceLevel;    // 机型能力
+        5   optional    int         hevcLevel;      // 支持hevc能力
+        6   optional    int         spMP4;          // 支持mp4播放, 0: 不支持; 1: 支持
+        7   optional    int         spHLS;          // 支持hls播放, 0: 不支持; 1: 支持
+        8   optional    int         spClip;         // 支持mp4分片播放, 0: 不支持; 1: 支持
+        9   optional    int         spDefn;         // 支持特定清晰度特殊逻辑: sp720P, sp1080P, sp4K
+        10  optional    int         spHTTPs;        // 支持https: 水印地址, 截图地址, CDN地址
+        11  optional    int         spDRM;          // 支持drm及类似drm的加密播放
+        12  optional    int         spAudio;        // 支持音频
+        13  optional    int         spWM;           // 支持水印
+        14  optional    int         spP2P;          // 支持使用p2p, 1: 播放器传入; 3: 下载组件传入
+        15  optional    int         spDirect;       // 支持m3u8直出, 0: 不支持; 1: 支持
+        16  optional    int         spVideo;        // 支持视频
+        17  optional    int         spPic;          // 支持(/所需)截图规格
+		18  optional    int         spSrt;          // 支持软字幕, 1: 支持
+    };
+
+    /*
+    platform: 播放平台, 示例:
+    11      :   pc flash
+    10204   :   pc client
+    10303   :   aphone
+    10403   :   iphone
+    10103   :   ipad
+    xx0603  :   tv
+    */
+
+    /*
+    deviceLevel: 机型能力
+    11      :   支持最高到hd(高清)的流畅播放能力
+    16      :   支持最高到shd(超清)的流畅播放能力
+    21      :   支持最高到fhd(全高清)的流畅播放能力
+    */
+
+    /*
+    hevcLevel: hevc能力
+    0       :   不支持hevc, 
+    16      :   支持最高到hd(高清)的hevc流畅播放能力
+    21      :   支持最高到shd(超清)的hevc流畅播放能力
+    26      :   支持最高到fhd(全高清)的hevc流畅播放能力
+    28      :   支持最高到uhd(伪4K)的hevc流畅播放能力
+    上述都是hevc软解对应的参数, 因为hevc软解比较消耗cpu电量, 所以请充分测试
+    另, 如果是hevc的硬解, 与软解带相同的值, 由前端sdk做软硬区分处理
+    */
+
+    /*
+    spDefn: 支持特定清晰度逻辑
+    spDefn & 0xf00  = 0x100     : sp720P, PC Web侧闪播逻辑/鉴权逻辑
+    spDefn & 0xf000 = 0x1000    : sp1080P, 支持1080P专享
+    spDefn & 0xf0000= 0x10000   : sp4K, TV支持4K专享
+    */
+
+    /*
+    spHTTPs: 支持https
+    spHTTPs & 0xf   = 0x1       : 水印地址支持https
+    spHTTPs & 0xf0  = 0x10      : 截图地址支持https
+    spHTTPs & 0xf00 = 0x100     : CDN地址支持https
+    */
+
+    /*
+    spDRM: 支持drm及类似drm的加密播放
+    spDRM   & 0x01  = 0x01      : 支持伪drm
+    spDRM   & 0x02  = 0x02      : 支持普通drm
+    spDRM   & 0x04  = 0x04      : 支持数字太和drm
+    spDRM   & 0x08  = 0x08      : 支持chacha20加密
+    */
+
+    /*
+    spAudio: 支持音频
+    spAudio & 0x01  = 0x01      : 支持纯音频流
+    spAudio & 0x02  = 0x02      : 支持杜比环绕声
+    spAudio & 0x04  = 0x04      : 支持杜比全景声
+    */
+
+    /*
+    spWM: 支持水印
+    spWM    & 0x01  = 0x01      : 支持软水印
+    spWM    & 0x02  = 0x02      : 支持动态水印
+    spWM    & 0x04  = 0x04      : 支持SVG水印
+    */
+
+    /*
+    spVideo: 支持视频
+    spVideo & 0x04  = 0x04      : 支持HDR10
+    spVideo & 0x08  = 0x08      : 支持杜比Version
+    */
+
+    /*
+    spPic: 支持(/所需)截图规格
+    spPic   & 0x01  = 0x01      : 小截图
+    spPic   & 0x02  = 0x02      : 中截图
+    spPic   & 0x04  = 0x04      : 大截图
+    */
+
+    struct TVK_VideoInfo {                          // 视频信息
+        0   require     string      vid;            // 视频vid
+        1   optional    string      link;           // 视频link, 续播/重试时传入
+        2   optional    string      preVid;         // 秒播时, 换vid
+        3   optional    string      cid;            // pc客户端使用
+        4   optional    string      defn;           // 用户指定的播放清晰度: auto|msd|sd|mp4|hd|shd|fhd|uhd|audio
+        5   optional    int         defnSource;     // 清晰度来源
+        6   optional    int         defnSwitch;     // 是否用户手动选择清晰度 示例：0:自动选择; 1:手动选择;
+        7   optional    int         format;         // 视频格式, 下载组件续下载时使用
+        8   optional    int         pTime;          // 指定续播时间点
+        9   optional    string      pagePath;         //页面标识如 ：pageId/refer_pageId
+        10  optional    int         aTime;          // 当前播放时间点
+        11  optional    string      track;          // 选择音频档次
+        12  optional	string 	    scene;	        // 播放场景
+    };
+
+    /*
+    defn: 清晰度来源
+    0   :   未知(目前没有场景使用)
+    1   :   默认（App新安装后默认使用的清晰度，一般为auto）
+    2   :   当次切换（本次vInfo请求是因为用户切换清晰度造成）
+    3   :   曾经切换过（用户历史中切换过清晰度，本次vInfo请求使用最后一次用户切换清晰度的设置）
+    4   :   网络强行设置低清晰度（在移动网络下为用户播放的默认清晰度使用低清晰度）
+    5   :   投射默认（本次vInfo请求是用户发起投射导致）
+    6   :   投射切换（本次vInfo请求是用户在投射状态下切换清晰度导致）
+    7   :   离线（iPhone在离线播放场景下会请求vInfo，此时请求的清晰度与播放的离线视频清晰度一致）
+    8   :   下载默认（用户未更改过清晰度的情况下发起下载）
+    9   :   下载切换（用户更改过清晰度的情况下发起下载）
+    10  :   因长时间loading自动降低（由于当前清晰度长时间播放不起来，强制给用户降低清晰度播放）
+    */
+
+    struct TVK_BaseInfo {                           // 基础信息
+        0   require     int         em;             // 业务错误码, 常见错误见http://tapd.oa.com/shiping_dev/wikis/view/new.getvinfo#toc9
+        1   require     int         exem;           // 业务细分错误码
+        2   require     string      message;        // 错误码信息
+        3   require     long        currentTime;    // 时间戳, 单位s
+        4   require     string      ckeyRandNum;    // ckey随机值
+        5   require     string      userIp;         // 用户Ip
+        6   require     string      country;        // 国家
+        7   require     string      province;       // 省份
+        8   require     string      city;           // 城市
+        9   require     string      isp;            // 运营商
+        10  require     int         retry;          // 0:前端不需要重试; 1:可重试
+        11  require     long        testID;         // AB测试ID, 用于上报
+    };
+
+    struct TVK_VIDNode {                            // 视频信息
+        0   require     string      vid;            // 视频ID   
+        1   require     string      link;           // 视频link
+        2   require     string      title;          // 标题
+        3   require     int         status;         // 状态, 2:普通; 5:待审核; 8:付费
+        4   optional    float       totalTime;      // 视频总时长, 单位s
+        5   require     int         encID;          // 简单加密标识
+        6   require     string      fileKey;        // 文件解密key (密文传输)
+        7   require     string      drmKey;         // drm token
+        8   require     string      privKey;        // 私有key
+        9   require     int         mediaType;      // 媒资视频类型
+        10  require     int         mediaStatus;    // 秒播透传, 媒资视频状态
+        11  require     string      mediaCID;       // 秒播透传, 专辑ID
+        12  require     int         limit;          // 受限用户, 0:正常用户; 1:用户未付费; 2:防盗链打击
+        13  require     int         preview;        // 试看时长, -1:非试看; 0:0秒试看; >0,试看时长
+        14  require     int         head;           // 片头时长
+        15  require     int         tail;           // 片尾时长
+        16  require     int         containerType;  // 当前选择的视频封装格式, 1:mp4; 3:hls
+        17  require     int         clipNum;        // 分片数, 0:不分片; >0:分片数
+        18  require     int         iFlag;          // I帧对齐, 1:对齐; 0:否
+        19  require     string      action;         // 动态水印
+        20  require     int         p2p;            // p2p开关, 1:开; 0:关
+        21  require     int         cookieTime;     // vkey有效期, 单位s
+    };
+
+    struct TVK_FormatDetail {                       // 当前选中的格式, 更详细的信息
+        0   require     string      name;           // 文件名
+        1   require     int         bitrate;        // 视频码率KB/s
+        2   require     int         height;         // 文件长
+        3   require     int         width;          // 文件宽
+        4   require     string      sha;            // sha of bigts-m3u8
+        5   require     int         dargType;       // TODO: 是否保留, 是否可拖拽
+    };
+
+    struct TVK_FormatNode {                         // 清晰度/格式信息
+        0   optional    TVK_FormatDetail detail;    // 当前选中的格式, 更详细的信息
+        1   require     int         selected;       // 是否是当前选中格式, 1: 选中; 0: 否
+        2   require     int         formatID;       // 格式ID
+        3   require     string      name;           // 格式对应英文清晰度: msd,sd,mp4,hd,shd,fhd,uhd,audio
+        4   require     string      cname;          // 格式对应中文清晰度: 流畅,标清,高清,超清,蓝光,音频
+        5   require     int         tag;            // 格式对应角标, 对应HTTP版lmt, 0:免费; 1:会员专享; 3:会员专享; 4:限时免费
+        6   require     long        fileSize;       // 格式大小
+        8   optional    float       fps;            // 帧率, 可能为小数
+        9   require     int         encrypt;        // 加密类型, 1:非加密; 2:普通drm; 3:数字太和drm; 4: chacha20加密
+        10  optional    int         caption;        // 字幕, 1:无; 2:中文; 3:英文
+        11  optional    int         vFormat;        // 视频编码, 1:h264; 2:h265; 3:HDR10; 4:杜比Vision
+        12  optional    int         aFormat;        // 音频编码, 1:AAC; 2:杜比环绕; 3:杜比全景
+        13  optional    int         convType;       // 转码类型, 1:普通; 2:音乐; 3:体育; 4:UGC; 5:NBA; 6:电视; 7:广告; 8:杜比; 9:全景; 10:电视杜比; 11:通用
+		14  optional    int         profile;        // 平台转码格式, 5:FMP4
+    };
+
+    struct TVK_URL {                                // 下载地址 
+        0   require     string      url;            // 下载地址
+        1   require     int         vt;             // 对应的CDN编号, 用于上报
+        2   optional    string      m3u8;           // 此地址对应的m3u8文件, 不为空表示走M3u8直出逻辑
+    };
+
+    struct TVK_URLNode {                            // 下载地址信息
+        1   require     long        fileSize;       // 文件大小: 对于分片MP4, 是分片文件大小; 对于整段MP4及hls, 是全文件大小; 如果取视频文件总大小, 建议用选中格式TVK_FormatNode.fileSize
+        2   require     float       duration;       // 时长: 对于分片MP4, 是分片时长; 对于整段MP4及hls, 是总时长; 如果取视频文件总时长, 建议用TVK_VIDNode.totalTime
+        3   require     string      md5;            // 文件MD5: 对于分片MP4, 是分片MD5; 对于整段MP4及hls, 是全文件MD5
+        4   require     string      keyID;          // 全网惟一key值, 用于p2p
+        5   require     vector<TVK_URL> urlList;    // 下载地址(含备份地址), 按次序重试
+    };
+
+    struct TVK_WatermarkNode {                      // 水印信息
+        0   require     long        wmID;           // 水印ID
+        1   require     int         x;              // x坐标
+        2   require     int         y;              // y坐标
+        3   require     int         w;              // 宽度, 注意如果为0不展示
+        4   require     int         h;              // 高度, 注意如果为0不展示
+        5   require     int         a;              // alpha
+        6   require     string      fileMD5;        // 水印素材md5
+        7   require     string      url;            // 素材下载地址(HTTP+HTTPS * SVG), 注意为空TV自行加logo
+    };
+
+    struct TVK_PictureNode {                        // 视频截图信息(内部排序,从小到大)
+        0   require     int        flag;            // 截图规格, 1:小截图; 2:中截图; 4:大截图
+        1   require     int        cd;              // 截图之间时间间隔
+        2   require     int        h;               // 截图长度
+        3   require     int        w;               // 截图宽度
+        4   require     int        r;               // 一张物理截图有多少行
+        5   require     int        c;               // 一张物理截图每行有几张小图
+        6   require     vector<string> urlList;     // 截图下载地址, 条目数=ceil(totalTime/cd/r/c)
+    };
+
+    struct TVK_SoftNode {                           // 软字幕
+        0   require     int         formatID;       // 软字幕格式
+        1   require     string      fileName;       // 软字幕文件名
+        2   require     vector<string> urlList;     // 软字幕下载地址(含备用)
+		3   optional    string      name;           // 语种文案
+    };
+
+    struct TVK_GetInfoRequest {
+        0   optional    string          debug;      // 在线调试信息, 前端无需关心
+        1   require     TVK_UserInfo    user;       // 用户信息
+        2   require     TVK_AppInfo     app;        // app信息
+        3   require     TVK_VideoInfo   video;      // 视频信息
+    };
+
+    struct TVK_GetInfoResponse {
+        0   optional    string                      debug;          // 在线调试信息, 前端无需关心
+        1   require     TVK_BaseInfo                baseInfo;       // 基础信息
+        2   optional    TVK_VIDNode                 vidNode;        // 视频信息
+        3   optional    vector<TVK_FormatNode>      formatList;     // 清晰度/格式信息
+        4   optional    vector<TVK_URLNode>         urlList;        // 下载地址信息
+        5   optional    vector<TVK_WatermarkNode>   watermarkList;  // 水印信息
+        6   optional    vector<TVK_PictureNode>     pictureList;    // 视频截图信息
+        7   optional    vector<TVK_SoftNode>        softList;       // 软字幕
+    };
+};
+   
+/*
+伪代码
+*/
+
+/*
+付费+试看流程:
+for {
+    if baseInfo.em == 83 {
+        付费视频不能试看
+        break
+    }
+    if vidNode.limit == 0 {
+    	正常用户播放
+        break
+    }
+    if vidNode.limit == 1 {
+        用户未付费
+    } else if vidNode.limit == 2 {
+        防盗链打击
+    }
+    if vidNode.preview > 0 {
+        N秒试看
+    }
+    break
+}
+*/
+
+/*
+地址拼接流程:
+for {
+    if len(urlList) == 0 {
+        出错
+        break
+    }
+    if vidNode.containerType == 1 {
+        到CDN下载Mp4文件
+        for idx, url = range(urlList) {
+            依次下载url
+        }
+    }
+    if vidNode.containerType == 3 {
+        到CDN下载HLS文件
+        if len(urlList[0].m3u8) > 0 {
+            走M3u8直出逻辑
+        } else {
+            普通HLS逻辑
+        }
+    }
+    break
+}
+*/

@@ -1,0 +1,79 @@
+#include "qqvideo_common.jce"
+
+module jce
+{
+	//关注请求(关注或者取消关注) 
+	struct FollowRequest
+	{
+		0 require string fromUserId; 	//关注者
+		1 optional string toUserId;	//被关注者
+        	2 optional int type;	//操作类型(1-关注,2-取消关注,3-取消所有关注)
+	};
+
+	struct FollowResponse
+	{
+		0 require int errCode;
+		1 optional int followedNum;    // 用户当前已关注粉丝数
+		2 optional int maxFollowNum;   // 用户最大可关注粉丝数
+	};
+
+	//查询用户的关注列表
+	struct QueryFollowVppsRequest
+	{
+		0 require string userId;	// 关注者
+		1 optional string pageContext; // 翻页上下文
+	};
+
+	
+	struct QueryFollowVppsResponse
+	{
+		0 require int errCode;
+		1 require vector<ActorInfo> vecVppUsers;
+		2 optional string pageContext; 
+		3 optional bool hasNextPage;
+	};
+
+	//查询用户的粉丝列表
+	struct QueryFansListRequest
+	{
+		0 require string userId;			// 被订阅者
+		1 optional string pageContext;	// 翻页参数
+		
+	};
+	
+	struct QueryFansListResponse
+	{
+		0 require int errCode;
+		1 require vector<ActorInfo> vecFollowedUsers;
+		2 optional string pageContext; 
+		3 optional bool hasNextPage;
+		
+	};
+
+	//查询和某些用户之间的关注关系(关注|没关注|互相关注)
+	struct CheckFollowRelationRequest
+	{
+		0 require string fromUserId;
+		1 require vector<string> toUsers;
+	};
+
+	struct CheckFollowRelationResponse
+	{
+		0 require int errCode;
+		1 require map<string,int> mapVppFollowed; //key:userid value:(0-没关注,1-关注,2-互相关注)
+		2 optional int followedNum;    // 用户当前已关注粉丝数
+		3 optional int maxFollowNum;   // 用户最大可关注粉丝数
+	};
+	
+	struct MyRelationPageRequest {
+		0 require string userId;
+		1 optional int scene;		//场景 1：返回doki、二次元页卡 2:返回关注的人、我的粉丝页卡
+	};
+	
+	struct MyRelationPageResponse {
+		0 require int errCode;									//业务错误码
+		1 require vector<LiveTabModuleInfo> moduleList;			//tab列表
+	};
+};
+
+

@@ -1,0 +1,115 @@
+module jce 
+{	
+	//公共返回包头
+	struct CommRsp
+    {
+        0 require int retCode;
+        1 optional string errMsg; 
+    };
+	
+	//帐号信息
+	struct AccountInfo
+	{
+		0 require 	string 	account;          //帐号信息  
+		1 require 	int 	accounttype;      //1: QQ; 2:OPENID 3 VUID
+	};
+	
+	//视频打赏时，拉取视频打赏信息时，用到该结构体
+	struct VideoInfo
+	{
+		0 require  int     iVType;          //视频类型: 1 单视频 2 专辑  视频详情页时，需要传
+		1 require  string  strId;           //视频id
+	};
+	
+	//拉取密钥协议key2  需要登陆态
+	struct GetEncrpyKeyRequest
+	{
+		0 require AccountInfo stIdolInfo; //被打赏人的帐号信息，不需要传vid
+	};
+	
+	struct GetEncrpyKeyResponse
+	{
+		0 require CommRsp stCommRsp;
+		1 require string  strEncrpyKey;	//加密之后，base64编码，返回key2 信息  //加密之后，base64编码，返回key2 信息
+		2 optional string sDomain;		//跳转URL m.v.qq.com/pay/vplus.html?nickname=陈茂源工作室&
+										//headurl=video.qpic.cn/video_caps_enc/QUibzO6v057uTuH3XCqchm2bAiaRYVobpyVrMGyicAaeCBLPiaFJdlC3oA/0
+	};
+	
+	//密钥验证接口协议
+	struct CheckEncrpyRequest
+	{
+		0 require string strKey1;
+		1 require string strKey2;
+		2 optional string strNickname;
+	};
+	
+	struct CheckEncrpyResponse
+	{
+		0 require  CommRsp stCommRsp;
+		1 optional AccountInfo stFansInfo;
+		2 optional AccountInfo stIdolInfo;
+	};
+	
+	//打赏流水接收协议
+	struct RewardWaterLogRequest
+	{
+		0 require vector<AccountInfo>   vecFansAccountInfo;   //打赏人
+		1 require AccountInfo stIdolAccountInfo;   //被打赏人
+		2 require int         iSceneType;	     //1 v+主页； 2：v+视频详情页
+		3 require long        iRewardNum;       //打赏金额
+		4 require string      strPlatForm;     //打赏平台
+		5 require string      strAppInfo;     //版本信息
+		6 require long        iClientIp;	 //客户端IP
+		7 require string      strGuid;		//客户端GUID
+		8 optional VideoInfo  stVideoInfo; //详情页打赏时，需要该参数
+	};
+	
+	struct RewardWaterLogResponse
+	{
+	   0 require  CommRsp   stCommRsp;
+	};
+	
+	//CheckWhiteIdolAndFansHeadCmd
+	struct CheckWhiteIdolAndFansHeadRequest
+	{
+		0 require  AccountInfo stIdolAccount;
+		1 optional VideoInfo   stVideoInfo;  //视频详情页时，需要传该参数
+	};
+	
+	struct MyUserInfo
+	{
+	   0 require   long      ddwVuid;
+	   1 optional  string    strHeadUrl;
+	   2 optional  string    strNickName;
+	};
+	
+	struct AccountState
+	{
+		0 require  AccountInfo stAccountInfo;
+		1 require  int  iState;   //1 表示该账号可以被打赏
+		2 optional vector<MyUserInfo> vecFansInfo; //打赏的粉丝信息
+		3 optional int    iRewardNum; //打赏金额
+		4 optional int    iRewardCnt; //打赏次数，和产品有确认，该处是次数，不是人数
+	};
+	
+	struct CheckWhiteIdolAndFansHeadResponse
+	{
+	    0 require  CommRsp   stCommRsp;
+		1 optional AccountState stIdolState;
+		2 optional string       strKey1; 
+		3 optional string       strRewardUrl;  
+	};
+	
+	//GetRewardFansHeadAndNum
+	struct GetRewardFansHeadAndNumRequest
+	{
+		0 require  AccountInfo stIdolAccount;
+		1 optional VideoInfo   stVideoInfo;  //视频详情页时，需要传该参数
+	};
+	
+	struct GetRewardFansHeadAndNumResponse
+	{
+		0 require  CommRsp   stCommRsp;
+		1 optional AccountState stIdolState;
+	};
+};

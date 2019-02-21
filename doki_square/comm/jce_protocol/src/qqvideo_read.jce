@@ -1,0 +1,346 @@
+#include "qqvideo_common.jce"
+
+module jce
+{
+	/**
+	* 历史上为例考虑通用性，有过将阅文和漫画的协议合并为一个的考虑，所以命名都较为抽象，比如targetId，bookId，book等，但后来2着的差异性较大，所以将2者拆分了。
+	* 以前的命名不规范，从现在开始，以后的命名不要太随意，采取下面规范：
+	* 1、book是一个抽象概念，可以指代阅文和漫画
+	* 2、阅文：yuewen
+	* 3、漫画：老版本用cartoon，后面统一改成用comic命名，切记切记，以后禁止用cartoon来命名，漫画本身也是用comic来命名的
+	* 4、上报的书籍偏移量用pageOffset，放弃同名的pageIndex，更不能用pageNumber这个极为引起人误解的命名
+	* 5、历史上targetId，bookId，book等，这些协议基本仅针对漫画，仅仅GetBookCouponRequest里面的bookId是针对阅文的
+	* 6、因为历史原因，阅文的协议时间单位为毫秒，漫画的协议时间单位为秒
+	**/
+	
+	//------------------------------------------------615版本协议用到的通用结构体------------------------------------------------
+	/**
+	*  这个版本的协议本来设想为漫画和阅文公用的协议，但实际只给漫画在使用，因为协议设计却一点不通用，加上2者业务差别还挺大
+	**/
+	struct ChapterInfo 
+	{
+		0 optional int sequence;						//章节序号（章节排序的唯一标识）
+		1 optional string title;						//章节标题
+		2 optional string chapterId;					//章节ID（章节的唯一标识）
+		3 optional int payState;						//章节付费状态 1: 免费 2: 需要付费 3: 付费已购买
+		4 optional int pictureNumber;					//漫画每章的有多少画
+		5 optional int readState;						//章节阅读状态 0: 未阅读 1: 已阅读
+	};
+
+	struct BookChapterReadInfo 
+	{
+		0 require string chapterId;	    				//章节id
+		1 optional long timeInterval;					//时间戳，单位秒
+	};
+
+	struct BookHistoryInfo 
+	{
+		0 require string targetId;	        					//目标id，现在只用在漫画了，等于comicId
+		1 optional string chapterId;	    					//章节id
+		2 optional string pageIndex;	    					//书籍偏移量，通过chapterId和pageIndex来定位到某一页，等价于后面版本定义的pageOffset，因为字段取名不容易理解，后面废弃掉这个命名
+		3 optional vector<BookChapterReadInfo> chapterReadInfo;	//阅读状态信息
+		4 optional long updatetime;								//最近一次阅读书籍的时间，单位秒。
+	};
+
+	//------------------------------------------------635版本协议用到的通用结构体------------------------------------------------
+	/**
+	* 1、这个版本主要新增观看历史的云同步，ui数据请求，以及观看历史为空的时候的推荐
+	* 2、阅文和漫画的数据分离，分别用不同的结构体去承载
+	**/
+	struct YuewenHistoryInfo 
+	{
+		0 require string yuewenId;						//书籍id
+		1 optional int type = 0;						//阅文书籍子类型：0:txt；1:epub类型
+		2 optional string chapterId;	    			//章节id
+		3 optional long updatetime;						//最近一次阅读书籍的时间，单位毫秒
+		4 optional string progress;						//阅文书籍epub类型百分比阅读进度
+		5 optional string pageOffset;					//阅文书籍偏移量，阅文通过chapterId和pageOffset来定位到某一页
+	};
+
+	struct ComicHistoryInfo
+	{
+		0 require string comicId;						//漫画id
+		1 optional string chapterId;	    			//章节id
+		2 optional string pageOffset;	    			//相对于当前章节的偏移量，漫画通过chapterId和pageOffset来定位到某一页
+		3 optional long updatetime;						//最近一次阅读漫画的时间，单位毫秒
+	};
+
+	struct YuewenUiData
+	{
+		0 optional string yuewenId;						//书籍id
+		1 optional Poster poster;						//海报信息
+		2 optional int status = 0;						//0，正常；1，下架	
+	};
+
+	struct ComicUiData
+	{
+		0 optional string comicId;						//书籍id
+		1 optional Poster poster;						//海报信息
+		2 optional int status = 0;						//0，正常；1，下架	
+		3 optional int bookSrc;                         //漫画来源：1：腾讯动漫 2：保留 3：自制动漫
+	};
+
+	struct YuewenDeleteData
+	{
+		0 optional string yuewenId;						//书籍id
+		1 optional long deletetime;						//删除行为发生的时间戳，单位毫秒
+	};
+
+	struct ComicDeleteData
+	{
+		0 optional string comicId;						//漫画id
+		1 optional long deletetime;						//删除行为发生的时间戳，单位秒
+	};
+	
+	//------------------------------------------------650版本协议用到的通用结构体------------------------------------------------
+	// 图片信息
+	struct PictureInfo
+	{
+		0 require string pictureId;						// 图片 ID
+		1 require string urlString;						// 图片地址
+		2 optional double width;							// 图片宽度
+		3 optional double height;							// 图片高度
+		4 optional double aspectRatio;					// 图片宽高比
+	};
+	//------------------------------------------------615版本协议用到的请求和响应------------------------------------------------
+	/**
+	*  这个版本的协议本来设想为漫画和阅文公用的协议，但实际只给漫画在使用，因为协议设计却一点不通用，加上2者业务差别还挺大
+	**/
+	//新增/取消收藏
+	struct BookFollowRequest
+	{
+		0 require vector<string> targetIdList;	        //目标id，可以是动漫的cartoonID，也可以是阅读的bid，默认是动漫
+		1 require int type;	                		    //0: 删除收藏；1: 添加收藏
+	};
+	
+	struct BookFollowResponse
+	{
+		0 require int errorCode;						//0：成功，1：失败，2:添加过收藏，请不要重复提交
+	};
+	
+	//检查是否收藏 
+	struct GetBookFollowStatusRequest
+	{
+		0 require string targetId;	        			//目标id，可以是动漫的cartoonID，也可以是阅读的bid，默认是动漫
+	};
+	
+	struct GetBookFollowStatusResponse
+	{
+		0 require int errorCode;						//0：成功，其他为失败
+		1 require int status;	            			//0：未收藏，1：收藏
+	};
+
+	//获取观看历史请求  
+	struct GetBookHistoryRequest
+	{
+		0 require string targetId;	        			//目标id，可以是动漫的cartoonID，也可以是阅读的bid，默认是动漫
+	};
+	
+	//获取观看历史响应  
+	struct GetBookHistoryResponse
+	{
+		0 require int errorCode;						//0：成功，其他为失败
+		1 optional string chapterId;	    			//章节id
+		2 optional string pageNumber;	    			//页数
+		3 optional string title;	    				//标题
+		4 require vector<ChapterInfo> chapterList;		//当前观看历史前后5章的章节信息
+	};
+	
+	//上报观看历史请求  
+	struct UploadBookHistoryRequest
+	{
+		0 require vector<BookHistoryInfo> historyInfoList;
+	};
+	
+	//上报观看历史响应
+	struct UploadBookHistoryResponse
+	{
+		0 require int errorCode;						//0：成功，其他为失败
+	};
+
+	//获取章节信息请求
+	struct GetChapterListRequest
+	{
+		0 require string targetId;	        			//目标id，可以是动漫的cartoonID，也可以是阅读的bid，默认是动漫
+		1 optional string chapterId;	    			//章节id（id为空代表拉取所有目录）
+	};
+	
+	//获取章节信息响应
+	struct GetChapterListResponse
+	{
+		0 require int errorCode;						//0：成功，其他为失败
+		1 require vector<ChapterInfo> chapterList;
+	};
+
+	//获取书籍信息请求
+	struct GetBookInfoRequest
+	{
+		0 require string targetId;	        			//目标id，可以是动漫的cartoonID，也可以是阅读的bid，默认是动漫
+	};
+
+	//获取书籍信息响应
+	struct GetBookInfoResponse
+	{
+		0 require int errorCode;						//0：成功，其他为失败
+		1 require int bookStatus;						//作品状态：1. 已下架或未通过审核；2. 完结漫画；3. 连载漫画
+		2 require string bookName;						//书籍名称
+		3 optional int bookSrc;							//作品类型：1. 腾讯动漫； 2.自制动漫； 3.签约cp；
+		4 optional int selectedReadMode;				//用户选择的翻页模式
+		5 optional vector<int> providedReadModes;		//提供可选择的翻页模式  
+	};
+	
+	//获取章节是否可读
+	struct GetChapterChargeStatusRequest
+	{
+		0 require string targetId;	        			//目标id，可以是动漫的cartoonID，也可以是阅读的bid，默认是动漫
+		1 require string chapterId;	    				//章节id
+	};
+	
+	//获取章节是否可读响应
+	struct GetChapterChargeStatusResponse
+	{
+		0 require int errorCode;						//0：成功，其他为失败
+		1 require int status;	            			//0：未知状态不可读，1：免费可读，2：需要付费不可读，3：付费已购买可读，4：自动续费购买成功可读
+	};
+	//阅文获取书券请求
+	struct GetBookCouponRequest
+	{
+		0 require string bookId;	        				//书籍的id
+	};
+	//阅文获取书券响应
+	struct GetBookCouponResponse
+	{
+		0 require int errorCode;						//0：成功，其他为失败
+		1 require long count = 0;	            		//书券余额
+	};
+	
+	//------------------------------------------------635版本协议用到的请求和响应------------------------------------------------
+	/**
+	* 这个版本主要新增观看历史的云同步，ui数据请求，以及观看历史为空的时候的推荐
+	**/
+	
+	//上报阅文观看历史请求，这个协议在635之前只用来上传漫画数据，只有第一个字段。在635版本开始增加第2个字段，可以同时来上传漫画和阅文的数据
+	struct UploadYuewenHistoryRequest
+	{
+		0 optional vector<YuewenHistoryInfo> yuewenBookInfos;		//阅文阅读历史信息列表	
+	};
+
+	//上报阅文观看历史响应
+	struct UploadYuewenHistoryResponse
+	{
+		0 require int errorCode;						//0：成功，其他为失败	
+	};
+
+	//删除阅文历史记录请求
+	struct DeleteYuewenHistoryRequest
+	{
+		0 optional vector<YuewenDeleteData> yuewenDeleteDatas;				//阅文删除历史列表
+	};
+
+	//删除历史记录响应
+	struct DeleteYuewenHistoryResponse
+	{
+		0 require int errorCode;						//0：成功，其他为失败
+	};
+
+	//删除漫画历史记录请求
+	struct DeleteComicHistoryRequest
+	{
+		0 optional vector<ComicDeleteData> comicDeleteDatas;					//漫画删除列表
+	};
+
+	//删除漫画历史记录响应
+	struct DeleteComicHistoryResponse
+	{
+		0 require int errorCode;						//0：成功，其他为失败
+	};
+
+	// 请求阅文的历史数据列表，用来作全量更新
+	struct GetYuewenHistoryListRequest
+	{
+		0 optional string pageContext;								//上下文环境，首次请求为空
+	};
+
+	// 阅文的历史数据列表响应
+	struct GetYuewenHistoryListResponse
+	{
+		0 require int errorCode;									//0：成功，其他为失败
+		1 optional vector<YuewenHistoryInfo> yuewenHistoryInfos;	//阅文书籍历史信息		
+		2 optional string pageContext;								//上下文环境
+		3 optional bool hasNextPage;								//是否有下一页数据
+	};
+
+	// 请求漫画的历史数据列表，用来作全量更新
+	struct GetComicHistoryListRequest
+	{
+		0 optional string pageContext;								//上下文环境，首次请求为空
+	};
+
+	// 漫画的历史数据列表响应
+	struct GetComicHistoryListResponse
+	{
+		0 require int errorCode;									//0：成功，其他为失败
+		1 optional vector<ComicHistoryInfo> comicHistoryInfos;		//漫画书籍历史信息		
+		2 optional string pageContext;								//上下文环境
+		3 optional bool hasNextPage;
+	};
+
+	//请求ui信息
+	struct GetBooksUiDataRequest
+	{
+		0 optional vector<YuewenHistoryInfo> yuewenHistoryInfos;			//阅文历史信息
+		1 optional vector<ComicHistoryInfo> comicHistoryInfos;				//漫画历史信息
+	};
+
+	//响应ui信息
+	struct GetBooksUiDataResponse
+	{
+		0 require int errorCode;						//0：成功，其他为失败
+		1 optional vector<YuewenUiData> yuewenUiData;	//书籍信息	
+		2 optional vector<ComicUiData> comicUiData;		//书籍信息
+	};
+	
+	// 观看历史为空的时候，去请求推荐数据
+	struct GetBooksRecommendRequest
+	{
+		0 optional int placeholder;        				//纯占位，无意义
+	};
+
+	// 推荐数据的响应
+	struct GetBooksRecommendResponse
+	{
+		0 require int errorCode;						//0：成功，其他为失败
+        1 optional vector<MultiPoster> multiPosterList;	//每组MultiPoster只取最多前三个海报
+	};
+
+	// 上传用户选择的翻页模式
+	struct UploadUserReadModeRequest
+	{
+		0 require int selectedReadMode;					// 用户选择的翻页模式
+		1 require string targetId;						// 漫画ID
+	};
+
+	// 上传用户选择的翻页模式响应
+	struct UploadUserReadModeResponse
+	{
+		0 require int errorCode;						//0：成功，其他为失败
+	};
+
+	//获取章节图片请求
+	struct GetPictureListRequest
+	{
+		0 require string targetId;	        			// 动漫的cartoonID
+		1 require string chapterId;	        			// 章节id
+		2 optional string cKey;	    					// cKey, 用于校验请求
+		3 optional string ckeyConfig;					// ckeyConfig, 包含 vid，appver，platform，encryptVer
+	};
+
+	//获取章节图片响应
+	struct GetPictureListResponse
+	{
+		0 require int errorCode;											// 0：成功，其他为失败
+		1 optional string keyStr;											// 密钥
+		2 optional string keyStrBackup;										// 备用密钥，当主密钥失效的时候使用
+		3 optional vector<PictureInfo> pictureList;							// 图片列表
+	};
+};

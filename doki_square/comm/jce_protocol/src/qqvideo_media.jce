@@ -1,0 +1,92 @@
+#include "qqvideo_common.jce"
+#include "qqvideo_ona.jce"
+#include "qqvideo_circle.jce"
+
+module jce
+{
+
+	// 媒体头部信息
+	struct MediaPosterTopInfo
+	{
+		0 optional IconTagText topTagText;	//头部提示信息
+		1 optional vector<ActorInfo> topStarList;  //明星列表
+		2 optional string topStarTitle;      // 顶部明星头像旁边主标题
+		3 optional string topStarSubTitle;   // 顶部明星头像旁边副标题
+	};
+
+	// 单个海报媒体中间信息
+	struct MediaPosterMiddleInfo
+	{
+			0 require int mediaType;     // 0-静态海报  1-短视频
+        	1 optional MediaPoster poster;   //静态海报信息
+        	2 optional ONABulletinBoardV2 bulletinBoard;	//短视频信息
+	    3 optional FeedVoteInfo voteInfo;	//投票信息
+	};
+
+	// 媒体底部信息
+	struct MediaPosterBottomInfo
+	{
+		0 optional vector<IconTagText> tagList; //底部标签
+		1 optional IconTagText commonTagText;  //底部普通文本
+		2 optional int hasMoreButton;  // 是否有更多按钮
+	};
+
+	// 多图海报媒体海报中间信息
+	struct MultiMediaPosterMiddleInfo
+	{ 
+        	0 optional vector<CommonDownloadImageData> photoList;    //图片列表
+        	1 optional vector<CircleShortVideoUrl> miniVideos;     //小视频列表
+        	2 optional vector<ApolloVoiceData> voiceList;    //语音列表
+	};
+
+	//单个媒体信息onaView
+	struct ONAMediaPoster
+	{
+		0 optional MediaPosterMiddleInfo middleInfo;  //多媒体中间信息
+		1 optional MediaPosterTopInfo topInfo;  //头部信息
+		2 optional MediaPosterBottomInfo bottomInfo; //底部信息
+		3 optional string contentText;        //内容text
+		4 optional ShareItem shareItem;       //分享信息
+		5 optional VideoAttentItem attentItem; //预约信息
+		6 optional string  reportKey;               //上报
+		7 optional string  reportParams;            //上报
+		8 optional Action  action;             //跳转
+		9 optional FeedInfo feedInfo;	//feed基本信息
+	};
+
+	//多个媒体信息onaView
+	struct ONAMultiMediaPoster
+	{
+		0 optional MultiMediaPosterMiddleInfo middleInfo; //多个媒体中间信息
+		1 optional MediaPosterTopInfo topInfo;  //头部信息
+		2 optional MediaPosterBottomInfo bottomInfo; //底部信息
+		3 optional string contentText;        //内容text
+		4 optional ShareItem shareItem;       //分享信息
+		5 optional VideoAttentItem attentItem; //预约信息
+		6 optional string  reportKey;               //上报
+		7 optional string  reportParams;            //上报
+		8 optional Action  action;             //跳转
+		
+	};
+
+	//明星评论onaView
+	struct ONAStarCommentMediaPoster
+	{
+		0 require string feedId;						//帖子id
+		1 require int feedType;            // 帖子类型 0-影视圈feed 1-饭团feed
+		2 optional int commentCount;                   //feed评论的总数量，仅仅做文案显示，不做其他逻辑运算
+		3 optional int likeCount;                      //feed赞的总数量，仅仅做文案显示，不做其他逻辑运算
+		4 optional MultiMediaPosterMiddleInfo middleInfo; //多媒体中间信息
+		5 optional MediaPosterTopInfo topInfo;  //头部信息
+		6 optional MediaPosterBottomInfo bottomInfo; //底部信息
+		7 optional CircleCommentFeed contentInfo;        //废弃，视觉稿更改了不需要此结构
+		8 optional ShareItem shareItem;       //分享信息
+		9 optional vector<CircleCommentFeed> commentList;      //评论列表
+		10 optional AttentActionBar actionBar;   //视频跳转bar
+		11 optional string  reportKey;               //上报
+		12 optional string  reportParams;            //上报
+		13 optional string contentText;        //内容text
+		14 optional Action  action;             //跳转
+		15 optional byte isLike;               //对于主贴id的点赞状态  1：点赞 0：没有赞 
+	};
+};

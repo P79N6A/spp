@@ -1,0 +1,132 @@
+module jce
+{
+	// 表情SDK请求通用参数
+	struct EmoticonCommonParams
+	{
+		0 require  unsigned int 				ulAppId; //接入方id: 申请后得到
+		1 optional string						secret; //接入secret: 申请后得到
+		2 optional int							from; //请求来源，区分来源不同处理：0：客户端；1：管理台
+	};
+
+	// 标签信息
+	struct EmoticonTagInfo
+	{
+		0 require string						tagId; //标签ID
+		1 require string						tagContent;	//标签内容， 需要时查媒资库
+	};	
+
+	// 素材信息
+	struct EmoticonMaterialInfo
+	{
+		0 require  string     					materialId;	//素材ID
+		1 require  string 						picUrl; //最终效果url：用户展示
+		2 optional string                   	description; //图片文本 描述
+		3 optional string 						stickerData; //模版：各个组件信息存储在json字段[编辑器理解内容，根据各个元素熟悉展示，并可二次编辑]
+		4 optional vector<EmoticonTagInfo>      vecTag; //人工标签:标签列表。存储时：多个标签用“；”隔开
+		5 optional vector<EmoticonTagInfo>      vecTagM; //机器识别标签：标签列表。存储时：多个标签用“；”隔开
+		6 optional int							status; //状态：审核状态或者下架用：2下架 1上架:status_id
+		7 optional unsigned int 				ulVuid; //创建者vuid
+		8 optional unsigned int             	ulAppId; //appid
+		9 optional int 		            		source; //0:ugc 1:官方运营
+		10 optional unsigned int				createTime;	//创建时间 秒级时间戳
+		11 optional string                 		rtxName; //创建者RTX(管理台用)
+		12 optional int 						imageType = -1;//图片类型：-1未知；0静态图；1gif
+	};
+
+	// 表情图信息
+	struct EmoticonInfo
+	{
+		0 require string     					emoticonId;	    //表情图ID
+		1 require  string 						thumbnailUrl;			//图片缩略图 小分辨率
+		2 require  string 						previewUrl;			//图片预览图 中分辨率
+		3 require  string 						imageUrl;			//图片真实地址 高分辨率
+		4 optional string                   	description;          //图片文本 描述
+		5 optional string 						stickerData;//挂件信息[编辑器理解内容，根据各个元素熟悉展示，并可二次编辑]
+		6 optional vector<EmoticonTagInfo>      vecTag;          //人工标签:标签列表。存储时：多个标签用“；”隔开
+		7 optional vector<EmoticonTagInfo>      vecTagM;         //机器识别标签：标签列表。存储时：多个标签用“；”隔开
+		8 optional int							status;		//状态：审核状态或者下架用：2下架 1上架:status_id
+		9 optional unsigned int 				ulVuid;			//创建者vuid
+		10 optional unsigned int            	ulAppId;        //appid
+		11 optional int 		            	source;		//0:ugc 1:官方运营
+		12 optional unsigned int				createTime;	//创建时间 秒级时间戳
+		13 optional string                  	rtxName;           //创建者RTX(管理台用)
+		14 optional int 						imageType = -1;//图片类型：-1未知；0静态图；1gif
+
+	};
+
+	//标签tab信息
+	struct EmoticonTabItem 
+	{
+		0 require  string 						tabId;//tab id
+    	1 require  string 						title;//标题
+    	2 optional string 						reportKey;//上报参数
+    	3 optional string 						reportParams;//上报参数
+	};
+
+	//命令字
+	//enum emoticon_sdk_tab_cmd
+	//{
+	//	CMD_EMOTICON_TAB_QUERY_LIST				=  0xfd8e, //1.表情制作器sdk查询标签tab配置列表
+	//	CMD_EMOTICON_PAGE_QUERY_LIST			=  0xfd8f, //2.表情制作器sdk查标签下的素材列表
+
+	//	CMD_EMOTICON_COMMIT						=  0xfd90, //3.表情制作器sdk新建表情图
+	//	CMD_EMOTICON_QUERY_INFO 				=  0xfd91, //4.表情制作器sdk查询表情图信息
+	//};
+
+	//表情制作器sdk查询标签tab列表
+	struct EmoticonTabListRequest
+	{		
+		0 require  EmoticonCommonParams			commonParams; //通用信息
+		1 optional int							type; //0:素材；1表情
+		2 optional string 						dataKey;
+	};
+	struct EmoticonTabListResponse
+	{
+		0 require  int							errCode; //错误码
+		1 require  string						errMsg; //错误描述
+		2 optional vector<EmoticonTabItem> 		tabList; //标签列表
+	};
+
+
+	//表情制作器sdk查询标签tab下的素材列表
+	struct EmoticonPageDataRequest
+	{
+		0 require  EmoticonCommonParams			commonParams; //通用信息
+    	1 require  string 						tabId; //tab id
+    	2 optional string 						pageContext; //翻页上下文
+	};
+	struct EmoticonPageDataResponse
+	{
+    	0 require  int   						errCode;
+    	1 require  string   					errMsg;
+    	2 optional vector<EmoticonMaterialInfo> list;   
+    	3 optional string 						pageContext; //翻页上下文
+    	4 optional bool 						hasNextPage; //是否有下一页
+	};
+
+	//表情制作器sdk新建表情图
+	struct EmoticonCommitRequest
+	{		
+		0 require  EmoticonCommonParams			commonParams; //通用信息
+		1 require  EmoticonInfo 				emoticonInfo; //表情图信息 （目前只能提供图片url）
+	};
+	struct EmoticonCommitResponse
+	{
+		0 require  int							errCode; //错误码
+		1 require  string						errMsg; //错误描述
+		2 optional  EmoticonInfo 				emoticonInfo; //表情图信息
+	};
+
+	//表情制作器sdk查询表情图信息
+	struct EmoticonInfoRequest
+	{
+		0 require  EmoticonCommonParams			commonParams; //通用信息
+    	1 require  string						emoticonId;
+	};
+	struct EmoticonInfoResponse
+	{
+    	0 require  int   						errCode;
+    	1 require  string   						errMsg;
+    	2 optional  EmoticonInfo 				emoticonInfo; //表情数据
+	};
+};

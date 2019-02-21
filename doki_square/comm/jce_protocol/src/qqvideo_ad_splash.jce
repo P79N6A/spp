@@ -1,0 +1,179 @@
+#include "qqvideo_ad_common.jce"
+#include "qqvideo_ad_inside.jce"
+
+//闪屏广告协议
+module jce
+{
+    struct SplashAdUID
+    {
+       0 optional int orderSourceType;    //广告订单来源，1.广平 2.spa ...
+       1 optional string uoid;            //广告订单唯一标识，广平和spa通用，客户端不再理解广平oid cid rot等
+    };
+
+
+    //闪屏预加载广告订单项属性
+    struct SplashAdPreloadAdProperty
+    {
+       0 optional SplashAdUID splashUID;        //闪屏订单唯一标识id
+       1 optional string effectiveTime;         //闪屏订单有效时间段 如"0-120" 按每天的分钟
+       2 optional string serverData;            //广平引擎,透传用于数据上报
+
+       3 optional int    isIntraAd;             //是否是内广
+       4 optional string serverDataEx;          //内广被客户端替换为其他订单时，上报空单使用
+
+       5 optional int    oid;                   //广平订单id 上报透传
+       6 optional int    cid;                   //广平创意id 上报透传
+       7 optional string rot;                   //广平轮播id 上报透传
+
+       8 optional int    isSuperPreview;        //是否超级预览订单
+    };
+
+    //闪屏预加载回包中的索引项
+    struct SplashAdPreloadIndex
+    {
+       0 optional string dateKey;                                        //预加载日期key，日期"YYYY-MM-DD"
+       1 optional vector<SplashAdPreloadAdProperty> splashProperties;   //对应日期包含的订单id列表
+       2 optional SplashAdPreloadAdProperty firstPlayOrder;           //第一刷订单
+    };
+
+    enum ESplashAdUIType
+    {
+      ESplashAdTypeFullScreenPicture      = 0, //全屏大图
+      ESplashAdTypeVidVideo               = 1, //vid播放的闪屏
+      ESplashAdTypeMraidRichMedia         = 2, //富媒体h5类型
+    };
+
+    struct SplashAdPictureInfo
+    {
+      0 optional string picUrl;       //图片url
+      1 optional string md5;          //预加载资源md5
+      2 optional int time;            //广告播放时长 s
+    };
+
+    struct SplashAdVideoInfo
+    {
+      0 optional string vid;          //视频vid
+      1 optional string videoUrl;     //视频url
+      2 optional int time;            //广告播放时长 s
+      3 optional int volumn;          //视频音量 投放端设置 0-100
+      4 optional string md5;          //预加载资源md5
+      5 optional int fileSize;        //文件大小，用于续传
+    };
+
+    struct SplashAdMraidRichMediaInfo
+    {
+      0 optional string resUrl;       //资源包url
+      1 optional string md5;          //预加载资源md5
+      2 optional int time;            //广告播放时长 s
+      3 optional int fileSize;        //文件大小，用于续传
+    };
+
+    struct SplashUIInfo
+    {
+      //各种广告表现形式的信息，根据splashUIType确定取哪个
+      0 optional SplashAdPictureInfo pictureInfo;
+      1 optional SplashAdVideoInfo videoInfo;
+      2 optional SplashAdMraidRichMediaInfo richmediaInfo;
+    };
+
+    //闪屏banner横幅提示
+    struct SplashAdActionBanner
+    {
+      0 optional bool   enable = false;           //是否显示拉动banner
+      1 optional string bannerText;       //banner文案，如："点击了解详情"，"点击下载应用"，"点击进入应用"
+      2 optional int    bannerTextSize;   //banner文本大小，如：16 单位:dip
+      3 optional string bannerTextColor;  //banner文本颜色，如："#FF000000"
+      4 optional string bannerBgColor;    //banner背景颜色，如："#FF333333"
+    };
+    //闪屏订单信息
+    struct SplashAdOrderInfo
+    {
+      0 optional SplashAdUID splashUID;                 //广告订单唯一id
+      1 optional EAdPriceMode splashAdPriceMode;        //广告售卖模式 1:CPM 2:CPD
+      2 optional AdBaseInfo adBaseInfo;                 //广告基本结构 含上报信息
+
+      3 optional int splashDisableIfOffline;            //离线时是否停播闪屏广告 0：不停播 1:停播
+
+      4 optional ESplashAdUIType splashUIType;          //广告展现类型 大图 视频 富媒体h5
+      5 optional SplashUIInfo splashUIInfo;             //UI样式信息
+
+      6 optional EAdActionType splashActionType;        //广告点击行动类型
+      7 optional AdActionItem actionInfo;               //广告点击行动信息
+
+      8 optional AdShareItem shareItem;    //落地页分享用的信息
+
+      // 本地记录订单次数 pvLocal; 严格遵循 pvFcs + pvLocal <= pvLimit
+      9 optional int pvLimit;                          //订单曝光次数限制
+      10 optional int pvFcs;                            //服务端的曝光计数
+
+      11 optional string splashNavTitle;                //导航栏标题
+      12 optional string splashTitle;                   //广告标题
+      13 optional string splashAbstract;                //广告摘要文案
+
+      14 optional string adSkipText;                    //跳过广告文案
+      15 optional string adIconText;                    //广告标记的文案 如:"广告" "推广"
+      16 optional string dspName;                       //广告提供商的文案
+      17 optional int hideSkipButton;                   //0:不隐藏，1:隐藏跳过按钮
+
+      18 optional string soid;                          //上报透传
+      19 optional map<string,string> adExperiment;      //广告实验参数
+      20 optional SplashAdActionBanner splashActionBanner; //闪屏下方banner横幅
+    };
+    
+    //闪屏预加载请求
+    struct SplashAdPreloadRequest   //1 qqappid字段确认？ 2 appversion字段取的是AdSdkRequestInfo中appverison,非sdkversion
+    {
+      0 optional AdRequestInfo adRequestInfo;   //广告请求基本客户端信息
+      1 optional AdSdkRequestInfo sdkRequestInfo; //ssp 客户端新sdk请求基本信息
+      2 optional AdVideoPlatformInfo platformInfo;//移动端基本信息
+
+      3 optional int screenWidth;         //闪屏屏幕宽
+      4 optional int screenHeight;        //闪屏屏幕高
+      5 optional int playround;         //本地轮播客户端计数，用于按比例展现的订单，本地频控，客户端曝光后自增，第一刷曝光不增。
+      6 optional vector<SplashAdPreloadIndex> loadedOrderSet;  //本地可选订单
+    };
+
+    //闪屏预加载回包
+    struct SplashAdPreloadResponse 
+    {
+      0 optional int errCode;
+      1 optional AdSdkResponseInfo sdkResponseInfo;         //ssp 客户端信sdk 回包基本信息
+      2 optional vector<SplashAdPreloadIndex> splashAdPreloadIndices; //预加载多天的index，一天对应一个index项
+      3 optional vector<SplashAdOrderInfo> splashAdPreloadOrderInfo;  //预加载的订单内容信息
+      4 optional vector<SplashAdPreloadAdProperty> longTermOrders; //长期订单，不限时，每天都可用来选单的订单
+      5 optional long timestamp;  //预加载订单拉取的时间
+    };
+
+    //闪屏实时选单请求
+    struct SplashAdRealtimePollRequest   //增加是否内广标记，用于SSP决策 
+    {
+      0 optional AdRequestInfo adRequestInfo;             //广告请求基本客户端信息
+      1 optional AdSdkRequestInfo sdkRequestInfo;         //ssp 客户端新sdk请求基本信息
+      2 optional AdVideoPlatformInfo platformInfo;        //移动端基本信息
+
+      3 optional string dateKey;                  //实时选单 日期key，日期"YYYY-MM-DD"
+      4 optional vector<SplashAdPreloadAdProperty> orderSet;    //实时选单 本地可选订单
+      5 optional vector<SplashAdPreloadAdProperty> longTermOrderSet; //实时选单，本地长期订单
+      6 optional int playround;                 //本地轮播客户端计数，用于按比例展现的订单，本地频控，客户端曝光后自增
+      7 optional long timestamp;                //预加载拉取的时间
+    };
+
+    //闪屏实时选单回包
+    struct SplashAdRealtimePollResponse 
+    {
+      0 optional int errCode;
+      1 optional AdSdkResponseInfo sdkResponseInfo; //ssp 客户端信sdk 回包基本信息
+      2 optional string dateKey;            //实时选单 请求key
+      3 optional vector<SplashAdUID> uoidSet;     //被选中的订单，通常只有一个
+      4 optional int selectedIndex;      //广平选中的index
+      5 optional bool isEmptyReport = false;     //是否需要上报空单 
+      6 optional int needUpdateReportInfo;      //是否需要更新实时选单选中的reportInfo 0-不需要，1-需要.
+      7 optional AdCoreReportInfo updateReportInfo; //更新选中订单的reportInfo，用更新的上报url来上报本次选单展示
+      8 optional map<string,string> adExperiment;      //广告实验参数
+    };
+};
+
+
+
+
+

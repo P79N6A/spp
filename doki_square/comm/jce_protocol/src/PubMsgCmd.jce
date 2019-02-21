@@ -1,0 +1,318 @@
+#include "MsgDic.jce"
+module videocircle
+{
+	//发表命令字定义
+	enum PubCmdDefine
+	{
+		SUPPORT_CMD_ADD_MSG              = 0xe101, //消息原创，对应请求PubMsgReq
+		SUPPORT_CMD_LIKE_MSG             = 0xe103, //消息赞和取消赞，对应请求PubLikeReq
+		SUPPORT_CMD_COMMENT_MSG          = 0xe104, //消息评论，对应请求MsgCommentReq
+		SUPPORT_CMD_DELETE_MSG           = 0xe105, //消息删除，对应请求MsgDeleteReq
+		SUPPORT_CMD_BACKOPERATION_MSG    = 0xe8bc, //后台运营消息，不会写入我发表的索引，请求：PubBackOperationMsgReq
+		ADA_SUPPORT_CMD_ADD_MSG          = 0xe8dd, //消息原创，对应请求PubMsgReq
+		ADA_SUPPORT_CMD_LIKE_MSG         = 0xe8df, //消息赞和取消赞，对应请求PubLikeReq
+		ADA_SUPPORT_CMD_COMMENT_MSG      = 0xe8de, //消息评论，对应请求MsgCommentReq
+		ADA_SUPPORT_CMD_DELETE_MSG       = 0xe8e0, //消息删除，对应请求MsgDeleteReq
+		ADA_SUPPORT_CMD_ADD_OPERATOR_MSG = 0xea9f, //前端app通过该命令字，直接获取到一个消息id，但不产生发表的索引
+
+		ADA_SUPPORT_CMD_MOD_MSG          = 0xf0bd,
+		ADA_SUPPORT_CMD_IMPORT_MSG       = 0xf0be,
+		MT_FT_CMD_ADD_MSG                = 0xebe9, //中转消息-饭团过来的发表消息
+		MT_FT_CMD_LIKE_MSG               = 0xebeb, //中转消息-饭团过来的赞消息
+		MT_FT_CMD_COMMENT_MSG            = 0xebea, //中转消息-饭团过来的评论消息
+		MT_FT_CMD_DELETE_MSG             = 0xebec, //中转消息-饭团过来的删除消息
+
+		MT_FT_COMMID_FEEDID 			 = 0xf361, //中转消息-评论id与帖子id映射关系中转（发表消息和评论消息时）
+	};
+
+	enum OutFromDefine
+	{
+		OUT_FROM_DEFAULT = 0, //默认值为0，表示发表影视圈消息
+		OUT_FROM_CIRCLE = 1,  //发表影视圈消息
+		OUT_FROM_FANTUAN = 2, //到饭团
+		OUT_FROM_FANTUAN_AND_CIRCLE = 3, //发表到影视圈和饭团
+		OUT_FROM_DANMU = 8,  //发表来自于弹幕
+		OUT_FROM_OPERATION = 100, //发表来自于运营消息
+	};
+
+	//消息原创
+	struct PubMsgReq
+	{
+		0  require long dwUserID ;//发表者的uin，逻辑层会比较与包头uin的一致性
+		1  require string strContent; //发表的内容
+		2  optional vector<PlayImgUrl>  stImgUrls;//视频截图；
+		3  require  VidInfo stVidInfo; //视频相关信息；
+		4  optional AppExtInfo stAppExtInfo; //允许业务侧附带的数据，读取时，原封不动返回；
+		5  optional string report; //终端上报参数
+		6  optional VoiceInfo stVoiceInfo; //发表消息的音频信息；
+		7  optional UserInfo stUserInfo;  //发表者消息用户cache信息，头像昵称等；
+		8  optional DanmuInfo stDmInfo;   //发表的弹幕信息datakey发表时间点等
+		9  optional SnsInfo stSnsInfo;   //微信评分
+        10 optional VoteInfo stVoteInfo;
+        11 optional vector<FanInfo> vecRelateFanInfo;
+        12 optional FtExtInfo stFtExtInfo;
+        13 optional OMInfo stOMInfo;
+        14 optional vector<TopicInfo> vecTopicInfo;
+		15 optional MgrInfo stMgrInfo;//管理台相关信息
+	};
+
+	struct PubMsgRsp
+	{
+		0 require unsigned byte result; //0表示发表成功，其他表示失败；
+		1 optional string strErrMsg;//错误信息；
+		2 optional BasicInfo1 stBasicInfo1; //成功时，返回消息ID和创建时间等信息；
+		3 require string strContent; //发表的内容
+	};
+
+	//视频的喜欢并分享，暂时不用
+	struct PubLikeReq
+	{
+		0  require long dwUserID ;//发表者的uin，逻辑层会比较与包头uin的一致性
+		1  require string strContent; //发表的内容
+		2  optional vector<PlayImgUrl> stImgUrls;//视频截图；
+		3  require VidInfo stVidInfo; //视频相关信息；
+		4  optional AppExtInfo stAppExtInfo; //允许业务侧附带的数据，读取时，原封不动返回；
+	};
+
+	struct PubLikeRsp
+	{
+		0 require unsigned byte result; //0表示发表成功，其他表示失败；
+		1 optional string strErrMsg;//错误信息；
+		2 optional BasicInfo1 stBasicInfo1; //成功时，返回消息ID和创建时间等信息；
+		3 require string strContent; //发表的内容
+	};
+
+
+	//消息评论消息
+	struct MsgCommentReq
+	{
+		0   require long  remsgid; //被评论的消息ID
+		1   require string  content; //评论的消息内容；
+		2   optional AppExtInfo stAppExtInfo; //允许业务侧附带的数据，读取时，原封不动返回；
+		3   optional string report; //终端上报参数
+		4  optional VoiceInfo stVoiceInfo; //发表消息的音频信息；
+		5  optional UserInfo stUserInfo;  //发表者消息用户cache信息，头像昵称等；
+		6  optional DanmuInfo stDmInfo;   //发表的弹幕信息datakey发表时间点等
+		100  optional vector<PlayImgUrl>  stImgUrls;//视频截图；
+	};
+
+	struct MsgCommentRsp
+	{
+		0 require unsigned byte result; //0表示发表成功，其他表示失败；
+		1 optional string strErrMsg;//错误信息；
+		2 optional BasicInfo1 stBasicInfo1; //成功时，返回消息ID和创建时间等信息；
+		3 require string strContent; //发表的内容
+	};
+
+	//消息喜欢请求
+	struct MsgLikeReq
+	{
+		0   require long remsgid; //被评论的消息ID
+		1   require unsigned byte attitudetype; //快评类型，1：赞，2：踩；
+		2   require unsigned byte goodvalue; //1：表示赞；2：表示取消赞；
+		3   optional string report; //终端上报参数
+	};
+
+	struct MsgLikeRsp
+	{
+		0 require unsigned byte result; //0表示发表成功，其他表示失败；
+		1 optional string strErrMsg;//错误信息；
+		2 optional BasicInfo1 stBasicInfo1; //消息的喜欢也会发一条消息，但不会写发表的索引，一条消息有多少人系统，通过消息ID的喜欢人列表
+	};
+
+    //消息修改请求
+	struct MsgModifyReq
+	{
+		0   require long modifymsgid; //修改的消息ID；
+		1   require long vuserid; //操作人的userid，逻辑层会检查权限；
+		2	optional string strExtInfo; //前端传递过来的上下文信息，返回时，原封不动带回去。
+		3   optional string strContent; //修改的内容
+		4   optional vector<PlayImgUrl>  stImgUrls;//修改的视频截图；
+        5   optional long timestamp;
+		6   optional string strTitle;//修改的标题
+		7   optional int modifyflag;//修改的标记,0-所有字段修改,0x01-修改内容,0x02-修改图片,0x04-修改标题,0x08修改长视频
+	};
+
+	struct MsgModifyRsp
+	{
+		0 require unsigned byte result; //0表示发表成功，其他表示失败；
+		1 optional string strErrMsg;//错误信息；
+		2 optional BasicInfo1 stBasicInfo1;//成功时，返回消息ID和创建时间等信息；
+		3 optional string strExtInfo; //前端传递过来的上下文信息，返回时，原封不动带回去。
+	};
+
+    //消息导入请求
+	struct MsgImportReq
+	{
+		0   require long importmsgid; //修改的消息ID；
+		1   require long vuserid; //操作人的userid，逻辑层会检查权限；
+		2	optional string strExtInfo; //前端传递过来的上下文信息，返回时，原封不动带回去。
+		3   optional string strContent; //发表的内容
+		4   optional vector<PlayImgUrl>  stImgUrls;//视频截图；
+        5   optional long timestamp;
+		6   optional string strTitle;//修改的标题
+		7   optional int modifyflag;//修改的标记,0-所有字段修改,0x01-修改内容,0x02-修改图片,0x04-修改标题,0x08修改长视频
+	};
+
+	struct MsgImportRsp
+	{
+		0 require unsigned byte result; //0表示发表成功，其他表示失败；
+		1 optional string strErrMsg;//错误信息；
+		2 optional BasicInfo1 stBasicInfo1;//成功时，返回消息ID和创建时间等信息；
+		3 optional string strExtInfo; //前端传递过来的上下文信息，返回时，原封不动带回去。
+	};
+
+	//消息删除请求
+	struct MsgDeleteReq
+	{
+		0   require long deletemsgid; //删除的消息ID；
+		1   require long vuserid; //操作人的userid，逻辑层会检查权限；
+		2	optional string strExtInfo; //前端传递过来的上下文信息，返回时，原封不动带回去。
+		3   optional string report; //终端上报参数
+	};
+
+	struct MsgDeleteRsp
+	{
+		0 require unsigned byte result; //0表示发表成功，其他表示失败；
+		1 optional string strErrMsg;//错误信息；
+		2 optional BasicInfo1 stBasicInfo1;//成功时，返回消息ID和创建时间等信息；
+		3 require string strContent; //发表的内容
+		4 optional string strExtInfo; //前端传递过来的上下文信息，返回时，原封不动带回去。
+	};
+
+	//后台运营类消息，不会写我发表的索引；
+	struct PubBackOperationMsgReq
+	{
+		0  require long dwUserID ;//请与包头的uin保持一直，会进行频率的检查和log记录
+		1  require byte cType;  //1:分享原创;8:评论;9:喜欢;11:空评论类型的消息
+		2  optional string strContent; //发表的内容
+		3  optional vector<PlayImgUrl>  stImgUrls;//视频截图；
+		4  optional VidInfo stVidInfo; //视频相关信息；
+		5  optional ParentInfo stParentInfo; //父亲相关信息，注意逻辑层不会检查数据一致性，调用方应保证；
+		6  optional string report; //终端上报参数
+	};
+
+	struct PubBackOperationMsgRsp
+	{
+		0 require unsigned byte result; //0表示发表成功，其他表示失败；
+		1 optional string strErrMsg;//错误信息；
+		2 optional BasicInfo1 stBasicInfo1; //成功时，返回消息ID和创建时间等信息；
+		3 require string strContent; //发表的内容
+	};
+
+
+	///////////////////////////////////////////////////////以下是基于中转的定义
+	//视频发表和喜欢消息，发中转的结构体；包括原创，喜欢
+	struct LogicPubMsgToInnerRelay
+	{
+		1  require BasicInfo1 stBasicInfo1; //消息发表后，存储层存储基础信息
+		2  optional vector<PlayImgUrl> stImgUrls;//视频截图，包括截图url和播放时间等信息
+		3  require VidInfo stVidInfo;//视频vid相关的信息；一定会带上；
+		4  optional AppExtInfo stAppExtInfo;//应用带过来的扩展信息；
+		5  require string strContent; //发表的内容
+		6  optional vector<CircleShortVideoUrl>  videoList;	    //截取小视频；
+		7  optional string strVideoPosterImg; //视频海报图
+		8  optional FtBasicInfo stFtBasicInfo;	//饭团的基础信息；
+		9  optional unsigned int syncFromFlag; //该消息同步到哪些地方，直接从字段cfrom，默认值为0，表示发表影视圈消息,0x01:不用会被强制转化为0；=0x02:发表到饭团；=0x03:发表到影视圈和饭团；该字段和cFrom有一定的联系，cFrom只有0，1的定义，这个带有标志位；
+		10 optional VoiceInfo stVoiceInfo; //发表消息的音频信息；
+		11 optional UserInfo stUserInfo;  //发表者消息用户cache信息，头像昵称等；
+		12 optional DanmuInfo stDmInfo;   //发表的弹幕信息datakey发表时间点等
+		13 optional SnsInfo stSnsInfo;   //微信评分
+        14 optional vector<TopicInfo> vecTopicInfo; //话题信息
+		15 optional int scene;//终端新版本使用的场景信息,0,默认 1视频详情页评论 2分享面板(包括小窗和全屏) 3录制面板(包括截图和小视频) 4饭团粉丝留言(包括饭团和V+) 5话题详情页 6电影打分 7管理台发表(后台内部枚举值占位)
+		16 optional vector<FanInfo> vecFanInfo;		//关联饭团信息
+		17 optional GoodScoreInfo  stGoodScore;		//商品评分
+		18 optional vector<VidInfo> stLongVideoInfo;		//发表所带的视频信息
+		19 optional MgrInfo stMgrInfo;						//管理台信息
+		20 optional unsigned byte isCutContent;   // 0:发表内容无修改，1:发表内容有截断
+	};
+
+	struct LogicVidLikeToInnerRelay
+	{
+		1 require long dwUserID;
+		2 require unsigned byte cLikeValue;						//1:like , 2:unlike
+		3 require unsigned int dwTime;
+		4 require VidInfo stVidInfo;							//vid information
+		11 optional BasicInfo1 stRootBasicInfo1;				//根节点的BaseInfo
+		12 optional string strRootVideoPosterImg;				//根消息视频海报图
+		13 optional vector<CircleShortVideoUrl>  videoList;	    //截取小视频；
+		14 optional FtBasicInfo stFtBasicInfo;					//饭团的基础信息；
+		15 optional unsigned int syncFromFlag;					//该消息同步到哪些地方，直接从字段cfrom，默认值为0，表示发表影视圈消息,0x01:不用会被强制转化为0；=0x02:发表到饭团；=0x03:发表到影视圈和饭团；该字段和cFrom有一定的联系，cFrom只有0，1的定义，这个带有标志位；
+		16 optional DanmuInfo stParentDmInfo;					//赞消息的父亲节点弹幕相关信息
+		17 optional UserInfo stParentUserInfo;	 			    // 根消息发表者的userinfo信息
+	};
+
+
+	struct OneMsgInfoToInnerRelay
+	{
+		1  optional vector<PlayImgUrl> stImgUrls;	//视频截图
+		2  optional string strContent;				//节点消息内容
+		3  optional VidInfo stVidInfo;				//数据层存储的视频vid信息
+        4  optional vector<TopicInfo> vecTopicInfo; //话题信息
+		5  optional vector<FanInfo> vecFanInfo;		//关联饭团信息
+		6  optional int syncFromFlag;				//该消息同步到哪些地方，直接从字段cfrom，默认值为0，表示发表影视圈消息,0x01:不用会被强制转化为0；=0x02:发表到饭团；=0x03:发表到影视圈和饭团
+	};
+
+	//消息评论和喜欢，发中转结构体；喜欢和评论成功后才会向中转发这条消息
+	struct LogicMsgCommentToInnerRelay
+	{
+		1  require BasicInfo1 stBasicInfo1;					//消息发表后，存储层存储的基础信息；一定需要
+		2  optional vector<PlayImgUrl> stImgUrls;			//视频截图；
+		3  optional ParentInfo stParentInfo;				//评论或者喜欢，父亲节点的信息，包括父亲节点的uin，消息id
+		4  optional string strCommentContent;				//如果为评论，表示消息评论内容，可能为空
+		5  optional MsgLikeReq stMsgLikeReq;				//如果为喜欢，表示喜欢的请求包
+		6  optional vector<PlayImgUrl> stParentImgUrls;		//父亲节点视频截图, 会废弃掉
+		7  optional string strParentContent;				//父亲节点消息内容, 会废弃掉
+		8  optional OneMsgInfoToInnerRelay stParentMsg;		//父亲消息信息
+		9  optional OneMsgInfoToInnerRelay stRootMsg;		//根消息信息
+		10 optional vector<long> arrFriendsUin;				//发表消息的好友关系链；
+		11 optional BasicInfo1 stRootBasicInfo1;			//根节点的BaseInfo
+		12 optional string strRootVideoPosterImg;			//根消息视频海报图
+		13 optional vector<CircleShortVideoUrl>  videoList;	//截取小视频；
+		14 optional FtBasicInfo stFtBasicInfo;				//饭团的基础信息；
+		15 optional unsigned int syncFromFlag;				//该消息同步到哪些地方，直接从字段cfrom，默认值为0，表示发表影视圈消息,0x01:不用会被强制转化为0；=0x02:发表到饭团；=0x03:发表到影视圈和饭团；该字段和cFrom有一定的联系，cFrom只有0，1的定义，这个带有标志位；
+		16 optional VoiceInfo stVoiceInfo; 					//发表消息的音频信息；目前评论不支持语音信息，暂时忽略
+		17 optional UserInfo stUserInfo;  					//发表者消息用户cache信息，头像昵称等；
+		18 optional DanmuInfo stParentDmInfo;   			//发表的弹幕信息datakey发表时间点等,这里取的是根节点的DmInfo
+		19 optional UserInfo stParentUserInfo;	 			//根消息发表者的userinfo信息
+		20 optional int rootscene;							//终端新版本使用的场景信息,0,默认 1视频详情页评论 2分享面板(包括小窗和全屏) 3录制面板(包括截图和小视频) 4饭团粉丝留言(包括饭团和V+) 5话题详情页 6电影打分 7管理台发表(后台内部枚举值占位)
+		21 optional GoodScoreInfo  stGoodScore;				//商品评分
+	};
+
+	//消息删除，发中转结构体；
+	struct LogicModifyMsgToInnerRelay
+	{
+		0  require long vuserid; //操作者；和stBasicInfo1里面的uin可能不一致，例如客服审核或者删除，vuserid为客服号码；
+		1  require BasicInfo1 stBasicInfo1;//数据层存储的最终消息基础信息；
+		2  optional vector<PlayImgUrl> stImgUrls;//数据层存储的视频截图；
+		3  optional VidInfo stVidInfo;//数据层存储的视频vid信息
+		4  optional AppExtInfo stAppExtInfo; //数据层存储的app扩展信息；
+		5  optional ParentInfo stParentInfo;//数据层存储的父亲节点信息；
+		6  optional string strContent; //发表的内容
+		7  optional unsigned byte cModifyBeforeStatus; //修改之前的消息状态；stBasicInfo1存储的cStatus是消息最终的状态；
+		8  optional  unsigned int dwModifyTime; //修改动作发生时，服务器的时间，stBasicInfo1存储的是消息发表的时间；
+		9  optional BasicInfo1 stRootBasicInfo1; //根节点的BaseInfo
+		10 optional OneMsgInfoToInnerRelay stRootMsg; //根消息信息
+		11 optional FtBasicInfo stFtBasicInfo;			//饭团的基础信息；
+		12 optional unsigned int syncFromFlag;			//该消息同步到哪些地方，直接从字段cfrom，默认值为0，表示发表影视圈消息,0x01:不用会被强制转化为0；=0x02:发表到饭团；=0x03:发表到影视圈和饭团；该字段和cFrom有一定的联系，cFrom只有0，1的定义，这个带有标志位；
+		15 optional DanmuInfo stParentDmInfo;	   //删除消息如果是回复，表示回复的父亲节点的Dm信息
+		16 optional UserInfo stParentUserInfo;	   //删除消息如果是回复，表示回复的父亲节点的UserInfo信息
+		17 optional UserInfo stUserInfo;	       //当前消息的UserInfo信息
+		18 optional DanmuInfo stDmInfo;	           //当前消息的DmInfo信息
+        19 optional vector<TopicInfo> vecTopicInfo;	//话题信息
+        20 optional int scene;						//发表场景
+		21 optional GoodScoreInfo  stGoodScore;		//商品评分
+		22 optional long commentId;					//评论系统id
+		23 optional int rootscene;					//消息对应的根节点的场景信息,0,默认 1视频详情页评论 2分享面板(包括小窗和全屏) 3录制面板(包括截图和小视频) 4饭团粉丝留言(包括饭团和V+) 5话题详情页 6电影打分 7管理台发表(后台内部枚举值占位)
+	};
+
+	struct AdaptPostMsgToInnerRelay //发表适配层的中转命令，在发表主帖和发表评论之后，丢出commentid和msgid的映射关系
+	{
+		0 require  int    iOptType;		 //操作类型：1==>发表主帖, 2==>发表评论
+		1 require  string strTargetid;   //评论侧targetid
+		2 require  string strCommentId;  //评论侧消息id
+		3 require  string strMsgId;		 //影视圈消息id（帖子id）
+		4 optional long   llPostTime;	 //发表时间戳
+	};
+
+};

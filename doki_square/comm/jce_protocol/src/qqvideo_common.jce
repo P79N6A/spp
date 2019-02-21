@@ -1,0 +1,2774 @@
+#include "qqvideo_enum.jce"
+#include "qqvideo_ad_common.jce"
+#include "qqvideo_debug.jce"
+module jce
+{
+    //额外的上报参数，目前是为了描述某个上报是属于哪个业务的，例如是好莱坞的业务
+	//然后统计那边会根据这个KV分发到不同的报表（统计那边Report有解析规则，不能随意更改）
+	struct ExtraReportKV
+	{
+		0 require string extraReportKey;  //等同于上报时“report_Key=reportKeyValue”中的report_Key字符串
+		1 require string extraReportParam; //等同于上报时“report_Key=reportKeyValue”中的reportKeyValue字符串
+		2 optional string reportEventId; //上报事件名
+	};
+	//定义动作信息
+	struct Action
+	{
+		0 require string url;				//跳转的地址，遵循统一跳转规则
+		1 require byte cacheType;			//目标页面数据cace的策略  0 不cache，1 内存cache ，2 文件cache
+		2 require byte preReadType;			//目标页数据预读取的策略 0 不预读，1 预读协议数据，2 预读图片
+		3 optional string reportParams;		//点击事件用来上报的内容(点击)
+		4 optional string reportKey;		//点击事件用来上报的事件名称，后台下发必须以"server_"开头
+		5 optional vector<ExtraReportKV> extraReportKVs; //点击事件上报，是哪个业务的点击
+		6 optional string reportEventId; //上报事件名
+	};
+	
+	//脚标标签，支持文字和图片
+	struct MarkLabel
+	{
+		0 require byte type;				//0 表示单个文字，1 表示整行文字 2 表示脚标图片
+		1 require byte position;			//0 左上，1右上，2左下，3右下，4底部 ， 5 标题左边垂直居中，6标题右边垂直居中 10居中  50 针对语音样式新增类型
+		2 optional string bgColor;			//标签的背景颜色（ #FF7F00橘色）
+		3 optional string primeText;		//首选文字内容0-3时承载显示文字,4时承载底部左侧文字 标签的内容使用  <font color="#ff00ff00">文字内容</font> 的方式来指定
+		4 optional string minorText;		//备选文字内容0-3时被忽略，4时承载底部右侧文字 支持html
+		5 optional string markImageUrl;		//脚标图片地址
+		6 optional byte optType;			//用来标识几种常用类型的角标方便客户端处理 1:更新 2:预告 3:完整版 4:付费相关
+		7 optional int uiType;		   		//0横图 1竖图 2 圆图 3方图 10 无海报
+		8 optional string thirdText;		    //主副标题中的副标题
+	};
+	
+	//简单的图文跳转结构，不要随意扩展字段，保持简洁
+	struct SimplePoster
+	{
+		0 require string title;
+		1 require string imgUrl;
+		2 optional Action action;
+		3 optional ExtraReportKV report;
+		4 optional MarkLabel markLabel;		//角标
+	};
+	//业务逻辑体
+	struct BusinessData {
+		0 require string businessType; //业务类型
+		1 require vector<byte> data;   //业务数据体
+	};
+	//跳转bar结构
+    struct ActionBarInfo
+    {
+    	0 require string title;		//banner文案
+    	1 optional string bgColor;	//背景颜色
+    	2 optional Action action;	//点击后执行的跳转动作
+		3 optional string imgUrl;   //配图
+		4 optional string textColor;//文字颜色
+		5 optional vector<MarkLabel> markLabelList;		//脚标列表
+		6 optional string subTitle; //副标题
+		7 optional string titleForSelected;    //选中操作的文案
+		8 optional string bgColorForSelected;  //选中操作的背景颜色
+		9 optional string imgUrlForSelected;   //选中操作的图标
+		10 optional string textColorForSelected; //选中操作的文本颜色
+		11 optional BusinessData extBusinessInfo;  //按钮需要的额外业务信息
+		12 optional AdSkinInfo adSkinInfo; //皮肤广告 
+    };
+    //以key来标识actionBar类型
+	struct KVActionBarItem
+	{
+		0 require string itemKey;      // 用来标识是那种button，可由前后台自行约定，比如预约按钮可填："attent"，跳转按钮可填："jump"
+		1 require ActionBarInfo itemValue;   // 按钮信息
+	};
+
+	//精简版带Action跳转的图片
+	struct ImageAction 
+	{
+		0 require string imageUrl;
+		1 optional Action action;
+	};
+	//精简版带Action的跳转文案
+	struct TextAction 
+	{
+		0 require string text;
+		1 optional string textColor;
+		2 optional Action action;
+		3 optional string subText;
+		4 optional string subTextColor;
+	};
+	//从share.jce中抽出来
+	struct PicData
+	{
+		0 require	string	imgUrl;		//分享的原图片链接
+		1 optional	string	thumbUrl;	//分享的预览图链接
+		2 optional	byte	imgType;	//分享的原图片类型 0:jpeg 1:gif
+	};
+	
+	//小程序信息
+	struct MiniProgramInfo
+	{
+		0 optional string programName;           //小程序的programName
+		1 optional string path;               //小程序页面的路径
+	};
+	
+	//分享使用的结构
+    struct ShareItem
+    {
+    	0 optional string shareUrl;						//分享h5链接地址
+		1 optional string shareTitle;					//分享使用的主标题
+		2 optional string shareSubtitle;				//分享使用的副标题
+		3 optional string shareImgUrl;					//分享图片链接
+		4 optional string circleShareKey;				//用于分享到影视圈的key
+		5 optional string shareSingleTitle;				//分享朋友圈单一标题
+		6 optional string shareContent;				    //分享编辑框的默认语(即微博撰写内容)
+		7 optional string shareContentTail;				//分享拼接在用户输入语后面的尾巴(即微博标题)
+		8 optional byte shareStyle;				        //分享样式，0表示全屏分享，1表示弹框分享(不可编辑)，2表示弹框分享(可编辑)
+		9 optional vector<PicData> sharePicList;		//分享多图数据结构list，带缩略图和原图
+		10 optional MiniProgramInfo miniProgramInfo;    //分享的小程序信息
+		11 optional string captionKey;             		//台词key，用来判断是否支持台词分享和获取台词
+        12 optional byte shareIconType;          //沉浸式分享入口样式  0默认分享样式  1朋友圈样式（超过10W播放量）
+        13 optional string knowledgeKey;				//表示当前分享的视频是否是PUGC知识分享类型，此值不为空，即认为是知识付费类型,点击分享后，会直接使用shareUrl打开H5
+    };
+	
+    //投票的数据，投票次数、限制次数等
+  	struct VoteData
+  	{
+  		0 optional unsigned int likeNumber;		//投票目标的投票计数（如1,23万）
+  		1 optional unsigned int votedCount;	    //对于一个学员,一台设备（或QQ）已经投过的次数（如设备A当天已投了1票）
+  		2 optional unsigned int voteLimit;      //对于一个学员,一台设备（或QQ）能够投的最大次数
+  		3 optional string voteKey;			    //用作唯一标识的投票key
+  		4 optional unsigned int unlikeNumber;	//不喜欢投票计数
+  		5 optional Action voteAction;	        //打开投票页卡，比如doki打榜H5
+  	};
+
+    //海报跟业务相关的扩展字段
+  	struct PosterExpansion
+  	{
+  		0 optional int operationType;            //用户操作类型：0-仅响应点击，1-长按；默认为0
+  		1 optional string tagType;
+  		2 optional string tagId;
+  	};
+
+  	//海报模版
+  	struct Poster
+  	{
+  		0 optional string firstLine;					// 第一行
+  		1 optional string secondLine;					// 第2行
+  		2 optional string thirdLine;					// 第3行(目测用于左横图右文视图)
+  		3 optional vector<MarkLabel> markLabelList;		// 脚标列表
+  		4 optional string imageUrl;						// 图片地址
+  		5 optional unsigned int playCount;				// 播放数
+  		6 optional Action action;						// 海报点击后需要执行的动作
+  		7 optional byte imageUiType;					// 0 横图 1 竖图
+  		8 optional int rating;							// 评分100分制
+  		9 optional string reportParams;					// 上报参数(曝光)
+  		10 optional VoteData voteData;					// 投票的数据，投票次数、限制次数等
+  		11 optional string reportKey;					// 点击事件用来上报的事件名称，后台下发必须以"server_"开头
+  		12 optional map<string,string> configstrs;		// 扩展字符串（horimg横图url，verimg竖图url，seriesNumStr同系列入口总部数）
+  		13 optional long playCountL;					// long型播放量 优先取这个字段若<=0则尝试取playCount字段
+  		14 optional int replaceType;					// 海报替换类型，0默认无替换1种子广告替换占位
+  		15 optional string replaceKey;					// 海报替换,配合replaceType使用
+  		16 optional int style;							// 0:默认 1:影集阴影效果 2:同系列入口UI效果
+  		17 optional DebugInfo debugInfo;				// 海报级别调试信息
+  		18 optional byte adType;						// 焦点图和信息流图的类型枚举（仅广告使用，非广告请填空）
+  		19 optional int adKey;							// 焦点图和信息流图的广告id（仅广告使用，非广告请填空）
+  		20 optional string adExtend;					// 用于广告拓展信息的传递（仅广告使用，目前该字段的形式如：”channelId=xxxx”）
+  		21 optional PosterExpansion posterExpansion; 	// Poster跟具体业务相关的扩展信息
+  		22 optional string fourthLine;					// 第4行(估计不能再多了490T_T)
+  		23 optional string gifUrl;						// 动图的地址
+		24 optional float pictureRatio;       			// 封面图的宽高比（热点变双瀑布流需求）
+		25 optional float progress;						// 百分制进度条 （progress = 10.5 代表 10.5%）
+		26 optional string titleColor;					// 该海报对应的标题颜色
+  	};
+
+    //这个结构主要用来显示 itemKey:itemValue 这样的数据，itemId 为前后台约定内容标识
+  	struct KVItem
+  	{
+  		0 require string itemKey;
+  		1 require string itemValue;
+  		2 optional string itemId;    //用来标识的id，需要前后台约定好不可修改
+  		3 optional vector<string> itemValues; //作用等同itemValue，如果不可以同时存在则优先取itemValue，如果可以同时存在itemValue排在前面
+  	};
+
+	//订阅号信息
+	struct VRSSItem
+	{
+		0 require string rssKey;		//订阅Key
+		1 require Poster rssInfo;   	//订阅号信息（playCount作为订阅人数）
+		2 optional string rssId;		//订阅号id
+		3 optional byte rssState;		//关注状态， 0 表示未关注 ，1 表示已关注
+		4 optional long updatetime;		//关注更新的时间
+		5 optional string shortTitle;	//用户在个人中心显示的短样式
+		6 optional vector<KVItem> detailInfo; //用在V+主页，订阅视频专辑播放量等
+		7 optional int update; 				  //默认为0就是无更新，update表示更新个数
+		8 optional long dataVersion;    //订阅号数据更新版本，用于对比是否显示订阅小红点
+		9 optional byte rssType;         //订阅号类型，0表示V+用户，1表示OM用户，2表示火锅用户
+	};
+	
+	struct UIPadding
+	{
+		0 optional int leftPadding;
+		1 optional int topPadding;
+		2 optional int bottomPadding;
+		3 optional int rightPadding;
+	};
+
+	//外部拉起App信息
+    struct AppInfo
+    {
+    	0 require string downloadUrl;		//未下载时的下载Url
+    	1 require string packageName;		//已下载时拉起的包名
+    	2 optional string name;             //app名称
+    	3 optional string iconUrl;         	//icon
+    	4 optional string installTips;      // 下载安装apk的提示
+    	5 optional string openTips;         //打开应用的提示
+    	6 optional string downloadingTips;  //正在下载时的进度条提示
+    	7 optional string bannerColor;      //下载banner上的颜色
+    	8 optional string description;      //应用描述
+    	9 optional string openUrl;          //拉起的伪协议地址
+    	10 optional string version;			//版本
+    	11 optional string apkSize;			//安装包大小
+    	12 optional string channel;			//渠道号
+    	13 optional string appId;			//游戏appid(ios)
+    	14 optional int versionCode;        //apk的版本号
+    	15 optional string baseInfo;        //基础描述信息
+    	16 optional string extInfo;         //额外信息
+    	17 optional string via;             //来源信息
+    	18 optional string md5;              // 下载文件的md5
+    	19 optional string lauchAppExtral;	 //拉取app额外参数
+    	20 optional int installPolicy;       //0,走app全局统一配置   1,非播放场景安装  2，非全屏播放场景安装   100，所有场景都安装
+    	21 optional string playGameUrl;      // 游戏直接玩的url
+		22 optional int appType;            //app类型 0.未知  9.非游戏  10.游戏类
+    }; 
+
+	struct RoundRecommentItem
+	{
+		0 optional string imageUrl ;		//图片列表
+		1 optional string firstLine;				//第1行
+		2 optional string secondLine;				//第2行
+		3 optional int type;						//0-默认, 1-正片, 2-文学, 3-漫画, 4-游戏, 5-商城, 6-doki, 7-垂直频道, 8-拉动
+		4 optional string itemID;					//推荐数据的ID(文学是书籍id，漫画是书籍id，游戏商城doki暂时还用不到)
+		5 optional ActionBarInfo actionBarInfo;		//点击跳转Action或者按钮
+		6 optional ExtraReportKV report;			//曝光上报
+		7 optional int  popTime;					//弹出banner时间百分比（0~100）
+		8 optional float durationTime;				//显示时长
+		9 optional AppInfo apkInfo;                 //游戏下载相关信息
+	};
+	
+	//单行文本支持脚标图片
+	struct IconTagText 
+	{ 
+		0 require string text;		//文字颜色以hmtl标签支持 
+		1 optional vector<MarkLabel> markLabelList; //主标题左右脚标列表 
+		2 optional Action action; 	//点击跳转
+		3 optional string imgUrl; 	//单一url使用
+		4 optional string extraType;  //标识类型，比如搜索框，表示是游戏"game"
+		5 optional ActionBarInfo actionBar;//一行文字配置一个按钮，具体样式依赖使用方（490）
+		6 optional byte tagClass;       //标签分类0、1、2 ……，相同值的IconTagText聚合为具有相同背景的按钮
+        7 optional string reportKey;
+        8 optional string reportParams; 
+        9 optional ShareItem shareItem;	 //分享
+		10 optional byte displayType;     // 0: 图片贴左（举例：v+头像） 1: 图片留左间距（举例：看正片按钮）2: 火锅带发布时间标签样式
+		11 optional VRSSItem vRSSItem;    // 订阅信息
+		12 optional int type;   //0:普通单行文本，1:广告单行文本
+		13 optional AdHotWordInfo adHotWordInfo;			//广告热词基本数据结构
+		14 optional string formattedTime;			//广展示发布距现在的时间（1分钟、一小时...） < 火锅号场景露出及关注闭环>
+		15 optional RoundRecommentItem recommendItem;	// 周边拉动
+	};
+	
+	//模版包裹结构体
+	struct TempletItem
+	{
+		0 require EONAViewType itemType;				//view的类型
+		1 optional vector<byte> data;					//模版对象序列化后的内容
+		2 optional DebugInfo debugInfo;		            //控件级别的调试信息，有需要的控件取出并显示
+	};
+	
+	//模版行结构
+	struct TempletLine
+	{
+		0 require string lineId;				//行编号
+		1 require string groupId;				//组id，用来做组排重
+		2 require TempletItem item;				//每个模版其实都是独占一行的
+		3 optional long increaseId;				//自增id
+	};
+	
+	//触发事件结构
+	struct ChannelTriggerType
+	{
+		0 require string triggerName;				//触发事件结构
+		1 require int index;				//不同触发事件index
+	};
+	
+	//频道触发排序结构
+	struct ChannelTrigger
+	{
+		0 require ChannelTriggerType channelTriggerType;				//触发事件结构
+		1 require string prefixId;				//上一个频道id
+		2 require int index;				//同一触发事件内部index
+	};
+
+	//频道信息
+	struct ChannelItemInfo
+	{
+		0 require int		viewType;			//0 频道页, 1 h5页面, 2 二级列表页, 3 频道页-小视频类型, 4 频道页-小视频双列类型
+		1 require string	param;				//viewType是1的时候代表链接，viewType是2的时候代表二级页的链接包括channelId，filter
+		2 optional byte channelBusiness = 0;	// 频道类别，0-普通频道，1-短视频，后续在这里添加
+	};
+	
+	 struct TabBarItem 
+	{
+		0 optional string text;  					//文字
+		1 optional string normalTextColor;			//文字未选中颜色
+		2 optional string selectedTextColor;		//文字选中颜色
+		3 optional string normalIconURL;			//未选中图标
+		4 optional string selectedIconURL;			//选中图标
+	};
+
+///< 这里的含义是整个 TabBar 的配置信息，应该叫做 TabBarConfig
+///< 但是之前的需求中 一个 VIP 的 TabBarItem 相关的配置就把名字定义为 TabBarConfig 了
+	struct TabBarItemsConfig 
+	{
+		0 optional string backgroundColor; // 底部 TabBar 背景颜色 格式如： #7744aa
+		1 optional string backgroundImageURL; // 底部 TabBar 背景图
+		2 optional map<string, TabBarItem> tabBarItemsMap; // key:{HomeTab(首页), HotTab(热点), VIPTab, SearchTab, MineTab}
+	};
+
+	//频道配置信息
+	struct ChannelItemConfig
+	{
+		0 optional string  backgroundColor;		//导航的背景色 格式如： #7744aa
+		1 optional string  textSelectColor;		//导航的文本选中的颜色 格式如： #7744aa
+		2 optional string  textNormalColor;		//导航的文本非选中的颜色 格式如： #7744aa
+		3 optional string  searchBarColor;		//导航下部搜索框的颜色 格式如： #7744aa
+		4 optional string  iconColor;		     //图标的颜色 格式如： #7744aa
+		5 optional string  animationFileUrl;     //动画文件的url 
+		6 optional int animationPlayTimes=1;        //动画播放的次数
+		7 optional int animationShowLimit=1;        //动画出现的最多次数
+		8 optional string  bgImageUrl;			//背景图片
+		9 optional map<string,string> expandConfig;		//扩展字段 key:{"footer_image_url"(iPad 频道页面滚动区域沉底的背景图片地址),"channel_background_color"(iPad 频道整体背景颜色 格式如： #7744aa)}
+		10 optional TabBarItemsConfig tabBarConfig;       //底部 TabBar 配置信息
+		11 optional string textImageUrl;        //导航的文本选中后需要替换为图片的url
+	};
+   
+	// 非快捷区域频道插入的辅助信息
+	struct ChannelInsertInfo
+	{
+		0 require string id;		//频道id
+		1 require int position;		//插入位置
+		2 optional unsigned int insertTime;    //插入时间，后台使用，终端忽视
+	};
+
+	//非快捷区域频道插入按钮信息
+	struct ChannelInsertItem
+	{
+		0 require ChannelInsertInfo info;		//非快捷区域频道插入的辅助信息
+		1 optional string normalTitle;			//未选中展示的文案
+		2 optional string selectedTitle;		//选中展示的文案
+		3 optional string reportKey; 			//曝光点击reportKey
+		4 optional string reportParams; 		//曝光点击reportParams
+	};
+	//单个频道信息
+	struct ChannelListItem
+	{
+		0 require string	title;			//频道标题
+		1 require string	id;				//频道id
+		2 require string	iconUrl;		//图标地址
+		3 require Action	action;			//当前项点击后需要执行的动作
+		4 require bool		isHead;			//是否默认添加到导航栏
+		5 optional int		pos;			//客户端本地排位使用，server可忽略
+		6 optional int		searchType;	    //0 不显示搜索 1 频道布局全部搜索 2 全部布局全部搜索【精选】 3 频道布局频道搜索 4全局布局下发跳转 5饭团搜索 
+											//6只隐藏搜索、不隐藏分类 7点击搜索后支持action跳转 8doki点击搜索后支持新样式 9全部使用后台下发的searchTags标签，不主动去拼接全部分类
+		7 optional vector<ChannelListItem>	subChannelListItem;  //v+频道的子频道
+		8 optional int timeOut;					// 刷新时间间隔  timeOut < 0 表示不刷新， 单位秒
+        9 optional map<string,IconTagText> labels; //后台下发提示语和占位符，"0"表示无数据"1"表示无网络"2"表示业务出错（请下发%s用来替换占位符否则默认补充在最后）"4"用来下发搜索头部的配置  "111"表示新频道提示的new角标和提示语, "112"表示热频道提示的hot角标和提示语
+        10 optional long    createdTime;     //频道创建时间
+		11 optional vector<IconTagText> searchTags;//用来显示在搜索框上的标签
+		12 optional string searchDatakey;    //由搜索配置，后台下发，前端透传的字段
+		13 optional int showLastReadPositionFlag = 0;   	// 是否需要显示上次看到哪里的视图，0，不需要显示；1，需要显示
+		14 optional int insertNewLineProgress = -1;		// 触发插入视图逻辑时候的播放进度，取值为0-100
+		15 optional int headerVisiblityFlag = 1;		// 首次进入页面是否显示头部搜索视图 0:不需要显示；1:需要显示
+		16 optional string type;                         //频道类型
+		17 optional vector<ChannelTrigger> channelTrigger;     //事件触发时对频道排序结构
+		18 optional ChannelItemInfo channelItemInfo;	//频道信息
+		19 optional int isFixPos = 0;                    //是否是固定位置，不参与频道编辑 ， 1 表示固定，不参与频道排序
+		20 optional ChannelItemConfig channelItemConfig;  //频道的配置信息
+		21 optional vector<string> categoryIdList;			//该频道所属类目列表
+		22 optional string subTitle;		//频道描述语
+		23 optional ChannelInsertItem channelInsertItem;	//非快捷区域频道插入按钮信息，供H5频道页使用
+		24 optional string subDataKey;     //不为空，Channel内部feed的AB会跟Channel的AB联动
+	};	
+	//频道类目结构定义
+	struct ChannelCategory
+	{
+		0 require string id;		//类目id
+		1 require string name;		//类目名称
+	};
+
+	//封装一个图片的协议，提供宽高等信息
+	struct Image
+	{
+		0 require string imageUrl;		//图片的地址
+		1 optional int width;			//图片宽度
+		2 optional int height;			//图片高度
+		3 optional int color;			//主色调
+	};
+	
+	//后台发表和消息里面的小视频
+	struct CircleShortVideoUrl
+	{
+		0 require string vid;				//视频vid
+		1 require string h5Url;			    //分享url
+		2 require long time;				//对应的小视频时长（秒）
+		3 require string imageUrl;			//海报url
+		4 optional string playUrl;			//播放url，备用字段
+		5 optional string description;		//视频描述，备用字段
+		6 optional bool isDemoVideo=false;   //是否是demo视频
+		7 optional string reportParams;     //上报参数
+		8 optional string originVid;        //原视频vid
+		9 optional long videoFileSize;		//视频文件大小,单位是byte
+		10 optional string reportKey;       //上报参数
+		11 optional string title;
+		12 optional string originCid;
+		13 optional Action immersiveAction; //沉浸式跳转action
+	};
+	
+	//用来对图片的表现样式做个封装，方便后续扩展
+	struct VideoImage
+	{
+		0 require string imageUrl;			//图片的地址
+		1 optional string imagePreUrl;		//图片的地址,imageUrl对应大图地址用来预览
+		2 optional int videoFlag;			//默认值为0。  1:表示图片上要叠加一个播放器按钮  2:表示要叠加一个播放预告片的按钮
+		3 optional Action action;			//表示点击图片后的动作
+		4 optional vector<MarkLabel> markLabelList;
+		5 optional Image image;
+		6 optional Image imagePre;
+		7 optional CircleShortVideoUrl video;
+		8 optional string reportKey;
+		9 optional string reportParams;
+	};
+
+    struct LBSInfo
+    {
+    	0 require string poiName;		//位置描述
+    	1 require double lon;			//经度
+    	2 require double lat;			//纬度
+    	3 optional string address;		//地址
+    };
+
+	//日历需求
+	struct CalendarItem
+	{
+		0 optional long startTime;				//日历需求：添加到日历的起始时间(时间戳)
+		1 optional bool isFullDay;				//日历需求：标示是否为全天时间
+		2 optional string description;				//简介信息
+	};
+	
+	//关注数据项
+	struct VideoAttentItem
+	{
+		0 require string attentKey;				//数据项的key
+		1 require Poster poster;				//显示用的海报信息
+		2 require byte attentState;				//关注状态， 0 表示未关注 ，1 表示已关注
+		3 optional string lid;
+		4 optional string cid;
+		5 optional string vid;
+		6 optional long updatetime;				//关注更新的时间
+		7 optional string shortTitle;				//用户在个人中心显示的短样式
+		8 optional string attentFrom;				//关注来源, 用于显示时
+		9 optional CalendarItem calendarItem;		//日历需求
+		
+		//----------注意------！！！
+		//wireless_follow作为服务方，对app与pc采用了一套输出协议
+		//由于历史原因，PC与APP协议有所区别
+		//1、 app第9字段为：CalendarItem，PC未使用
+		//2、PC第11字段为：vecUnionData，app未使用
+		//需要推动app的协议修改跳过11字段，否则将导致协议不一致
+		
+		//为保持mac与tjce结构体字段一致性，跳过tag-9
+		//10 optional string videoContentType;  //视频内容分类，譬如mv，综艺，电视剧等
+		12 optional string clickedTitle;			//点击预约按钮之后的文本信息
+	};
+	
+	//新关注的key结构
+	struct NewAttentKey {
+		1 optional string lid;
+		2 optional string cid;
+		3 optional string vid;
+		4 optional string pid;
+		5 optional string attentFrom;  //关注来源(透传)，后台构建action时参考该值
+	};
+
+	//新关注的数据项
+	struct NewAttentItem {
+		1 require NewAttentKey attentKey;
+		2 require byte attentState;	//关注状态 0-未关注 1-已关注
+		3 optional Poster poster;		//用于显示的海报信息，如果后台关注失败可返回null (为null的关注项不会显示在个人中心)
+		4 optional string shortTitle;	//用于在个人中心显示的短标题
+		5 optional long updateTime;		//关注更新的时间
+	};
+
+	//带关注的海报模版
+	struct AttentPoster
+	{
+		0 require Poster poster;		//海报
+		1 optional VideoAttentItem attentItem;	//关注数据
+		2 optional int style;			//样式 0：默认 1：影集叠加效果
+		3 optional string showTime;	//现在用作即将上映的上映日期，后台下发展示，否则不展示
+		4 optional string attentContentColor;    //关注按钮的内容颜色
+		5 optional string attentBgColor;	      //关注按钮的背景颜色
+	};
+		
+	//table表格样式显示的item
+	struct GridItem
+	{
+		0 require string text;				//显示的文字
+		1 optional Action action;			//动作
+		2 optional string iconUrl;          //icon的url
+		3 optional string reportKey;        //上报的Key
+		4 optional string reportParams;     //上报的参数
+	};
+	
+	
+	//换一批结构
+	struct BatchData
+	{
+	//操作类型0手动刷新,1自动刷新,2vid刷新,3依赖vid刷新key根据datakey获取,4cid刷新, 5随登录态更新, 6个性化类型，不需要缓存
+		0   require int optType; 		
+		1   require string dataType; 		//请求类型
+		2   optional string dataKey; 		//请求参数
+		3   optional int pageNum; 			//最大页面（从第一批有效数据开始计算）
+		4   optional long autoRefresh; 		//自动刷新时间间隔，单位秒
+		5   optional string pageContext; 	//请求上下文
+		6   optional string tips; 			//手动刷新时显示在按钮上的提示文案（默认文案换一批）
+		7   optional bool hasNextPage;		//是否还有下一页数据
+	};
+	//视频基本信息 561新增
+	struct BasicVideoInfo
+	{
+		0 optional string lid;
+		1 optional string cid;
+		2 optional string vid;
+		3 optional string title;
+		4 optional string posterUrl;
+	};
+	
+	//语言信息
+	struct LanguageInfo
+	{
+		0 require string id;		//语言id
+		1 optional string name;		//语言名称
+	};
+
+	//语言切换信息
+	struct LanguageSwitchInfo
+	{
+		0 require string languageId;	//切换后的语言id
+		1 require Action action;		//切换跳转action
+		2 optional string vid;			//切换后的vid（如果是vid跳转）
+	};
+	
+  	struct VipDownloadRightConfig
+	{
+		0 optional ActionBarInfo actionBarInfo;				// 跳转ActionBar
+	};
+	
+	struct VipPlayerTipsConfig
+	{
+		0 optional string topText;				// vip面板顶部文案
+		1 optional string rightButtonText;		// vip面板右边按钮文案
+		2 optional string rightButtonMarkText;	// vip面板右边按钮的角标文案
+		3 optional string rightButtonMarkImageUrl ;	// vip面板右边按钮的角标图片
+		4 optional string topRightTitleText ;		// 试看中标题右上角按钮的文案
+	};
+	
+	//对庞大的视频数据的补充，如果不是其他使用VideoItemData也可能会理解的字段，请往这里补充字段
+	struct VideoItemExtra
+	{
+	    0 optional string nextVideoKey;	      //下一个续播列表的key
+		1 optional Action nextAction;	      //播放完成可以执行的动作
+		2 optional string nextCoverKey;	      //下一个定位的非播放列表(490)
+		3 optional bool isHaveBubbleDM;       //是否有气泡弹幕(490) 
+		4 optional IconTagText playCopyRightTip; //对应了PlayerCopyright的提示包括一行文字提示和一个按钮点击（可无）
+		5 optional long   videoFileSize;     //最低清晰度的文件大小,单位是字节
+		6 optional string tryWatchBtnTitle;	//针对电视剧是否连载完，显示“VIP看全集”，或者“VIP抢先看”	
+		7 optional byte videoFlag;				//视频信息的一些标记状态，掩码是0xff，最低位标志视频是否全景视频，0x01
+		8 optional bool isHaveTrailerVideo;     // 是否有预告片
+		9 optional string livePollDataKey;      // 直播轮询 datakey
+		10 optional int liveStatus;      // 直播状态 0-未知状态 1-直播前 2-直播中 3-直播结束
+		11 optional long liveAttentNum;  //直播预约人数
+		12 optional long liveOnlineNum;   //直播观看人数
+		13 optional int videoTitleUiType; //剧集cell的展示取值规则 0-展示为方块样式  1-展示为长条样式
+		14 optional string page;          //feed流短视频场景id vplus_home:V＋主页 detail_page:详情页下feed流 third_page:标签二级页 second_page:子频道一级页面
+		15 optional string channelId;     //feed流短视频所在频道id
+		16 optional int style;            //视频样式 0-未定义 1-feed流样式
+		17 optional Action complaintAction;   //跳转到视频举报页面的action
+		18 optional vector<LanguageSwitchInfo> languageSwitchInfos;  //多语言切换信息
+		19 optional Poster nextVideoPoster;     //vid维度干预跳转使用的续播Poster
+		20 optional long audioFileSize;			//音频文件大小，为0表示没有音频文件，单位是字节
+		21 optional VipPlayerTipsConfig vipPlayerTipsConfig;	//运营配置的vip面板的文案信息,粒度影响单个vid；VideoDataList里面也有一个同样字段，粒度为剧集列表
+	};
+	// 591新增 区分自动播和点播场景的播放上报的参数信息 
+	struct VideoPlayReportInfo
+	{
+		0 optional string autoPlayReportKey;        		//自动播的上报 server_personal_page_item_secondpage_preview_频道ID 
+		1 optional string autoPlayReportParams;             //自动播的上报参数
+		2 optional string detailPlayReportKey;              //点击播放的上报 server_personal_page_item_secondpage_频道ID
+		3 optional string detailPlayReportParams;           //点击播放的上报参数
+	};
+	
+	//视频数据
+	struct VideoItemData
+	{
+		0 require string vid;								//视频id ［如果是外站数据，请按照 1，2，3 这样往后编号］
+		1 require int payStatus;							//影片付费类型［ 4 单片点播（会员用券，非会员支持单点，用券）， 5 单片点播&会员免费（会员免费看，非会员支持单点，用券）， 6 仅会员可看（会员专享，非会员必须开通），8 全部都免费］ 
+		2 require Poster poster;							//用来负责ui显示 ［如果视频有海报图，均从这里取］
+		3 optional int skipStart;							//跳过片头时间（毫秒）
+		4 optional int skipEnd;								//跳过片尾时间（毫秒）
+		5 optional bool isTrailor;							//是否预告片
+		6 optional Action action;							//点击当前剧集后执行的动作
+		7 optional vector<int> keyPointList;				//关键时间点列表，后续再细化
+		8 optional string title;							//全屏显示的标题
+		9 optional vector<MarkLabel> titleMarkLabelList;	//全屏标题使用的角标
+		10 optional int playCopyRight;						//播放版权信息 0:表示要跳webview播放,1:直接播放,101:跳webView播放并显示应版权方要求不再app播放
+		11 optional string webPlayUrl;						//web站播放地址  
+		12 optional int downloadCopyRight;					//是否可以下载  方便后面扩展 会员非会员不同的下载规则
+		13 optional bool isIpLimit;							//是否受ip受限规则影响
+		14 optional string DMContentKey;					//弹幕使用的上下文key，如果没有弹幕，这个key可以不填写
+		15 optional bool isHaveDM;							//是否有弹幕
+		16 optional bool DMIsOpen;							//弹幕是否打开
+		17 optional string horizontalPosterImgUrl;			//海报横图
+		18 optional string shareUrl;						//分享h5链接地址
+		19 optional string shareTitle;						//分享使用的主标题
+		20 optional string shareSubtitle;					//分享使用的副标题
+		21 optional string shareImgUrl;						//分享图片链接
+		22 optional bool isHaveInteract;					//是否有打点互动
+		23 optional string circleShareKey;					//video分享到影视圈使用的key
+		24 optional bool isNoStroeWatchedHistory;			//是否存储播放历史记录
+		25 optional Poster watchRecordPoster;				//观看历史使用的视图信息
+		26 optional string cid;                    			//用于和详情页保存播放历史记录一致
+		27 optional bool isVideoOverview;                   //是否是剧情概览
+        28 optional long videoType;    						//视频类型
+		29 optional ShareItem shareItem;					//分享
+		30 optional string parentId;						//父节点Id（新加：用来维护节点之间的树状关系）
+		31 optional long tryPlayTime;						//试看时长单位是秒数，<=0表示不可以试看
+        32 optional int videoShowFlags;                    //控制vid的显示/隐藏属性，0为全员可见，1为会员可见，2为会员不可见
+        33 optional string videoEndRecommendKey;           //视频结束推荐的datakey，不为空的话就去拉取结束推荐视频列表
+		34 optional int specialOpt;           				//针对前端的控制字段，0是默认不处理1是固定显示的要求
+		35 optional string nickName;                        //460版本配合34使用，如完整版
+		36 optional map<string,string> referKeys; 		    //460版本配合batchdata使用当optType=3时随着vid刷新以视图datakey来获取下一步刷新的key,key为空则不再刷新
+	    37 optional float streamRatio; 		                //视频流宽高比，注意默认0或者>=1表示横屏流
+		38 optional VideoItemExtra  etraData;               //更多optional字段，请往这里看
+		39 optional VideoPlayReportInfo  playReportInfo;    //包含自动播和点播上报的两套参数
+		40 optional int episodeNum;							//当前剧集数（60）
+		41 optional int castPolicy;							//0:允许所有投射 ，1:禁止所有投射
+		42 optional string sceneInformation;				//场景信息，会透传到视频后端
+		43 optional bool pUgcKnowledgeType = false;         //视频是否是PUGC知识付费类型
+		44 optional string promotionAppKey;                 //当前vid要拉动的app的标识key
+		45 optional string pUgcPayBarPromationTips;         //当vid是pUgc(pUgcKnowledgeType字段为真)类型的视频(并且视频是单片购买类型的视频)
+															//的时候，需要使用此值展示视频底层页浮动支付条的营销的提示文案
+        46 optional Action fullIconAction;                 //全屏按钮点击的执行动作，为null时全屏展示
+	};
+	
+	//专辑数据>3(4.2版本add)专辑类型指能够点击刷新页面，可能为专辑单视频or其他非详情页面
+	struct CoverItemData
+	{
+		0 require string cid;					//专辑编号（cid or vid 或其他非详情页类型id）
+		1 require Poster poster;				//专辑的标题从poster里面取
+		2 optional string date;					//专辑的时间
+		3 optional long num;					//专辑内视频个数
+		4 optional int payStatus;				//专辑内影片总的付费类型［ 4 单片点播（会员用券，非会员支持单点，用券）， 5 单片点播&会员免费（会员免费看，非会员支持单点，用券）， 6 仅会员可看（会员专享，非会员必须开通），8 全部都免费］ 
+		5 optional int playCopyRight;			//播放版权信息 0:表示要跳webview播放,1:直接播放,101:跳webView播放并显示应版权方要求不再app播放  
+		6 optional int downloadCopyRight;		//是否可以下载  方便后面扩展 会员非会员不同的下载规则
+		7 optional string cacheDataKey;			//缓存列表的key，可能为defaultVideoDataKey或者defaultCoverDataKey之一
+		8 optional ShareItem shareItem;			//分享
+		9 optional int videoShowFlags;                    //控制vid的显示/隐藏属性，0为全员可见，1为会员可见，2为会员不可见
+		10 optional string lid;                    		//用于和详情页保存播放历史记录一致
+		11 optional string parentId;					//父节点Id（新加：用来维护节点之间的树状关系）
+		12 optional Action nextVideoAction;     //优先使用的续播Action;废弃掉
+		13 optional Poster nextVideoPoster;     //优先使用的续播Poster
+		14 optional string albumDate;			//专辑时间索引名称（如："11月"）
+		15 optional int albumIndex;				//专辑时间索引序号 (如：11)
+	};
+
+	//栏目数据
+	struct ColumnItemData
+	{
+		0 require string lid;					//column编号
+		1 optional Poster poster;				//栏目的标题从poster里面取
+		2 optional string date;					//column的时间
+		3 optional long num;					//column内专辑个数
+		4 optional int payStatus;				//影片付费类型［ 4 单片点播（会员用券，非会员支持单点，用券）， 5 单片点播&会员免费（会员免费看，非会员支持单点，用券）， 6 仅会员可看（会员专享，非会员必须开通），8 全部都免费］ 
+		5 optional int playCopyRight;			//播放版权信息 0:表示要跳webview播放,1:直接播放,101:跳webView播放并显示应版权方要求不再app播放  
+		6 optional int downloadCopyRight;		//是否可以下载  方便后面扩展 会员非会员不同的下载规则
+		7 optional string cacheDataKey;					//缓存列表的key，可能为defaultVideoDataKey或者defaultCoverDataKey之一
+		8 optional ShareItem shareItem;				//分享
+		9 optional int videoShowFlags;                    //控制vid的显示/隐藏属性，0为全员可见，1为会员可见，2为会员不可见
+		10 optional string parentId;					//父节点Id（新加：用来维护节点之间的树状关系）
+	};
+	
+	//新加：扩展信息，以Map由详情页协议下发，vid、cid、lid为key都可以找到对应的结构
+	struct ExpansionData
+	{
+		0 optional VideoAttentItem attentItem;          //用于关注的数据结构
+		1 optional string introKey;          			//Ui首先下发占位，以此为key再去对应订阅号的map中寻找，找到则填充，否则默认 
+		2 optional string vrssKey;                      //Ui首先下发占位，以此为key再去对应订阅号的map中寻找，找到则填充，否则隐藏 
+	};
+	
+	//详情页数据返回
+	struct VideoMoreDetails{
+		0 optional map<string,ColumnItemData> lidNodeMap; 		//栏目类节点数据key(dataKey比如lid)，只跟videoDataMap关联使用
+		1 optional map<string,CoverItemData> cidNodeMap; 		//专辑类节点数据key(dataKey比如cid)，只跟videoDataMap关联使用
+		2 optional map<string,ExpansionData> expansionMap;		//以vid或cid或lid为key
+		3 optional map<string,VRSSItem> vrssItemMap;		    //订阅号
+	};
+	
+	struct LoadingConfig
+    {
+        0 optional string imageUrl;                     //  加载图片url
+		1 optional string bgColor;						// 背景图color，格式："#FFAAAAAA"
+		2 optional string speedTextColor;				// 速度显示条颜色color，格式："#FFAAAAAA"
+		3 optional long startTime;              		// 配置开始时间
+		4 optional long endTime;              			// 配置结束时间
+		5 optional string configId;                     // 配置id
+		6 optional int showTimes; 						// 展示次数
+	};
+	
+	
+	//将视频数据封装成list，增加翻页支持
+	struct VideoDataList
+	{
+		0 require vector<VideoItemData> videoList;		//视频数据
+		1 optional string pageContext;					//翻页上下文
+		2 optional bool isAllData;						//表示是否已经是全部的数据，方便客户端来判断是否需要再次请求
+		3 optional int uiType;							//UI类型
+		4 optional string belongKey;							//标识所属的Key，如属于那个cid
+		5 optional int downloadCopyRight;				//是否可以下载  方便后面扩展 会员非会员不同的下载规则
+		6 optional string cacheDataKey;					//缓存列表的key，可能为defaultVideoDataKey或者defaultCoverDataKey之一
+		7 optional string moduleTitle;					//模块标题，给播放器用
+		8 optional BatchData batchData;	        		//依赖vid去刷新数据，目前只依赖optType =2 
+		9 optional int priority;                        //优先级目前为refVid刷新使用，数字越小优先级越高，配合BatchData使用（如0能让1刷新，1不能让0及1刷新）
+														//此处可以让需要刷新的cover优先级在一个默认较大的数，主vid列表默认为0，动态vid列表在主和推荐之间就能达到联动的效果
+        10 optional string dataType;	       				//由详情页下发，标识当前数据属于详情页处理还是其他第三方处理
+        11 optional int cacheItemsCount;	      //该视频列表对应的缓存列表个数
+		12 optional string nextVideoKey;	      //下一个续播列表的key
+		13 optional Action nextAction;	          //播放完成可以执行的动作
+		14 optional Poster nextTipsPoster;		  //续播提示下一个剧集时使用(490)
+		15 optional string nextCoverKey;	      //下一个定位的非播放列表(490)
+		16 optional int hasPreDownload;          //是否有预约下载(491)默认0没有
+		17 optional LoadingConfig loadingConfig;  // 加载图片配置
+		18 optional string updateDetail;          //视频剧集更新信息
+		19 optional int extraInfoFlag;         // 位标记，(从右到左) 第1位:是否包含推荐算法数据 默认0没有 第2位:vid优先规则 置位表示历史优先，未置位表示运营vid优先
+		20 optional VipPlayerTipsConfig vipPlayerTipsConfig;			//运营配置的vip面板的文案信息
+	};
+	
+	//将专辑数据封装，增加翻页支持
+	struct CoverDataList
+	{
+		0 require vector<CoverItemData> coverList;		//专辑数据
+		1 optional string pageContext;					//翻页上下文
+		2 optional int uiType;							//UI类型
+		3 optional bool isAllData;						//表示是否已经是全部的数据，方便客户端来判断是否需要再次请求
+		4 optional string dataType;	       				//由详情页下发，标识当前数据属于详情页处理还是其他第三方处理
+		5 optional BatchData batchData;	        		//依赖vid去刷新数据，目前只依赖optType =2 
+		6 optional int priority;                        //优先级目前为refVid刷新使用，数字越小优先级越高，配合BatchData使用
+	};
+	
+	//直播信息数据结构
+    struct LiveVideoItemData
+    {
+    	0 require string pid;								//直播id
+    	1 require string streamId;							//直播流id，播放的时候使用这个id
+    	2 require int payStatus;							//付费类型，跟视频的保持一直
+    	3 require long startTime;      						//直播开始时间,服务器时间
+    	4 optional vector<int> keyPointList;				//关键时间点列表，后续再细化
+		5 optional string title;							//全屏显示的标题
+		6 optional string subTitle;							//副标题－在体育的时候会用到
+		7 optional vector<MarkLabel> titleMarkLabelList;	//全屏标题使用的角标
+		8 optional bool isIpLimit;							//是否受ip受限规则影响
+		
+		9 optional string DMContentKey;						//弹幕使用的上下文key，如果没有弹幕，这个key可以不填写
+		10 optional bool isHaveDM;							//是否有弹幕
+		11 optional bool DMIsOpen;							//弹幕是否打开
+		
+		12 optional string horizontalPosterImgUrl;			//海报横图
+		
+		13 optional string shareUrl;						//分享h5链接地址
+		14 optional string shareTitle;						//分享使用的主标题
+		15 optional string shareSubtitle;					//分享使用的副标题
+		16 optional string shareImgUrl;						//分享图片链接地址
+		
+		17 optional string price;							//价钱
+		18 optional string vipPrice;						//折扣价
+		19 optional string dataKey;							//dataKey,主要用作影视圈发表
+		20 optional long endTime;                 			//直播结束时间,服务器时间
+		21 optional bool isNoStroeWatchedHistory;			//是否存储播放历史记录
+		22 optional ShareItem sharItem;						//直播分享的内容
+		23 optional float streamRatio; 		                //视频流宽高比，注意默认0或者>=1表示横屏流
+		24 optional bool isHaveBubbleDM;                    //是否有气泡弹幕(490) 
+		25 optional VideoItemExtra extra;                   //直播详情页的额外信息
+    };
+	
+	//跟人相关的基本信息
+	struct PortraitInfo
+	{
+		0 require string actorName;				//用户名称
+		1 optional string actorId;				//用户编号(可以为空)
+		2 optional string faceImageUrl;			//头像图片
+		3 optional vector<KVItem> detailInfo;	//详细信息 如 <职业,歌手,profession> <出生日期，1990-02-07,birth><地区，内地,address>第三个字段为前后台约定的标识，用来理解内容
+		4 optional VoteData voteData;			//投票的数据，投票次数、限制次数等
+		5 optional Action action;				//点击后执行的跳转动作(明星详情页！)
+	};
+	
+	//饭团引流数据
+	struct FanInvolveItem
+	{
+		0 require string fanId;						//对应的饭团id
+		1 optional string fanAttendKey;				//想要加入该明星饭团的key
+		2 optional vector<KVItem> detailInfo;		//<粉丝，42246,fansnum><人气值，726,popularity>第三个字段为前后台约定的标识，用来理解内容
+		3 optional vector<PortraitInfo> relateFans;	//粉丝信息
+		4 optional int fansFlag;					//当前登录态是否是该饭团主（id）的粉丝，默认0是非粉丝，1是粉丝
+		5 optional int fanType;						//饭团类型
+		6 optional string fanTitle;					//饭团标题
+		7 optional string faceImageUrl;				//头像图
+		8 optional string backgroundUrl;			//背景图
+		9 optional ActionBarInfo moreAction;		//更多跳转操作
+		10 optional int signCount;					//当前签到次数
+		11 optional ActionBarInfo signMoreAction;	//点击已签到后的跳转 现已做“粉丝TOP20”跳转用
+		12 optional Action signedAction;	        //点击已签到后的跳转
+		13 optional string artImageUrl;             //肖像图
+	};
+	
+	//存储用户最基本的vip相关的信息，并没有存储完全
+	struct UserBasicVipInfo
+	{
+		0 optional bool isVip = false;				//是否已经开通会员
+		1 optional bool isAnnualVip = false;		//是否年会会员
+		2 optional int level;						//会员级别
+		3 optional string vipIcon;					//对应的组合图标
+	};
+
+	//等级标签(例如粉丝等级，VIP等级)
+  	struct DegreeLabel
+	{
+		0 require int degree;			//等级数，数值类型
+		1 require string iconUrl;		//等级icon
+		2 optional Action tapAction;	//点击Action
+	};
+
+		//身份信息
+	struct IdentityInfo
+	{
+		0 optional byte identityType;       //身份类型   0 普通用户 1 明星用户 2 达人用户
+		1 optional string richLabel;        //身份标签描述
+	}; 
+	
+	//导演，演员信息相关封装
+	struct ActorInfo
+	{
+		0 require string actorName;				//用户名称
+		1 optional string actorId;				//用户编号(可以为空)
+		2 optional string faceImageUrl;			//头像图片
+		3 optional vector<KVItem> detailInfo;	//详细信息 如 <职业,歌手,profession> <出生日期，1990-02-07,birth><地区，内地,address>第三个字段为前后台约定的标识，用来理解内容
+		4 optional VoteData voteData;			//投票的数据，投票次数、限制次数等
+		5 optional Action action;				//点击后执行的跳转动作(明星详情页！)
+		   
+        //为了直播的需要增加战队信息和标签信息
+        6 optional string voteId;                //战队编号
+        7 optional string voteSubjectId;		 //战队编号
+        8 optional string voteOptionId;
+        9 optional MarkLabel nameMarkLable;		 //名字右边可能存在的标签信息 只处理类型为 6 的数据
+		10 optional vector<MarkLabel> markLable; //角标
+		
+		11 optional FanInvolveItem fanItem;		 //饭团数据
+		12 optional UserBasicVipInfo userBasicVipInfo;//存储用户最基本的vip相关的信息
+		13 optional int acountType;			     //0 表示饭团帐号，1表示V+帐号，4表示剧集doki，-1表示没有帐号
+		14 optional VRSSItem vrssItem;		     //V+帐号的相关信息
+		15 optional string actorAliases;		 //用户别名，例如角色名，译名等
+		16 optional int idType;			         //标志actorId的类型, 默认是0，代表普通明星id，6 代表企鹅直播的主播, 7：QQ号(直播用) 8:微信号(直播用)
+		17 optional ActionBarInfo medalInfo;     //用户勋章icon显示和点击跳转信息
+		18 optional string reportKey;		     //曝光上报key
+		19 optional string reportParams;         //曝光上报参数
+		20 optional byte userType;               //用于区分用户，评论需要支持大V(明星)特权，0 普通用户 1 大V(明星)用户；
+		21 optional DegreeLabel dokiDegreeInfo;		//用户粉丝等级(徽章)信息
+		22 optional DegreeLabel adminDegreeInfo;	//明星后援会管理员等级信息
+		23 optional string signatureText;           //个性签名
+		24 optional DegreeLabel animDegreeInfo;	//大动漫鹅次元等级(徽章)信息
+		25 optional IdentityInfo identityInfo; //身份信息（达人，明星）
+	};
+	
+	//导演，演员信息列表，这里有个标题来供显示
+	struct ActorList
+	{
+		0 require string title;						//用来显示的标题（导演，演员之类）
+		1 require vector<ActorInfo> actorInfoList;	//用户数据
+		2 optional string pageContext;				//用来做翻页上下文
+		3 optional string groupKey;					//分组的key值，可以用来标识分组也可以用来请求
+	};
+	
+	//详情页使用的视频简介
+	struct VideoIntroduction
+	{
+		0 require Poster poster;					//海报
+		1 optional string text;						//长文介绍
+		2 optional vector<ActorList> actorInfo;		//导演演员信息，这是个复合结构
+		3 optional vector<string> lineLabel;		//一行显示一个信息
+        4 optional string datakey;    //此字段用于获取预报片列表，现在用relateDataKey，所以废弃不用
+        5 optional vector<string> relateDataKey;  //关联的datakey,格式[CoverDataList;abc;0;预告片] 和 [StarList;abc;0;明星列表]
+		6 optional vector<KVItem> detailInfo;		//详细信息 如 <职业,歌手,profession> <出生日期，1990-02-07,birth><地区，内地,address>第三个字段为前后台约定的标识，用来理解内容
+		7 optional string subhead;		//副标题
+		8 optional Action action;		//点击后执行的动作，如果没有此字段，不会有右向箭头	
+		9 optional vector<MarkLabel> subMarkLabelList;	//脚标列表，对副标题起作用
+		10 optional vector<KVItem> subDetailInfo;	//定义同detailInfo，一级页只读detailInfo，二级页同时取detailInfo和subDetailInfo的数据
+		11 optional vector<MarkLabel> markLabelList;	//脚标列表，对标题左右侧起作用
+	};
+	
+	//过滤项的选项
+	struct FilterOption
+	{
+		0 require string optionName;		//当前项的名称
+		1 require string optionValue;		//当前项的值
+		2 require bool isSelected;			//当前项是否选中
+		3 optional int type = 0;			//搜索tab的类型，0，普通tab类型；1，h5 tab类型
+		4 optional string h5url;			//当type=1，也就是h5 tab类型时候的h5链接
+		5 optional ExtraReportKV clickReport;	//点击上报
+		6 optional ExtraReportKV exposureReport;	//曝光上报
+	};
+	
+	//单个过滤项
+	struct VideoFilterItem
+	{
+		0 require string fileterItemKey;			//过滤项的key
+		1 require vector<FilterOption> optionList;	//选项列表
+		2 optional string fileterName;				//过滤项的名称
+	};
+	
+	//视频过滤器
+	struct VideoFilter
+	{
+		0 require vector<VideoFilterItem> filterItemList;
+		1 optional string reportParam;  //上报补充参数，后台下发前台上报；这个参数在搜索场景下，618版本往后会被废弃掉。
+		2 optional string type; // 业务自由使用
+        3 optional string dataKey; // 业务自由使用
+		4 optional ExtraReportKV exposureReport;	//搜索场景下，618版本以后用这个字段来做曝光上报，reportParam字段被废弃
+	};
+	
+	//直播抽奖信息
+	struct LiveLotteryInfo
+	{
+		0 require string title;			//文字标题，评论消息H5-Rich化需要用到该字段；
+		1 optional string iconUrl;		//图标，评论消息H5-Rich化需要用到该字段；
+		2 optional string bgColor;		//背景颜色
+		3 optional Action action;		//点击后的跳转动作，注意将抽奖的lotteryId封装到action的url里面，前端不关心lotteryId字段；
+		4 optional string desc;			//表述信息，评论消息H5-Rich化需要用到该字段；
+	};
+	
+	//H5链接Rich化信息
+	struct LiveH5RichInfo
+	{
+		0 optional string icon;		//icon图片地址
+		1 optional string title;	//title
+		2 optional string desc;		//desc
+		3 optional Action action;	//点击后的跳转动作
+		4 optional int imageUiType;	//imageUiType[0横图，1竖图，2原图，3方图，10无图]
+		5 optional vector<MarkLabel> markLable;//角标
+	};
+	
+	// 直播投票选项定义
+    struct LiveVoteOptionInfo 
+    {
+    	0 require string optionId;		// 选项的id
+    	1 require string title;			// 投票项的标题
+    	2 optional string desc;			// 选项的文本描述
+    	3 optional int voteCount;		// 选项投票数
+    	4 optional int percent;			// 投票的百分比  100 表示 100%
+    	5 optional string imageUrl;		// 图片支持
+		6 optional int richType; 		// 媒体类型（同评论）
+		7 optional Action action;		// 特殊媒体类型的跳转支持		
+    };
+    
+    //投票题目
+    struct LiveVoteSubject
+    {
+    	0 require int optionType;							// 1 表示单选，2 表示多选
+    	1 require string title;								// 标题
+    	2 require string subjectId;							// 题目的id
+    	3 require vector<LiveVoteOptionInfo> options;		// 投票的选项
+    	4 require int dataType;								// 1 表示投票，2 表示竞猜
+    	5 optional string desc;								// 题目的描述
+    	6 optional vector<string> voteResultOptionIds;		// 如果是竞猜，这里是最后的结果
+    	7 optional vector<string> voteOptionIds;			// 已投票的返回用户的投票信息
+    	8 optional int voteCount;							// 总投票数
+    	9 optional string subjectImage;						// 投票题目的图片，在全屏播放器里面会用来做广告图片使用
+		10 optional int selectMax;							// 在2以上多选时有效，<=0表示不限制选择
+    };
+
+    // 直播投票信息定义
+    struct LiveVoteInfo 
+    {
+    	0 require string voteId;							// 投票id
+    	1 require string title;								// 投票的标题
+    	2 require vector<LiveVoteSubject> subjectList;		// 投票投票题目列表
+    	3 optional string desc;								// 投票的描述
+    	4 optional byte isFinish;							// 投票是否结束
+   	 	5 optional long endTime;							// 投票结束时间, UNIX时间戳
+    	6 optional LiveLotteryInfo lotteryInfo;				// 抽奖信息
+    	7 optional int isShare;							    // 投票类feed是否支持分享,1:支持,0:不支持
+    	8 optional string shareUrl;                         // 分享url
+    	9 optional string shareTitle;						//分享主标题
+    	10 optional string shareDesc;						//分享副标题
+    	11 optional string shareImage;						//分享图url
+    };
+    
+    // 直播互动消息(饭团和赠送道具feed)
+	struct InteractionInfo
+    {
+    	0	optional string type;       //互动类型 取值: name---支持赠送道具类,fans---饭团类 
+        1	optional string id;
+        2	optional string title;
+        3	optional string desc;
+        4	optional string pic;
+        5 optional Action action;		// 特殊媒体类型的跳转支持
+        7 optional int transValue;  //透明度
+        8 optional string feedBorderColor; //边框颜色
+    };
+	
+	//踢榜主持人提示
+	struct GiftOverRankItem{
+		0 require string hostTips;	       //主持人提示
+		1 require string pid;		           //节目id
+		2 require string  overTips;        //重新上榜
+		3 require int keyType;             //live :1 vid:2 cid:3 lid:4 vplus:5 namegroup:6 ative:7 赠送活动
+		4 optional int tipsColor;	         //提示颜色
+	};
+  	//Apollo语音信息结构体
+	struct ApolloVoiceData
+	{
+		0 require string voiceId;                //音频id
+		1 optional int duration;                 //录音时长
+		2 optional bool permanent;				 //是否是永久存储，可扩展性差，已废弃
+		3 optional byte storageFlag;             //存储标记，默认0表示只存7天，1表示永久存储
+	};
+	//父评论轻量级扩展信息
+	struct CommentParentInfoExtra {
+		0 optional string commentId;   //父评论的评论id
+		1 optional string nickname;    //父评论的昵称
+	};
+  
+	//评论数据
+	struct CommentItem
+	{
+		0 require string commentId;				//消息id
+		1 require string content;				//消息内容
+		2 require long time;					//发表时间，单位秒
+		3 require ActorInfo userInfo;			//作者id
+		4 optional string parentId;				//父节点id
+		5 optional string rootId;				//根节点id
+		6 optional string msgId;				//消息的顺序id,用于翻页逻辑
+		7 optional byte type;					//类型 0 普通评论 1 表示热点 2 表示加精
+		8 optional int upCount;					//点赞数
+		
+		//为了满足直播的需求，增加以下字段
+		// 富媒体类型 : 0普通评论，1 带图片, 2 带视频, 4 投票, 8 竞猜, 16 语音, 32 抽奖, 64 H5 ...  bit位，目前不允许多重选择  modify cwyuan 20141219
+        //4096 直播互动类型 mod by ericwan 20150810
+        9 optional int richType;                    
+        10 optional vector<VideoImage> imageList;    //图片信息，可以指定成一个视频样式
+        11 optional LiveVoteInfo voteInfo;           //投票信息［这个结构会描述自到底是投票还是竞猜］
+        12 optional LBSInfo lbsInfo;                //这个字段有可能共存
+		13 optional LiveLotteryInfo lotteryInfo;	//对于富媒体类型为32，用到该信息；cwyuan
+		14 optional LiveH5RichInfo h5RichInfo;		//H5 Rich化信息；cwyuan
+		
+		15 optional int replyCount;			//对本评论的1级回复数
+		16 optional int oriReplyCount;		//对本评论的所有子级的回复总数
+		
+		17 optional int commentFlag;		//评论消息的标志位。其中：0x01表示是本人发表的评论；目前只有聊天室的评论会返回0x01的标志位
+		
+		18 optional string oriParentId;		//表示引用的父亲节点ID
+		19 optional string oriRootId;		//表示引用根节ID
+		20 optional int showType;			//1：原创展现；2：引用展现 ，终端对于不识别的showtype，不要展现出来
+		21 optional InteractionInfo interInfo;      //直播互动消息
+		22 optional long upTime;			//置顶时间
+		23 optional GiftOverRankItem giftOverRankItem;  //踢榜主持人提示
+		24 optional int topIndex; 			//置顶顺序，从1开始，越大越低
+		25 optional ApolloVoiceData voiceData;			//语音信息
+		26 optional int status = 0;			//0,正常；1，删除
+		27 optional CommentParentInfoExtra extraParentInfo;     //父评论扩展信息
+		28 optional Action richAction;		//目前用于投票按钮的跳转
+	};
+	
+	//带排序排序的关注数据项
+	struct SortAttentItem                                        
+	{                                                            
+		0 require int iAttentType;                               
+		1 require string sRid;                                   
+		2 optional VideoAttentItem stItem;                                    
+	};                                                           
+    //带排序排序的关注数据列表                                                   
+	struct SortAttentItemList                                    
+	{                                                            
+     	0 optional vector<SortAttentItem> vecSortedAttentList;   
+	};   
+	
+	//播放纪录
+	struct WatchRecord
+	{
+		0 require string recordId;					//当前纪录的唯一编号
+		1 optional string lid;						
+		2 optional string cid;
+		3 optional string vid;
+		4 optional Poster poster;					//主要UI元素显示结构体，使用了其第一标题，第2标题,图片，还有角标信息
+		5 optional int strTime;						//影片已经播放的时间，单位秒
+		6 optional int uiDate;						//影片观看的时间（在哪天什么时候看的）
+		7 optional int iHD;							//清晰度
+		8 optional int playFrom;				//观看来源：1 pc; 2 web; 3 aphone; 4 ipad; 5 iphone; 8 tv
+		9 optional string seriesText;		//正在看的集数信息。连续剧：第N集；动画片：子集的名字；其他类型无需填值
+		10 optional string pid;					//直播id
+
+		//以下两个字段是给上报统计用的
+		11 optional string reportParam;		//上报参数
+		12 optional bool isAutoPlay;		//是否自动播放的视频
+		
+		13 optional int recordType;	//表示纪录的类型  0:普通观看产生的观看历史   1:热点产生的观看历史
+		14 optional string fromCtx;		//详情页来源参数
+		15 optional int totalTime;		//s为单位，总时长
+		16 optional int totalWatchTime; //s为单位，用户观看时长
+		17 optional int showLocation;	//1:显示在续看tab, 全部观看历史tab不需要理解这个字段
+	};
+
+	//缓存数据
+	struct CacheItem
+	{
+		0 optional string lid;							// 
+		1 optional string cid;							// 
+		2 optional string vid;							// 
+		3 optional Poster poster;						//海报，会用到title,image,markLabel
+		4 optional int downloadRight;					//版权
+		5 optional long fileSize;						//下载文件大小
+		6 optional string videoName;					//video名字
+		7 optional int isCharge;    					//是否是付费视频  0 不是;  1 是
+		8 optional string expansion;                    //扩展信息字段，用于下载列表存写数据库的时候用，并且拼接在下载列表的点击跳转action的url中
+		9 optional int index;    						//用作排序的index，从标题中抽取
+        10 optional int drmFlag;    				    //用来标识drm属性0默认免费视频1普通付费视频2drm付费视频
+		11 optional float streamRatio; 		                //视频流宽高比，注意默认0或者>=1表示横屏流
+		12 optional int preStatus;                        // 0-可下载状态 1-可预约状态 2-不可预约状态
+		13 optional string preTime;                        // 可预约下载时间，为时间戳以字符串形式下发
+		14 optional int videoShowFlags;                    //控制vid的显示/隐藏属性，0为全员可见，1为会员可见，2为会员不可见
+		15 optional byte videoFlag;				         //视频信息的一些标记状态，掩码是0xff，最低位标志视频是否全景视频，0x01
+		16 optional long offlineLimitTime;						 //视频有效期，以秒为单位
+		17 optional string preKey;                        // 预约下载key
+		18 optional int detailCode;                     //不可以下载的详细返回码：1,版权原因被限制 2 没有登录 4 不是vip会员 8 用卷视频没有购买  16 用卷视频没有购买(用户没有用卷了)  32 没有用钱购买
+        19 optional string detailTips;                  // 不可下载的提示
+        20 optional long skipStart;                     //视频片头
+        21 optional long skipEnd;	                     //视频片尾
+		22 optional string confirmDownloadToast;               // item被选中下载后显示toast的文案，例如HBO过期文案
+	};
+	
+	//预约缓存数据请求参数
+	struct PreCacheRequest
+	{
+		0 require string vid;							// 视频id
+		1 optional string cid;							// 专辑id
+		2 optional string preTime;                     // 可预约下载时间
+		3 optional string preKey;                     // 预约key
+	};
+	
+	//搜索排行榜单个数据 
+	struct RankItem 
+	{ 
+    	0 require string title; 					//显示名称，最终也会作为搜索key 
+    	1 optional string position; 				//排名 
+    	2 optional vector<MarkLabel> markLabelList; //主标题左右脚标列表 
+    	3 optional int changeOrder; 				//>0上升，=0持平，<0下降 
+		4 optional Action action; 				    //点击跳转时  优先判断有效的action否则使用关键字搜索 
+	};
+	
+	//我的评论列表信息
+	struct MyCommentItem
+	{
+		0 require string commentId;				//消息id
+		1 require string content;				//消息内容
+		2 require long time;					//发表时间
+		3 require string voideImageUrl;			//对应的视频的图片
+		4 require string commentDataKey;		//用来获取跟这条纪录相关的评论列表
+		5 require string videoTitle;		    //对应的视频的标题
+		6 require string pageContext;			//本条评论对应的翻页上下文，可以直接定位到评论列表所在处
+		7 optional int upNumber;				//点赞数
+		8 optional int replyNumber;				//回复数
+	};
+	
+	struct ShareToken    
+    {
+		0 optional string sinaAccessToken;              //分享到新浪微博的时候需要用到的票据
+	};	
+	
+	//超链接关键词
+	struct HyperlinksKeyWord
+	{
+		0 require string word;				//用来搜索的关键词
+		1 require Action action; 			//点击后的响应动作
+	};
+	
+	//个性化推荐消息结构
+	struct PersonalizeVideoItem
+	{
+		0 require string imageUrl;		//图片的url
+		1 require string id;			//推荐项的ID，唯一标识该推荐视频的ID；
+		2 require string title;			//标题
+		3 require string subTitle;		//副标题
+		4 optional vector<HyperlinksKeyWord> keyWordList;	//高亮关键词列表
+		5 optional Action action;		//当前项点击后的跳转规则
+		6 optional string reportKey;	//推荐算法用于上报key；
+		7 optional VideoAttentItem attentItem;	//关注的信息
+		8 optional long validTime;		//有效期。单位毫秒
+		9 optional string playerImgUrl;	//播放器上盖图的url，提前下发这样在进入底层页的时候就可以直接用了
+		10 optional byte watched;		//已看选项。0 没看过；1 看过
+		11 optional vector<MarkLabel> markLabelList;		//脚标列表
+		12 optional ShareItem shareItem;                     //用于分享
+		13 optional string reportParams;	//推荐算法用于上报Params；
+	};
+	
+	//个性化追赶结构体
+	struct PursuitItem
+	{
+		0 require string headImageUrl;	//头像
+		1 require float location;		//追赶中的进度。取值范围 0~1。
+		2 optional string tips;			//选中时显示的文本内容。
+	};
+	
+	//发现tab单个数据项
+	struct DiscoveryTabItem
+	{
+		0 require int itemType;			//当前项的类型 0 表示影视圈， 1 表示 个性化推荐,2,表示饭团 3,表示游戏入口
+		1 require string bgImageUrl;	//大的背景图片
+		2 require string title;			//标题
+		3 require string titleColor;	//标题颜色
+		4 require string titleBgColor;	//标题背景色
+		5 require string subTitleColor;	//子标题颜色	
+		6 require string subTitle;		//子标题 ［这个很多时候会在客户端本地计算］
+		7 optional string userImageUrl; //左侧的图像
+		8 optional Action action;		//当前项点击后执行的跳转动作
+	};
+	
+	//用于控制UI呈现
+	struct UIStyle
+	{
+		0 optional string themeColor; 		//主题颜色
+		1 optional string subThemeColor;  	//副主题颜色
+		2 optional string floatThemeColor;  //浮层主题颜色
+		3 optional string fontColor;  		//字体颜色
+		4 optional string fontSize;   		//字体大小
+		5 optional int contentGravity;		//内容布局
+		6 optional string backgroundRes;	//背景资源【颜色、本地资源id、或url】
+		
+		7 optional int x;     		//x属性：宽度
+		8 optional int y;     		//y属性：高度
+		9 optional int minX;  		//x属性
+		10 optional int minY;  		//y属性
+		11 optional int maxX;  		//x属性
+		12 optional int maxY;  		//y属性
+		13 optional int xyScale; 	//x/y * 100
+	};
+	
+	
+	//道具的动画结构定义
+    struct GiftAnimation
+    {
+    	0 require string animUrl;		//动画的h5地址
+    	1 require int animDuration;		//动画的持续时间
+		2 require string animId;		//动画播放的id,使用这个id来播放目标动画
+    };
+	
+    //单个道具数据结构
+    struct LiveGiftItem
+    {
+    	0 require string productId;			//产品id
+    	1 require string iconUrl;			//图片地址
+    	2 require int payStatus;			// 0 表示免费  1 收费 
+    	3 require string title;				//标题
+    	4 require string des;				//描述
+    	5 require string price;				//价格
+    	6 optional GiftAnimation animation;	//道具的动画
+    	7 optional int canUsedCount;		//可以使用的次数，< 0 表示可以无限制使用，0 表示不可使用  ，> 0 表示可以使用的次数
+    	8 optional int addupStepCount;		//道具赠送统计时累计使用（每次赠送增加addupStepCount）
+		9 optional int payFlag;				//代币支付的种类1:钻石,2:金币
+		10 optional string payDes;			//代币支付金额描述
+		11 optional int payPrice;			//需要支付的代币数量
+		12 optional string activityId;		//用于代币支付的id
+		13 optional string strToolUnit;     // 道具单位，例如朵，个
+    };
+    
+    //跟人相关的排行榜信息
+    struct ActorRankItem
+    {
+    	0 require int rankIndex;			//排行索引
+    	1 require ActorInfo actorinfo;		//用户信息
+    	2 require long giftNumber;			//数字
+    	3 require string giftImageUrl;		//礼物图片
+		4 optional byte actorFlag;			//0,不是自己的；1，是自己的
+    };
+
+	//一周追剧的列表
+	struct FollowTVPoster
+	{
+		0 require Poster poster;
+		1 optional string lid;  
+		2 optional string cid;  
+		3 optional string vid;  
+		4 optional string attentKey; // 关注的key
+		5 optional ShareItem shareItem;
+	};
+	
+	//服务器的信息
+	struct ServerInfo
+	{
+		0 require  string ip;    //服务器的ip
+	    1 optional int netMode;  //网络模式，如联通3g，移动2g等
+		2 optional string host;  // host
+	};
+	
+	//dialog 弹框信息
+	struct CommonDialogInfo
+	{
+		0 require string content;   //弹框内容
+		1 optional string title;  //弹框标题
+		2 optional string left;   //左边按钮文案
+		3 optional string right;  //右边按钮文案
+		4 optional Action leftAction;  //点击左边的跳转
+		5 optional Action negativeAction;   //点击右边的跳转
+	};
+	
+	//个人中心动态配置条目
+	struct DynamicItemInfo
+	{
+		0 require  string title;     //点击入口的标题
+		1 optional string iconUrl;   //点击入口左边的icon
+		2 optional Action action;    //点击跳转
+		3 optional string redHotId;   //小红点的id
+		4 optional long redHotVersion;  //小红点的version
+		5 optional bool redHotStatus;   //小红点显示的状态   true 表示显示，false 表示不显示
+		6 optional string itemId;     //id作为item的唯一标示，方便区分，做差异化处理；钱包列取值为“wallet”，其他列可以为空
+		7 optional string tipsText;   //运营文案
+		8 optional string tipsIcon;   //运营icon
+		9 optional string selectedIconUrl; // 入口左边点击后的icon，配合iconUrl (iPad)
+		10 optional int showLocation;    //显示在明星装扮分组的位置： 0：底部  1：顶部
+		11 optional map<string, string> signInTextMap;   //签到Key：signIn;待领取Key：unreceived;未完成任务：unfinished;动画顶部文案：addV；动画底部文案：nextSignInfo：再签2天领50V币
+	};
+  	//页面个性化请求基本参数信息  590新增
+	struct RecommendReqExtInfo
+  	{
+  	  0 optional int loadType;	        	 //请求类型，该字段可用于个性化推荐  0 手动刷新  1页面超时刷新  2预加载 3 翻页加载下一页
+  	  1 optional int refreshType;            //刷新类型，默认 0:普通刷新 1:超时刷新，软置顶用
+  	  2 optional string refreshContext;		 //刷新上下文，第一页数据或个性化拉取时有用  590新增
+  	};
+
+  	//页面个性化回包基本控制信息  590新增
+	struct RecommendRespExtInfo
+  	{
+  	  0 optional long timeout;			  //页面数据过时时间，下一次进入页面时，如果满足fadeTime的间隔，那么重新拉取数据，软置顶刷新周期可用该字段
+  	  1 optional string refreshWording;	  //刷新提示语，如果有则客户端以小黄条显示
+	  2 optional int historyReadFlag = 0; //是否展示上次观看位置，0:不展示  1:展示
+	  3 optional string refreshContext;	  //透传给请求  590新增
+	  4 optional string tipsIconColor; 	  //观看位置提示条Icon颜色
+  	};
+
+	//频道动态频控信息，用于终端是否可展现检验 590新增
+	struct EventValidateInfo
+	{
+		0 require string uniqueId;                  //唯一ID，频道资源位活动中用于标识config
+		1 require int eventType;					//活动类型：1，明星入驻 2，顶部banner 3，底部banner 4，全屏H5 5，lottie动画 6，下拉刷新全屏H5展示
+		2 optional string businessId;               //每个（商业）活动对应的唯一Id，对应promotion后台projectId
+		3 optional long frequency;					//两次曝光的最小时间间隔，以秒为单位
+		4 optional int maxExposeCount;              //最大曝光次数
+		5 optional long startTime;              	//配置开始时间，以秒为单位
+		6 optional long endTime;              		//配置结束时间，以秒为单位
+		7 optional string reportKey;				//上报参数
+		8 optional string reportParams;				//上报参数
+	};
+
+	//从vip.jce目录挪过来，字段信息未改动  590开始
+	struct PullRefreshText
+	{
+		0 optional string text;				//下拉刷新图上文字
+		1 optional string textColor;		//文字的颜色
+		2 optional string leftIconUrl;		//文字左侧icon的图片url
+	};
+	//频道活动挂件内容 610新增
+	struct WidgetInfo
+	{
+		0 optional string lottieUrl;     			//lottie动画文件url
+		1 optional float aspectRatio = 5.0;		        //挂件宽高比例，默认宽度为全屏
+		2 optional int position;                    //0-在listView上，1-在listView下
+		3 optional bool scrollWithList = false;     //position=1时，是否跟随列表滑动
+		4 optional float clickAreaXStart = 0.0;     //点击区域X起点
+		5 optional float clickAreaXEnd = 0.0;       //点击区域X结束点
+		6 optional Action clickAction;              //点击跳转的Action
+	};
+
+	//从vip.jce目录挪过来，字段信息未改动  590开始
+	struct PullRefreshConfig
+    {
+      	0 optional string imageUrl;                     //图片url
+		1 optional string bgColor;						//背景图color，格式："#FFAAAAAA"
+        2 optional Action action;						//点击图片跳转Action
+		3 optional long startTime;              		//配置开始时间 VIP用，普通频道使用EventValidateInfo中的时间信息
+		4 optional long endTime;              			//配置结束时间 VIP用，普通频道使用EventValidateInfo中的时间信息
+		5 optional vector<PullRefreshText> textList;	//下拉刷新图上文字配置
+		6 optional string bgImageUrl;                    //下拉刷新背景图（ipad 专用）
+		7 optional EventValidateInfo validateInfo;      //校验信息  590新增
+		8 optional Action pullAction;      				//下拉刷新触发的 Action，主要承载全屏展示的H5 URL 590新增
+		9 optional int configType;                      //配置类型，0-静态图（默认），1-lottie动画，跟随下拉进度变化，有挂件时
+		10 optional float bgAspectRatio = 1.875;        //下拉背景图(或者是lottie动画)宽高比，默认宽度为全屏
+		11 optional WidgetInfo widget;                  //挂件配置
+	};
+
+	//频道活动H5内容  590新增
+	struct BigH5EventConfig
+	{
+		0 optional EventValidateInfo validateInfo;	//校验信息
+		1 optional Action action;		    	//主要承载 H5 URL，一般为全屏展示
+	};
+
+	//频道活动Banner内容 590新增
+	struct BannerEventConfig
+	{
+		0 optional EventValidateInfo validateInfo;	//校验信息
+		1 optional string imageUrl;				    //前景图
+		2 optional ActionBarInfo moreAction;		//文案、图片及跳转信息
+	};
+
+	//频道活动lottie内容 590新增
+	struct LottieEventConfig
+	{
+		0 optional EventValidateInfo validateInfo;	//校验信息
+		1 optional string lottieFileUrl;     		//动画文件的url 
+		2 optional int cycleTimes =1;      		    //动画执行时最多循环播放的次数
+		3 optional int playTimes  =1;               //动画出现的最多次数
+	};
+	//频道推广位活动信息 590新增
+	struct PromotionEventInfo
+	{
+		0 optional vector<BannerEventConfig> bigBannerConfigs;    //全屏Banner配置，譬如明星入驻配置
+		1 optional vector<BannerEventConfig> headBannerConfigs;   //头部Banner配置
+		2 optional vector<BannerEventConfig> footBannerConfigs;   //底部Banner配置
+		3 optional vector<BigH5EventConfig>  bigH5Configs;   	  //全屏H5配置
+		4 optional vector<LottieEventConfig> lottieConfigs;   	  //lottie动画配置
+		5 optional vector<PullRefreshConfig> refreshConfigs;      //下拉刷新配置
+	};
+	//频道动态信息 561新增
+	struct ChannelEventInfo
+	{
+		0 require int eventType;					//活动类型：1，明星入驻
+		1 require string uniqueId;                  //该频道动态关联的唯一ID，如果是明星入驻，那么可以存储一个明星ID
+		2 require long version;                     //该频道动态对应的版本号，用于前端频控逻辑
+		3 optional string faceImageUrl;				//前景图
+		4 optional ActionBarInfo moreAction;		//跳转信息
+	};
+	
+	//精选页游戏、影视圈、我的影院等入口item(从第三个tab发现页卡搬过来)
+	struct DiscoveryEntryItem
+	{
+		0 require string imageUrl;		//图标
+		1 require string title;			//标题
+		2 optional Action action;		//当前项点击后执行的跳转动作
+		3 optional int itemType;		//当前项的类型 0 表示影视圈， 1 表示 个性化推荐,2,表示饭团 3,表示游戏入口
+	};
+	
+	//直播中模块定义
+	struct LiveTabModuleInfo 
+	{
+		// modType模块类型:（直播） 1，主持人，2 评论， 3 h5 ，4节目单，5排行榜 ，6 战况视频
+		//100 运营页
+		//（好声音）101，人气榜，102 我的贡献
+		//（一周XX）201,一周XX
+		//（个性化影院）301，影集底层
+		//（NBA）401，体育
+		//（whyme）501，PK榜，502，whyme我的贡献
+		//(饭团)601:后援会;  602:明星说tab/视频tab;  603:作品 tab;  604: H5 tab； 605:福利社 tab;
+		//（关注体系）701，加入doki，702，关注列表，703，粉丝列表
+		//（小视频）801，小视频页卡
+		//(Doki福利社) 901-壁纸列表页 902-表情列表页
+    	0 require int modType;                        
+    	1 require string title;                       // 模块标题
+    	2 require string dataKey;                     // 模块获取数据的key
+    	3 optional string subtitle;                   // 次标题
+    	4 optional string desc;                       // 模块详细描述
+    	5 optional int timeOut;						  // 刷新时间间隔  timeOut < 0 表示不刷新， 单位秒
+		6 optional string tabId;					  // tabId用于唯一标识tab，push做识别
+		7 optional string dataType;					  // 模块获取数据的type
+		8 optional ShareItem shareItem;               // 模块的分享数据
+		9 optional byte showOnNav = 1;				//1:显示在频道滚动条中 0:不显示
+		10 optional string iconUrl;					//在频道编辑页面显示的图标
+		11 optional byte isSelected;                  //1:当前选中，0：当前未选中
+		12 optional string reportParams;		//点击事件用来上报的内容(点击)
+		13 optional int location;		//0默认位置 1 pad上播放器下方的位置
+		14 optional int unReadCount;   //未读计数
+		15 optional string postionRange;              //个人页tab对应数据列表的开始结束位置,成对返回如 1,20
+    };
+
+  
+	//描述选项的数据结构
+    struct OptionItem
+    {
+    	0 require string id;		//选项的id
+    	1 require string title;	    //选项的名称
+    };
+	
+	//描述选项组的数据结构
+    struct OptionGroup
+    {
+    	0 require string dataKey;                  //选项组的key
+    	1 require vector<OptionItem> optionList;   //选项的list
+    };
+	
+	//下载数据结构（虽然以游戏命名 其实所有下载都用）
+	struct GameDownloadItemData
+	{
+	    0 require Poster poster;	//为了支持可扩展imageUiType填3（表示正方形）
+		1 require AppInfo apkInfo;	//下载数据（下载区域点击控制下载状态）
+		2 optional Action action;	//整个view需要执行的动作
+		3 optional int sourceId;	//基本用来控制存数据库，默认是0游戏下载与游戏中心一样保存数据库
+	};
+	
+	struct VideoInfoPosterItem
+	{ 
+		0 optional VideoItemData videoItem;		//视频的播放列表至少需要包含一个视频的vid，cid，poster海报数据，watchRecordPoster数据
+		1 optional VideoAttentItem attentItem;  //关注信息
+		2 optional Action actions;				//如果有则显示在播放器中正在播放影片的name字段，点击跳转
+		3 optional string names;				//配合actions使用显示在播放器右下角的跳转角标名字	
+		4 optional Poster poster;               //3g情况下显示的海报图
+		5 optional bool isAutoPlay = true;		//是否wifi和免流下自动播放,默认是YES.
+	};
+	
+	struct VideoKeyItem
+	{
+        0 optional string vid;     //请求详尽的播放视频的数据信息时传入的vid列表(为了以后可能支持直播，所以这里允许传空)
+        1 optional string cid;     //请求详尽的播放视频的数据信息时传入的cid列表(为了以后可能支持直播，所以这里允许传空)
+		2 optional string lid;     //请求详尽的播放视频的数据信息时传入的lid列表(为了以后可能支持直播，所以这里允许传空)
+	};
+	
+	//直播预约数据
+	struct LiveSubscribeInfo
+	{
+		0 require string actorImageUrl;				//明星头像信息
+		1 require long startTime;					//预计开始时间
+		2 require string pollDataKey;				//直播轮询key
+		3 optional VideoAttentItem attentItem;		//预约信息
+		4 optional ShareItem shareItem;				//分享信息
+		5 optional MarkLabel markLabel;				//标题信息
+		6 optional vector<ActorInfo> actors;		//明星列表
+		7 optional string pid;						//直播pid
+		8 optional string title;					//标题
+		9 optional Action action;					//直播开始后的跳转
+	};
+	
+	//why me 播放结束推介的视频信息
+	struct RelatedRecommenVideoData
+	{
+		0 require string pid;			//视频的pid
+		1 optional string vid;			//如果是点播，则要带上vid
+		2 optional string streamId;		//流ID
+		3 optional Poster poster;		//展示的海报图，以及播放量，标题等信息
+		4 optional Action action;		//点击后的跳转动作
+		5 optional long startTime;		//直播的开始时间
+		6 optional long endTime;		//直播的结束时间	
+		7 optional long praiseCnt;			//点赞量
+		8 optional int streamStyle;          //流类型：0横屏；1竖屏
+	};
+	
+	//why me 播放结束的推介列表
+	struct LiveRlativeRecommendVideoItem
+	{
+		0 require ActorInfo actor;		//直播推荐的明星, 包括饭团的数据
+		1 optional vector<RelatedRecommenVideoData> videoInfos;
+	};
+	
+	struct PKGroupInfo						//战队（人名组）信息
+	{
+		0 optional string strGroupID;
+		1 optional string strGroupName;		//战队名称
+		2 optional string strGroupLogoPic;	//战队logo
+		3 optional long lTotalRenqi;		//战队总人气
+		4 optional map<int,ActorList> actorList;	//每个对战组的分块数据（key值为序号 如A组 0 2，B组 0 1 2，前端能够知道A组对数据块1留白）
+	};
+	
+	// 最基本的播放器需要的数据，支持点播、直播等，以后还有需要支持播放的需求，可以包含这个结构体
+	struct CommonVideoData
+	{
+		0 require Poster poster;							//海报图，以及下面的标题,以及播放量都在这里面
+		1 optional VideoItemData vodVideoData;				//如果是点播,用这个数据
+		2 optional LiveVideoItemData liveVideoData;			//如果是直播视频，填充这个
+		3 optional VideoAttentItem attentItem;				//关注数据
+	};
+	
+	//后台下行的通用的图片url，分为原图和缩略图
+	struct CommonDownloadImageData
+	{
+		0 require string url;				//图片url
+		1 optional string thumbUrl;			//缩略图url
+		2 optional byte imgType;        //0:jpg 1:gif 
+	};
+	
+	struct IdData
+	{
+		0 require  string      sId;		      // 直播pid或者点播vid 
+		1 require  int         iType;         // sId类型，0(默认) 直播pid   1 点播vid
+	};
+	
+	struct IdPraise
+	{
+		0 require  string      sId;		      // 直播pid或者点播vid 
+		1 require  int         iType;         // sId类型，0(默认) 直播pid   1 点播vid
+		2 require  long        lPraiseNum;    // 点赞数
+		3 require  string      sRid;	      // 关联id（pid关联的vid，vid关联的pid）
+		4 require  long        lRidPraiseNum; // 关联id 的点赞数
+	};
+
+	//清晰度特殊功能 （目前仅支持拉动第三方app，以后可以继续扩展）
+	struct DefinitionAction
+	{	
+		0 require int action;							//功能枚举 1:拉动第三方app   2(待扩展)
+		1 optional string actionOneApp; 				//第三方app包名
+		2 optional string actionOneScheme;				//当第三方app安装时使用该scheme跳转
+		3 optional string actionOneH5Url;				//当第三方app未安装时使用该url访问app端的h5页面
+		4 optional string actionOneLabel;				//特殊清晰度显示的下文案
+	};
+	
+	//拉动第三方app的结构
+	struct SpecailActionOne
+	{
+		1 optional string actionAppForAndroid; 	//第三方app包名
+		2 optional string actionAppForIOS; 		//第三方app包名
+		3 optional string actionSchemeForAndroid;//当第三方app安装时使用该scheme跳转
+		4 optional string actionSchemeForIOS;	//当第三方app安装时使用该scheme跳转
+		5 optional string actionH5Url;	//当第三方app未安装时使用该url访问app端的h5页面
+		6 optional string actionLabel;	//特殊清晰度显示的下文案
+	};
+	
+	//付费相关的特殊逻辑
+	struct SpecailActionTwo
+	{
+		1 optional int payState; 					//付费标记位
+	};
+	
+	//特殊动作定义
+	struct SpecialAction
+	{
+		0 require int actionType;							//功能枚举 1:拉动第三方app ，2:付费，3(待扩展)
+		1 optional SpecailActionOne actionOne;				//当actionType=1时，需要返回的机构
+		2 optional SpecailActionTwo actionTwo;				//当actionType=2时，需要返回的机构
+	};
+	
+
+	//上行的图片信息
+	struct CircleUploadImageUrl
+	{
+		0   require long playTime; 			//dwPlayTime播放时间；（秒）
+		1   require string url; 			//图片的URL链接；原图或者涂鸦的图片URL
+		2   optional string waterFlagUrl; 	//加上水印后的图片
+		3   optional string handWriteInfo; 	//涂鸦信息，是一段文字；
+		4 	optional int width; 
+		5	optional int height;
+		6   optional byte imgType;	        //图片类型 0:jpeg 1:gif
+		7   optional string thumbUrl; 		//缩略图的URL链接；Gif原图需要静态缩略图
+		8   optional int businessType;      //图片的业务类型  0:没意义 1:普通图片 2:壁纸 3:表情
+	};
+	
+	//频道列表个性化推荐
+	struct ChannelListPersonalizeData
+	{
+		0   optional vector<ChannelListItem> list;	//推荐的频道
+		1   optional long createdTime; 			    //本次推荐列表生成的时间
+		2   optional string tips; 	                //推荐的提示语
+		3   optional string seqKey;                 //本次推荐的频道列表md5值,前端根据这个对比判断是否展示推荐
+	};
+	
+	//清晰度描述
+	struct Definition
+	{	
+		0 require string value;							//清晰度值 如：mp4,msd
+		1 require string sName; 				        //清晰度短名字 如:高清
+		2 require string lName;				            //清晰度长名字 如:高清  360P
+	};
+	
+	//-----------------------------------------------------------------------------------------------------------------------------------------
+	
+	
+	//营销专区预约item
+	struct MarketAttentItem {
+    	0 require string attentKey;					//数据项的key
+		1 require byte attentState;					//预约状态， 0 表示未预约 ，1 表示已预约
+    };	
+
+	//带预约的海报模版
+	struct MarketingAttentPoster
+	{
+		0 require Poster poster;		//海报
+		1 optional int type;			//0：普通文本 1：倒计时
+		2 optional string line;			//显示文本
+		3 optional long startTime;		//开始时间
+		4 optional long endTime;		//结束时间
+		5 optional MarketAttentItem attentItem;		//预约item
+		6 optional int uiType;						//样式类型 0-普通 1-好莱坞（金色）样式
+		7 optional string activityId;	//活动ID，目前用于局部刷新
+	};
+
+
+	//简单频道信息，用于上报频道定制
+	struct SPChannelItem
+	{
+		0 require string channelId;				//频道id
+		1 require bool isHead;					//1:用户定制  0:用户未定制
+	};
+		
+		//动态联想Item 
+	struct SearchSmartItem 
+	{ 
+		0 require Poster poster; 						//海报数据：此处action负责播放按钮跳转（自动播放）,imageUiType[0横图，1竖图，2原图，3方图，10无图]
+		1 optional string playBtn;						//是否播放 
+		2 optional Action action;						//详情页 播放页 明星页：此处action负责整个view跳转（不需要自动播放） 
+		3 optional vector<IconTagText> lineTag;			//支持富文本显示的内容,在Poster三行后面显示
+		4 optional string clickReportKey;               //点击上报(用来做搜索质量优化的，会通过别的接口上报)
+	};
+	
+	//赞的信息（影视圈，饭团，小视频等）
+	struct CircleLikeInfo 
+	{
+		0 require string likeId;			//当前消息产生的id
+		1 require ActorInfo userinfo;		//是谁点的赞
+		2 optional long time;				//点赞时间，方便排序
+		3 optional string dataKey;          //后台用于标记feed的来源，需要透传给影视圈发点赞接口
+	};
+	
+	/*
+	人脸识别的中心点比重,取值规则：
+	图片中心（0.5，0.5）
+	往上偏移（0.3，0.5）
+	往右偏移（0.5，0.7）
+	往左上偏移（0.3，0.4）
+	往右下偏移（0.7，0.9）
+	*/
+	struct ImgFaceArea
+	{
+		0 optional float xFloat;		//x轴比重
+		1 optional float yFloat;		//y轴比重
+	};
+	
+	//后台下发的消息里面的图片url
+	struct CircleMsgImageUrl
+	{
+		0 require string url;				//图片url
+		1 optional string thumbUrl;			//缩略图url
+		2 optional long time;				//对应的影片播放时间（秒）
+		3 optional byte imgType;            //0:jpg 1:gif
+		4 optional byte maskType;           //0:没有 1:小视频水印
+		5 optional float aspectRatio;		//图片宽高比 宽/高
+		6 optional ImgFaceArea faceArea;	//图片人脸区域
+		7 optional int businessType;        //图片的业务类型  0:没意义 1:普通图片 2:壁纸 3:表情
+		8 optional string dataKey;			//用于大图预览时，二次拉取详细业务数据用
+	};
+	
+	//评论的jce结构（影视圈，饭团，小视频等）
+	struct CircleCommentFeed 
+	{
+		0 require string feedId;				//评论id
+		1 require string content;				//内容
+		2 require long time;					//创建时间
+		3 require ActorInfo userInfo;			//评论的用户信息
+		4 optional ActorInfo parentUserInfo;	//评论的父节点
+		5 optional string parentCommentId;		//父消息id
+		6 optional string seq;					//sequence，防止终端重复提交
+		7 optional string dataKey;              //后台用于标记feed的来源，需要透传给影视圈发点赞接口
+		8 optional 	long		commentCount;
+		9 optional 	long		likeCount; 
+		10 optional vector<CircleMsgImageUrl> photos;		//图片信息，可为null	
+		11 optional Action	action;						// 跳转链接，跳转到详情页;
+		12 optional bool isLike = false;	//是否已点赞
+		13 optional int displayLevel;		//展示层级，0：不缩进 1：一级缩进 2：二级缩进
+		14 optional int additionalStyle;		//不再使用
+		15 optional bool hasMoreComments = false;		//是否需要展示查看更多
+		16 optional string reportKey;	//上报参数
+		17 optional string reportParams;	//上报参数
+		18 optional map<string,string> extraInfo;		//扩展字段，可用于存放评论过滤等信息 KV约定：  toppingType(置顶类型：1：评论跳转置顶)； isOwnerLike（1：楼主点赞）；isOwnerComment（1：楼主的评论）
+		19 optional ApolloVoiceData voiceData;			//语音评论
+	};
+	
+	//这里是一个海报集合
+	struct PosterList
+	{
+		0 require int uiTag;					//如何展示3&4左右5&6上下  100块状
+		1 require vector<Poster> posters;	  
+		2 optional string title;				//用来显示的标题（导演，演员之类）
+		3 optional string pageContext;			//用来做翻页上下文
+		4 optional string groupKey;				//分组的key值，可以用来标识分组也可以用来请求
+	    5 optional Action groupAction;			//给整个组设置的跳转，部分展示
+	};
+
+	// 搜索热词相关信息
+	struct SearchHotWordInfo
+	{
+		0 require string timeStamp;  // 热词时间戳
+		1 require vector<IconTagText> searchOperateHotWordList;    //搜索运营热词列表
+	};
+	
+	//奥运金牌榜item
+	struct ScoreListItem
+	{
+		0 require int rankId;     // 排名id
+        1 require string rankBgImgUrl;   //排名背景图片
+        2 require string rankTitle;	//排名名称
+        3 require string medalBgImgUrl;   //奖牌背景图片
+        4 require int medalNums;     // 总奖牌数
+		5 optional string reportKey;	//上报参数
+		6 optional string reportParams;	//上报参数
+	};
+
+	//带预约信息的跳转bar
+	struct AttentActionBar
+	{
+		0 require ActionBarInfo actionBar;
+		1 optional VideoAttentItem attentItem; //预约信息
+
+	};
+
+	//明星未来直播海报+预约信息
+	struct StarMeetInfo
+	{
+		0 optional Poster  		posterInfo; 		//海报相关信息
+		1 optional VideoAttentItem attentItem;   // 预约信息
+		2 optional ActorInfo    actorInfo;          //明星信息
+	};
+
+	//行程时间具体信息
+    struct AgendaTime
+    {
+		0 optional int     year;			//年
+        1 optional int     month;           //月
+        2 optional int     date;			//日
+        3 optional string  week;			//星期
+        4 optional string  timepoint;		//具体时间点，譬如19:30
+	};
+
+	//单个明星话题 561新增
+	struct StarTopicInfo
+	{
+		0 optional ActionBarInfo  		topic; 		//话题内容
+		1 optional int                  type;       //话题类型：1，普通话题；2，查看更多
+		2 optional string reportKey;
+		3 optional string reportParams; 
+		4 optional string userImageUrl;            //后台下发的话题相关图片
+	};
+	//视频基本请求参数
+	struct VideoBaseParams
+	{
+		0 optional string lid;		//栏目id
+		1 optional string cid;		//专辑id
+		2 optional string vid;		//视频id
+	};
+	
+	struct HomeTabData
+	{
+		0 require  int		 pageType;	               //底部导航的页面标识，0：首页 1：热点 2：VIP 3:直播 4：个人中心 5：明星页卡（对应5个tab，列表数必须为5，否则忽略使用默认）
+	  1 require  int	   requestType;		           //model请求的type类型
+	  2 require  string  tabName;		               //tab名称
+		3 require  string	 unSelectIcon;		         //tab没有选中icon
+		4 require  string	 selectIcon;		           //tab选中icon
+		5 optional string	 dataKey;		               //model请求的分桶标识字段
+		6 optional string selectColor;             //选中的文字颜色
+		7 optional string unSelectColor;           //未选中的文字颜色
+		8 optional string lottieUrl;               //lottie动画资源文件
+	};
+
+	struct MarkScore
+	{
+		0 require string score;               //分数
+		1 optional string scoreWording;    //分数对应的文案描述
+	};
+	struct CommentNoticeContent
+	{
+		0 optional string text;
+		1 optional string headUrl;
+		2 optional string nickName;
+	};
+
+	//评论通知 目前用于直播明星回复列表
+	struct CommentNoticeItem
+	{
+		0 require int type; 		//0:无效 1:公告
+		1 optional string id; 		//通知id，目前用作对应的消息id
+		2 optional long index;		//通知序号，目前表示明星回复序号
+		3 optional CommentNoticeContent content; 
+	};
+	
+	//Feed里面的投票
+	struct FeedVoteInfo
+	{
+		0 optional string title;			// 投票的标题
+		1 optional string subTitle;		// 投票数
+		2 optional Action action;           	//投票Icon的Url
+		3 optional string voteId;		//投票Id
+		4 optional string imageUrl;         //投票封面图
+		5 optional string reportKey;
+		6 optional string reportParams;
+		7 optional int voteType; 		// 投票类型 0-普通投票 1-PK投票
+		8 optional vector<SimplePoster> voteItemInfos;	// 投票条目信息列表
+	};
+
+	//封装Feed基本信息
+	struct FeedInfo
+	{
+		0 require string feedId;	//帖子id
+		1 require int feedType;            // 帖子类型 0-影视圈feed 1-饭团feed
+		2 optional int commentCount;                   //feed评论的总数量，仅仅做文案显示，不做其他逻辑运算
+		3 optional int likeCount;		//点赞数
+		4 optional byte isLike;               //对于主贴id的点赞状态  1：点赞 0：没有赞 
+		5 optional Action action;           	//标题、空白、点赞、评论
+	};
+	//封装兴趣探索-tag基本信息
+	struct ExploreTag
+	{
+		0 require int type;	//tag 类型，0-代表标签类型，1-代表明星类型，2-代表影片类型，3-代表分类类型	
+		1 require string tagName;	// tag name,影片类型时对应为影片名，明星类型对应明星名
+		2 require string dataKey;	
+		3 optional string imgUrl;    // 图片url
+		4 optional string reportKey;    //上报参数
+		5 optional string reportParams;	//上报参数
+	};
+
+	//Frame结构
+	struct FrameRect
+	{
+		0 optional long width;			//View的宽度
+		1 optional long height;			//View的高度
+		2 optional long pointX;			//View的X坐标
+		3 optional long pointY;			//View的Y坐标
+	};
+	//负反馈理由
+	struct FeedbackReason
+	{
+		0 require string reasonDataKey;  //后台带下来的理由的dataKey，用于透传给后台哪个reason进行feedback
+		1 require string reason;   //反馈理由
+		2 optional string reportKey;
+		3 optional string reportParam;
+		4 optional string feedbackType;  // 操作来源类型：从tag来，还是从预览来，透传给后台
+	};
+	
+	//负反馈面板信息
+	struct FeedbackBoard
+	{
+		0 require vector<FeedbackReason> reasons;  //多条反馈理由
+		1 optional string mainTitle;   
+		2 optional string subTitle;
+	};
+	//台词信息
+	struct CaptionInfo
+	{
+		0 require string captionId;  //台词id
+		1 require long captionTime;  //台词出现时间，单位毫秒
+		2 require string caption;    //具体台词
+		3 require int status;        //状态，0--原始台词， 1--编辑， 2--纠错
+		4 require long captionDispearTime;  //台词结束时间，单位毫秒
+	};
+	struct PresentGiftParam
+	{
+		0 optional string propsDataKey;		//拉道具列表的dataKey
+		1 optional ShareItem shareItem;		//分享数据
+		2 optional string desc;				//描述
+		3 optional string unit; 			//单位，例如人气值
+	};
+	//OM文章信息
+	struct FeedOMInfo
+	{
+		0 optional string omArticleId;		//OM文章ID
+		1 optional string omArticleTitle;	//OM文章标题
+	};
+	//详情页多语言相关信息
+	struct MultiLanguageInfo
+	{
+		0 optional string curLanguageId;								//当前语言id
+		1 optional vector<LanguageInfo> allLanguages;					//所有可切换的语言信息
+		2 optional vector<LanguageSwitchInfo> languageSwitchInfos;		//默认的语言切换信息
+	};
+	enum ENavigationItemType
+	{
+		EnumNavigationItemVideo = 1,		// 视频列表导航
+		EnumNavigationItemCover = 2,		// 专辑导航列表
+	};
+	
+	struct NavigationItem
+	{
+		0 require string title;									// 导航标题
+		1 require string dataKey;								// 数据拉取所需dataKey
+		2 require ENavigationItemType navigationItemType;		// 导航类型
+		3 optional string reportKey;                            // 上报参数
+		4 optional string reportParams;                         // 上报参数
+	};
+	
+	struct Navigation
+	{
+		0 optional vector<NavigationItem> navigationItemList;	// 导航列表
+		1 optional string defaultDataKey;						// 默认的dataKey，首先展示该页面
+	};
+	//每日推荐视频信息
+	struct VideoPosterInfo
+	{
+		0 optional string dateString;		//今日，明日，两天后，4月2日
+		1 optional string imgUrl;			//横图海报url
+		2 optional string videoTypeInfo;	//科幻（2016），言情（2015）
+		3 optional string directorInfo;		//导演信息
+		4 optional string mainActorInfo;	//主演信息
+		5 optional string detailInfo;		//电影内容信息
+		6 optional string videoTitle;		//电影名称
+
+	};
+
+	//每日推荐
+	struct DayVideoPoster
+	{
+		0 require Poster poster;						//海报
+		1 require VideoPosterInfo videoPosterInfo;	//视频信息
+		2 optional string reportParams;					//上报参数
+		3 optional string reportKey;					//上报参数	
+	};
+    struct DialogViewCopyWriting
+	{
+		0 optional string title;			// 弹框标题
+		1 optional string content;		// 弹框内容
+	};
+	
+	//分割区域
+	struct ONASplitSpace
+	{
+		0 optional string color;			//背景色，默认不填为透明
+		1 optional int height;				//空白区域高度，以dip为单位
+	};
+	//一带多的poster组，支持插入到列表的任意位置
+	struct PosterGroup 
+	{
+		0 require vector<Poster> posterList;
+		1 optional int groupIndex;
+	};
+
+	//海报画廊
+	struct ONAGalleryPoster
+	{
+		0 require vector<Poster> posterList;
+		1 optional byte uiType;	                 //为了支持首页海报和横向占满两种：uiType=0默认首页样式，1横向占满,2好莱坞Tab页样式(高宽比726:320，不显示主副标题) 3:标题和图片分开（from6.0）
+		2 optional vector<PosterGroup> insertPosterGroup; //在posterList中指定位置插入一组Poster
+		3 optional int bottomPadding;            //下空白间距
+	};
+
+    // Pick任务
+    struct PickTaskItem
+    {
+        0 require string dataKey;           // pick任务信息
+        1 optional string description;      // 任务描述（后台下发HTML格式字符串，客户端不理解，强刷）
+        2 optional int taskType;            // 任务类型 1:分享, 2:下载
+    };
+	//沉浸式外部拉动信息
+	struct ImmersivePromotionInfo
+	{
+		0 optional string imageUrl;     //拉动条icon
+		1 optional string text;		//拉动条提示文案
+		2 optional AppInfo appInfo;	//拉动app的信息
+		3 optional Action action;	//跳转action，如果有则执行action，没有的话执行AppInfo的拉动  
+		4 optional string reportKey;	//上报参数
+		5 optional string reportParams;	//上报参数
+		6 optional bool isPullGrowth;  //是否需要拉动 默认为不拉动
+		7 optional int pullGrowthProtocolType; //目前1代表火锅拉动      
+	};
+    // Pick数据
+    struct PickInfo
+    {
+        0 require string dataKey;				    	// pick唯一id
+        1 optional string trackName;			    	// 当前作品所在赛道标题
+        2 optional string trackSubject;			    	// 当前作品所在赛道主题
+        3 optional int rank;						    // pick排名
+        4 optional long totalPickCount;				    // 总pick数
+        5 optional string expandPullAppDesc;		    // pick按钮展开后的任务描述
+        6 optional ImmersivePromotionInfo pickAppInfo;  // pick拉动的应用信息
+        7 optional byte pickSwitch;                     // 是否允许pick
+        8 optional string reportKey;					// 上报参数
+        9 optional string reportParams;					// 上报参数
+        10 optional byte needCertify;					// 是否需要手机号验证，0-不需要，1-需要
+    };
+	//沉浸式节点
+	struct ImmersiveInfo
+	{
+		0 optional Action action;				//跳转沉浸式的action	
+		1 optional int type;     				//沉浸式类型,0:横屏沉浸式页面,1:竖版沉浸式页面
+		2 optional ActorInfo userInfo; 				//上传者信息	
+		3 optional ImmersivePromotionInfo promotionInfo; 	//拉动信息		   
+		4 optional ImmersivePromotionInfo floatPromotionInfo; 	 //右下角悬浮拉动信息
+		5 optional PickInfo pickInfo;                           //pick数据
+		6 optional ImmersiveAdInfo immersiveAdInfo; //沉浸式广告信息
+	};
+	
+	struct ONABulletinBoardV2
+	{
+		0 require Poster poster; 					//海报数据（海报 角标 第一行视频简介[可展开]） 
+		1 optional vector<IconTagText> tagTexts;	//左侧Icon右侧文字的格式，显示在一行，使用html格式 
+		2 optional Action action;					//跳转详情页 或 全屏播放器 
+		3 optional VideoAttentItem attentItem;					//关注
+		4 optional VideoItemData videoData;				//用于播放
+		5 optional bool isAutoPlayer;             //控制是否支持自动播放
+		6 optional bool isLiveVideo;              //是否是直播类型
+		7 optional string pid;                   //直播pid，用于轮询直播状态
+		8 optional string streamId;               //播放流id
+		9 optional long startTime;                //直播开始时间
+		10 optional long endTime;                 //直播结束时间
+		11 optional bool dislikeMark;             //不感兴趣按钮是否展示  0,不展示 1,展示
+		12 optional OptionGroup dislikeOptionGroup;  //不感兴趣的选项
+		13 optional int uiStyle;						//0默认普通新闻直播样式 1简单直播样式 2 没有播放按钮   4只有播放器海报图模块，没有底部文字分享等按钮  5 沉浸式模式
+	    14 optional string feedbackDataKey;			// 负反馈的dataKey（不喜欢删掉）
+		15 optional string insertNewLineDataKey;//phone端做看了一半就多插一个时用的datakey
+		16 optional string feedbackType;            // 负反馈的类型
+		17 optional vector<Poster> recommendList;   //相关的视频海报数据
+		18 optional int insertNewLineProgress;   //视频播放到这个进度后，实时插入另一个视频 比如 50 代表播放到50%的进度
+		19 optional VideoItemExtra liveExtra;			//直播的额外信息
+		20 optional bool isAutoPlayNext = false;		// 是否自动续播
+		21 optional IconTagText commentTag;             //评论按钮的信息
+		22 optional bool isNeedShowFloatWindow = false; //是否需要显示悬浮窗
+		23 optional bool isContinuePlayOutOfWindow = false; //是否需要支持滑出屏幕之后继续播放
+		24 optional string cid;                  //不为空则表示是专辑类型的feeds流模板
+		25 optional FeedbackBoard feedbackBorad;  //负反馈理由面板
+		26 optional string getALineDataKey;//iPad做负反馈时需要换回来一个新的替换旧的使用的datakey
+		27 optional bool isLoopPlayBack = false;		//是否循环播放，优先级 isLoopPlayBack > isAutoPlayNext > isAutoPlayer
+		28 optional VRSSItem vRSSItem;					//用作v+订阅
+		29 optional ImmersiveInfo immersiveInfo;		// 沉浸式入口
+		30 optional string recommendReason;			    // 推荐理由
+		31 optional byte playEndType;                   // 播放结束样式，0 展示播放结束蒙版, 1 展示未播放状态
+		32 optional RoundRecommentItem recommendItem;   // 卡片推荐拉动
+		33 optional Action immersiveAction; 			//沉浸式跳转action
+		34 optional AppInfo apkInfo;                    // 应用拉动相关信息
+	};
+
+	struct TopicHead
+	{
+		0 optional string imageUrl;               //头像图片
+		1 optional ActionBarInfo firstLine;       
+		2 optional string secondLine;             
+		3 optional string thirdLine;
+		4 optional vector<IconTagText> tagList;
+		5 optional string desc;
+		6 optional string reportKey;
+		7 optional string reportParams;
+	};
+
+	//单个明星话题 561新增
+	struct TopicInfoLite
+	{
+		0 require string id; //话题ID标识
+		1 require string text; //话题内容
+		2 optional Action action; //话题点击跳转action
+		3 optional string extraKey; //终端透传，后台用来填写话题复写的辅助信息
+		4 optional string reportKey;        //上报参数
+		5 optional string reportParams;	    //上报参数
+	};
+
+	//左图右文的海报图信息；
+	struct CirclePosterInfo
+	{
+		0 optional string Url; //海报图
+		1 optional unsigned int timestamp; //整个视频时长，这个字段目前还没用到，根据andybingli的说法，这个字段只是让这个结构体存在
+	};
+
+	//图文混排内容
+	struct MixedContent
+	{
+		0 require string htmlUrl;
+	};
+
+	struct FeedSource
+	{
+		0 require int type; // 0-普通文本，1-视频样式
+		1 optional string text;
+		2 optional string imageUrl;
+		3 optional Action action;
+	};
+
+	//单个海报+操作按钮信息
+	struct MediaPoster
+	{
+		0 optional Poster poster;  //海报信息
+		1 optional vector<KVActionBarItem> actionBarList;              //操作按钮列表
+
+	};
+	
+
+	//左图右文带右跳转action的通用view
+	struct ONAImageText
+	{
+		0 require Poster poster;			//左图右文信息
+		1 optional ActionBarInfo jumpInfo; 	//跳转内容（主要是右边按钮的跳转）
+		2 optional Action action;           //此处action负责整个view跳转
+		3 optional string reportKey;        //上报参数
+		4 optional string reportParams;	    //上报参数
+		5 optional int uiType;              //uiType=0:不带顶部标题，图片非圆角  uiType=1:带顶部标题，图片圆角
+		6 optional string title;            //顶部标题 
+	};
+	
+	// 媒体信息内容
+	struct MediaContentInfo
+	{
+		0 optional string text;   //文本
+		1 optional vector<CircleMsgImageUrl> photos;	//图片信息，可为null
+		2 optional vector<CircleShortVideoUrl> videos;	//小视频信息，可为null
+		3 optional vector<ApolloVoiceData> voices;	    //语音信息，可为null
+		4 optional Action action;   //点击跳转
+	};
+
+	// doki排名信息
+        struct DokiRankInfo
+	{
+		0 require string rankNum;  //排名文本表示
+		1 optional byte rankStatus;  //排名状态，0-平稳  1-上升  2-下降
+		2 optional string description;  //排名描述
+		3 optional ActionBarInfo actionBar;  //点击跳转
+	};
+
+	//榜单播报信息
+	struct RankBroadcastItem
+	{
+		0 require ActorInfo actor;
+		1 require DokiRankInfo rankInfo;
+		2 optional vector<string> actorBorderColors;   // 边框渐变色数组，后台下发16进制颜色字符串，如"#ffffff"
+		3 optional string reportKey;  //曝光reportKey
+		4 optional string reportParams; //曝光reportParams
+		5 optional ActionBarInfo actionBar;  //打榜按钮
+	};
+
+	//feed中特殊内容，即非图文、语音、视频内容，均往该结构体中添加
+	struct PrimaryFeedSpecialContent
+	{
+		//榜单播报信息列表
+		0 optional vector<RankBroadcastItem> rankBroadcastList;
+		1 optional int maxNum;          //一级页面展示的榜单播放信息的最大条数，超过该条数就展示“查看更多”按钮
+		2 optional Action moreAction;   //点击“查看更多”按钮的跳转链接
+	};
+	//feed审核相关信息
+	struct VerifyInfo
+	{
+		0 optional byte status;			//审核状态 0-正常 1-正在审核 2-审核未通过 3-未认证
+		1 optional string tipText;      //提示信息
+		2 optional string clickTipText;   //点击操作后展示的toast信息
+		3 optional Action action;   //点击操作后的action
+	};
+	
+	//自拍视频的音乐信息
+	struct MediaItem
+	{
+		0 require string vid;                        //音乐vid信息
+		1 require Poster poster;                     //附带海报
+	};
+
+	// 自拍视频信息
+	struct SelfTakeVideoInfo 
+	{
+		0 require Poster coverPoster;  //封面海报
+		1 optional Poster gifPoster;   //gif图
+		2 optional VideoItemData videoData;  //自拍
+		3 optional MediaItem mediaData;  //音乐数据
+		4 optional string postDataKey;  //拉起拍摄发表需要的datakey
+		5 optional ActionBarInfo actionBarInfo; // 拉起拍摄发表的按钮支持后台配置
+		6 optional Action immersiveAction; //沉浸式跳转action
+	};
+
+	// 帖子辅助feed节点
+	struct SimpleFeedNode 
+	{
+		0 require ActorInfo userInfo;  //用户信息
+		1 optional string content;     //内容
+		2 optional vector<CircleMsgImageUrl> photos;	//图片信息，可为null
+		3 optional Action action;	 					//帖子辅助feed节点的点击跳转
+		4 optional int mediaType;                      //媒体的类型，按位来决定类型，1，"文本"；2，“图片”；等，用于兼容新老版本
+ 	};
+	//主贴的圈粉信息
+	struct DokiFeedCircleInfo{
+		0 optional string feedText;   //”本帖为“
+		1 optional string dokiName;   //doki主信息
+		2 optional long exposureNum;  //曝光量(doki)
+		3 optional long fansNum;  //圈粉数
+		4 optional int feedType;  //帖子类型 ：  0: 默认doki   1:鹅次元
+	    5 optional long commentNum;  //讨论数（鹅次元）
+	};
+	
+	//doki明星基础信息
+	struct DokiBaseLiteInfo  
+	{
+		0 require string dokiId;  //doki id
+		1 optional string dokiName; //doki 名称
+		2 optional string dokiImgUrl; //doki 头像信息
+		3 optional vector<string> starCircleColors; //doki头像外圈颜色
+		4 optional Action action;  //点击的跳转动作
+		5 optional DegreeLabel badgeInfo;	//用户徽章信息
+	};
+
+	//主帖的相关明星-单个结构体
+	struct DokiFeedRelatedStarItem {  
+		0 optional DokiBaseLiteInfo starDoki;   //doki主信息
+		1 optional DokiFeedCircleInfo circleInfo; //圈子信息
+		2 optional TextAction followBtn;    //加入按钮信息
+		3 optional TextAction goDokiBtn;   //去Doki按钮信息
+		4 optional string followDataKey;      //用于关注请求时让后台统计圈粉数量的dataKey
+		5 optional string reportKey;
+		6 optional string reportParams;
+	};
+
+	//主贴的相关明星-列表
+	struct DokiFeedRelatedStarsList {
+		0 optional vector<DokiFeedRelatedStarItem> starsList; 
+		1 optional string reportKey;
+		2 optional string reportParams;
+		3 optional int uiType;  //0 - 显示列表，1 - 显示单行文本（已关注时生效，否则显示列表）
+	};
+	// gps经纬度对应的地理位置信息
+	struct GpsAddressInfo
+	{
+		1 require string dataKey;       //模块获取数据的key
+		2 require string addressName;		//地址名称
+		3 require string addressDescribe;		//地址详细信息
+	};
+	// feed 文本中需要支持一些富文本
+	struct RichTextLabelInfo
+	{
+		0 optional int labelType;       //富文本标签类型 (0: href 标签)
+		1 optional string richText;		//富文本
+	};
+
+	//  提问帖结构
+	struct QAPrimaryFeed
+	{
+		0  require string dataKey;
+		1  require string qaFeedId;                     // 问题id
+		2  optional string qaTitle; 								//问题
+		3  optional string qaContent; 							//问题描述
+		4  optional vector<CircleMsgImageUrl> imageList;	//图片；
+		5  optional ActorInfo user;						//创建者的user，
+		6  optional long time;							//创建时间，秒
+		7  optional string seq; 								//sequence，防止终端重复提交
+		8  optional int cfrom = 0;								//来源字段，0未定义 1视频详情页评论 2分享面板(包括小窗和全屏) 3录制面板(包括截图和小视频) 4饭团粉丝留言(包括饭团和V+) 5话题详情页 6电影打分 7管理台发表(后台内部枚举值占位) 8用于doki广场 9用于h5祝福卡片 10给豆瓣抓取使用 11自拍原创视频 15明星说TAB
+		9  optional vector<ActorInfo> actorInfoList;	 // 鹅次元广场增加关联多个鹅次元
+		10  optional vector<FeedSource>   sourceInfoList;        // feed相关明星/视频/话题列表
+		11  optional Action qaFeedAction;                   // 跳转action
+		12  optional int lookCount;                  // 围观数
+		13 optional int qaCount;						// 回答数
+		14 optional string qaTips;                      // 提示语，在问题贴中展示“发表了问题”， 在回答贴中展示“回答了问题”
+		15 optional string h5ShareUrl;					//分享的h5 url
+		16 optional string  reportKey;                 			//上报的key值
+		17 optional string  reportParams;              			//上报params值
+		18 optional byte status;						//该feed是否已经删除:0 正常  2 审核不通过 3 删除
+		19 optional MixedContent mixedContent;          // 长图文混排样式
+		20 optional bool isFavorite = false;	//是否已收藏
+	};
+	//帖子内明星动态追踪节点
+	struct FeedStarTrackInfo
+	{
+		0 optional DokiBaseLiteInfo dokiInfo;  //doki信息
+		1 optional string title;               //标题
+		2 optional string subTitle;            //副标题
+		3 optional TextAction rightAction;     //右侧跳转action
+		4 optional string reportEventId;       //曝光上报事件ID
+	};
+	//帖子内推荐信息
+	struct FeedRecommendInfo
+	{
+		0 optional string prefixStr;  //前缀信息
+		1 optional string suffixStr;  //后缀信息
+		2 optional vector<TextAction> recommendList;  //推荐信息列表
+	};
+	
+	//主feed结构
+	struct CirclePrimaryFeed 
+	{
+		0 require string feedId;						//帖子id
+		1 require VideoAttentItem videoAttentItem;		//供关注视频的key
+		2 require string content;						//内容
+		3 require ActorInfo user;						//创建者的user，好莱坞信息在userBasicVipInfo字段里面
+		4 require long time;							//创建时间，毫秒
+		5 optional string videoTitle;					//视频信息，可为null
+		6 optional int followCount;						//视频关注的数量
+		7 optional byte isFollowed;						//我是否关注：0未关注；1关注
+		8 optional vector<CircleMsgImageUrl> photos;	//图片信息，可为null
+		9 optional vector<CircleCommentFeed> comments;	//评论列表，可位null
+		10 optional vector<CircleLikeInfo> likes;		//赞列表，可为null
+		11 optional Action action;	 					//当前标题点击后执行的跳转动作，跳详情播放页或者直播播放页,区别于feedAction这个feed点击
+		12 optional string h5ShareUrl;					//分享的h5 url
+		13 optional byte status;						//该feed是否已经删除:0 正常  2 审核不通过 3 删除
+		14 optional string seq;							//sequence，防止终端重复提交
+		15 optional int commentCount;                   //feed评论的总数量，仅仅做文案显示，不做其他逻辑运算
+		16 optional int likeCount;                      //feed赞的总数量，仅仅做文案显示，不做其他逻辑运算
+		17 optional MarkLabel badgeLabel;               //feed用户徽章标签，可以不传，热门timeline有用
+		18 optional vector<CircleShortVideoUrl> videos;	//小视频信息，可为null
+		19 optional string dataKey;                     //后台用于标记feed的来源，需要透传给影视圈发评论接口
+		20 optional CirclePosterInfo videoInfo;   		//左图右文的海报图信息；
+		21 optional MarkLabel tagLabel;                 //feed运营标签，比如精选、好友等，可以不传，视频timeline有用
+		22 optional bool hasMoreComments = false;		//是否有更多评论，通过这个字段决定是否需要显示更多评论，出现打点样式
+		23 optional bool hasMoreLikes = false;			//是否有更多赞，通过这个字段决定是否需要显示更多赞，出现打点样式
+		24 optional int hotFeedType;					//热门feed类型,为0代表默认，热门的特殊类型不会用0这个type，供上报
+		25 optional Action feedAction;					//点击整体feed的跳转链接，区别于action这个标题点击，长评论可以用这个跳转链接
+		26 optional int feedType;						//帖子的类型，按位来决定类型，1，"普通"；2，“好友”；4，“精”；8、“热”；16，“深度解读”等，供上报
+		27 optional string	feedTitle;					//主贴的标题，目前只有详情页评论“深度解读”用到了这个字段，传统的影视圈是没有标题的概念的
+		28 optional vector<ApolloVoiceData> voices;	    //语音信息，可为null
+		29 optional int mediaType;                      //媒体的类型，按位来决定类型，1，"文本"；2，“图片”；4，“小视频”；8、“语音”等，用于兼容新老版本
+		30 optional MarkScore score;                    //对某部影片的打分
+		31 optional bool isLike = false;	//是否已点赞
+		32 optional FeedSource contentSource;           //内容来源,比如“微博更新”
+		33 optional ONABulletinBoardV2 bulletinBoardV2;   
+		34 optional MediaPoster mediaPoster;		    //海报图信息 
+		35 optional vector<FeedSource>   sourceInfoList;        // feed相关明星/视频/话题列表       
+		36 optional vector<TopicInfoLite> topicInfoList;		//已关联话题List
+		37 optional int additionalStyle;						//不再使用
+		38 optional MixedContent mixedContent;
+		39 optional string  reportKey;                 			//上报的key值
+		40 optional string  reportParams;              			//上报params值
+		41 optional long readCount;						//阅读数（H5使用）
+		42 optional long fakeReadCount;						//假显阅读量（phone端使用）
+		43 optional PrimaryFeedSpecialContent specialContentInfo;   //特殊内容，优先级高于图文、视频、语音内容
+		44 optional ONAImageText imageText;             // 600视频底层页分享至doki展示左图右文
+		45 optional VerifyInfo verifyInfo;              // 审核信息
+		46 optional SelfTakeVideoInfo selfVideo;      //自拍视频
+		47 optional SimpleFeedNode simpleFeed;        //帖子关联辅助的feed信息
+		48 optional map<string,string> extraInfo;		//扩展字段，可用于存放帖子过滤等信息 KV约定 starFeedType(明星相关帖子类型: 1:明星回复帖子类型 2:明星发表帖子类型) toppingType(置顶类型：1：首刷置顶) starReplyTimeStamp(明星多次回复的时间戳，用于置顶过滤)
+		49 optional DokiFeedRelatedStarsList relatedDokiList;  //主贴的相关Doki（从sourceInfoList里面把Doki抽出来提高优化显示-by638gamma）
+		50 optional vector<ImageAction> imageTagList;  //右上角显示的标签列表
+		51 optional vector<string> subTitleInfoList;   //头部副标题位置的额外信息
+		52 optional GpsAddressInfo gpsAddressInfo; 		// 竖拍视频地理位置信息
+		53 optional int contentRowCount;               // 内容展示的行数限制
+		54 optional QAPrimaryFeed qaPrimaryFeed;       // 问题帖节点
+		55 optional string qaTips;                      // 提示语，在问题贴中展示“发表了问题”， 在回答贴中展示“回答了问题”
+		56 optional FeedVoteInfo voteInfo;             //投票信息
+		57 optional vector<RichTextLabelInfo> richTextLabelInfo;		//650新增富文本信息
+		58 optional FeedStarTrackInfo starTrackInfo;   //明星动态追踪信息，微博抓取
+		59 optional int feedFeatureType;   //帖子特征类型：0 默认未定义  1 梗漫 
+		60 optional bool isFavorite = false;	//是否已收藏
+		61 optional int favoriteCount;	//feed收藏总数
+		62 optional CircleCommentFeed starComment; //明星翻牌的明星评论数据
+		63 optional FeedRecommendInfo feedRecommendInfo; //帖子内推荐信息
+	};
+
+	//单个标签，包含对应的一组数据
+	struct GroupSwitchItem
+	{
+		0 require IconTagText tagInfo;          //tag信息
+		1 require vector<TempletLine> uiData;	//UI显示元素 
+	};
+	
+	//事件时间线item
+	struct EventTimeLineItem
+  	{
+	  	0 require string firstLine;//第一行文字
+	  	1 require string secondLine;//第二行文字,如果需要颜色的话就用XML语言
+	  	2 require Action action;//点击的跳转动作
+  	};
+	
+	//可选项item
+	struct OptionalItem
+  	{
+	  	0 require string showText; //外显文案
+	  	1 require string contentText; //完整文案
+	  	2 require string dataKey; 
+  	};
+
+  	//拉动条数据结构(例如Doki广场拉动)
+  	struct PromotionBannerInfo
+	{
+		0 require Action tapAction;		//跳转Action
+		1 optional string tapTitle;		//按钮标题
+		2 optional string title;		//主标题
+		3 optional string subTitle;		//副标题
+		4 optional string imageUrl;		//图片Url
+		5 optional int type;           // 业务类型：0表示doki，1表示鹅次元
+	};
+
+	//综艺周数据结构
+    struct TVShowWeeklyList
+	{
+		0 require string datakey; 	//综艺频道列表id
+		1 optional string title;	//综艺频道列表标题
+		2 optional string subtitle; //综艺频道列表日期
+		3 optional string reportKey; //用于上报
+		4 optional string reportParams; //用于上报
+	};
+
+	//带关注的海报模版
+    struct WillReleasePoster
+    {
+        0 require Poster poster;        //海报
+        1 optional VideoAttentItem attentItem;  //关注数据
+        2 optional int buttonType;      //下方按钮的类型，0是加入看单，1是预约直播，2跳转H5
+        3 optional string releaseTime;  //上映时间
+    };
+
+	// 底层页的评论总数信息，类似评论的汇总信息，显示在底层页的播放器下面，目前带一个评论总数和头像
+	struct CoralSummaryInfo
+	{
+		0 optional int commentCount;				//评论总数，计算方法为：好友评论+热点评论+普通评论的总和
+		1 optional vector<ActorInfo> actorList;		//为了支持扩展，定义为一个list，目前只有一个头像
+		2 optional string summaryTitle;             //摘要标题
+		3 optional byte commentType;                //评论类型，0，普通评论；1，明星热评；2，明星直播聊天室入口
+		4 optional Action action;                   //跳转action
+	};
+	
+	// 频道页附属信息： <key, value含义值>
+	// <"postDataKey", "doki广场发表dataKey">
+	struct ChannnelExtraInfo
+	{
+		0 optional map<string,string> extraInfo;		//扩展字段
+	};
+	// 小黄条的数据元素
+	struct EnterTipItem
+	{
+		0 require  string itemId;	//Id
+		1 require  int    buttonType;//按钮类型，0表示预约、1表示查看详情
+		2 require  string title;   	 //主标题，推广的文字描述
+		3 optional string imgUrl;    //推广图片url;
+		4 optional string bgImgUrl;  //推广背景图片url;
+		5 optional VideoAttentItem attentItem;//预约item;
+		6 optional string btnText; //预约按钮的标题
+		7 optional Action action;    //跳转action
+		8 optional string reportKey; //曝光reportKey
+		9 optional string reportParams; //曝光reportParams
+		10 optional string titleColor;  //标题的颜色
+		11 optional string btnTextColor;  //按钮的颜色
+		
+	};
+	// 文学、漫画、游戏、商城的基本数据，在底层页和搜索会复用这个结构体
+	struct RecommendItem
+	{
+		0 optional vector<string> imageUrlList;		//图片列表
+		1 optional string firstLine;				//第1行
+		2 optional string secondLine;				//第2行
+		3 optional string thirdLine;				//第3行
+		4 optional int type;						//1、文学；2、漫画；3、游戏；4，商城；5，doki；6，下载大图
+		5 optional string itemID;					//推荐数据的ID(文学是书籍id，漫画是书籍id，游戏商城doki暂时还用不到)
+		6 optional ActionBarInfo actionBarInfo;		//点击跳转Action或者按钮
+		7 optional ExtraReportKV report;			//曝光上报
+		8 optional AppInfo apkInfo;					//游戏下载相关信息
+		9 optional bool isPullGrowth;               //是否拉动 默认为不拉动
+		10 optional int pullGrowthProtocolType;     //目前1代表火锅拉动
+		11 optional VideoItemData videoItemData;	//视频信息，iphone使用，android在ona视图不使用，仅跳二级播放页时候使用
+		12 optional string dynamicImageUrl;			//android平台使用的动态图，用来在ona视图代替视频的显示效果
+		13 optional bool isShowDownload;			//是否显示下载按钮
+		14 optional int uiType;     				//0为默认样式，1为小图，小标题样式
+	};
+
+
+
+	// 搜索里面出现的阅读、漫画、商城、游戏的每一个FilterItem
+	struct SearchFilterItem
+	{
+		0 require vector<RecommendItem> recommendList;		//每个tab里面的数据列表
+		1 require string name;								//每个tab的名字
+		2 optional ExtraReportKV report;					//每个tab子模块数据上报
+	};
+	 // 自拍视频话题卡片
+	struct VideoTopicCard {
+		0 require  string dataKey; //关系链透传的key
+		1 optional string topicTitle;   //话题标题
+		2 optional string iconUrl;  //话题标题icon
+		3 optional vector<CirclePrimaryFeed> videoList;  //视频列表
+		4 optional ActionBarInfo rightActionBar;   // 右侧操作按钮
+		5 optional string reportKey;  //上报参数
+		6 optional string reportParams; //上报参数
+		7 optional Action action;
+		8 optional int actionType; // 海报跳转分类，0表示使用action跳转，1表示跳转到沉浸式播放
+		9 optional string topicDataKey;   //视频话题详情dataKey，用于沉浸式列表拉取
+	};
+	// 代言人推荐模块
+	struct SpokesPersonRecommend
+	{
+		0 require vector<Poster> posterList;				// 代言人相关视频海报图	
+		1 optional string message;							// 代言人描述文案
+		2 optional string messageColor;						// 代言人描述文案文字颜色
+		3 optional string spokesPersonImageUrl;				// 代言人图片
+		4 optional string spokesPersonBGImageUrl;			// 代言人背景图片
+		5 optional string bgImageUrl;						// 整个模块背景图
+		6 optional ActionBarInfo actionBar;					// 代言人按钮
+		7 optional ExtraReportKV reportInfo;				// 整体模块数据上报
+		8 optional ExtraReportKV spokesPersonReportInfo;	// 代言人图片数据上报
+	};
+
+	// 等级特权子模块
+	struct VIPLevelEntry
+	{
+		0 require vector<ActionBarInfo> levelEntrys;	// 任务列表。目前就俩
+		1 optional string title;						// 标题
+		2 optional string titleColor;					// 标题颜色
+	};
+
+	//相关doki结构
+	struct RelatedDoki {
+        0 require string imageUrl;           //头像url
+        1 require string name;               //名称
+        2 optional string btnTitle;          //按钮标题  
+        3 optional Action action;            //跳转操作
+        4 optional string reportKey;         //上报参数
+		5 optional string reportParams;      //上报参数
+	};
+
+	//话题卡片结构
+	struct CommonTopicCard {
+		0 require  string dataKey; //关系链透传的key
+		1 optional string topicTitle;   //话题标题
+		2 optional string iconUrl;  //话题标题icon
+		3 optional MediaContentInfo content;  // 话题内容 视频>图片，始终展示文本
+		4 optional ActionBarInfo rightActionBar;   // 右侧操作按钮
+		5 optional string reportKey;  //上报参数
+		6 optional string reportParams; //上报参数
+		7 optional Action action;  //跳转Action
+	};
+
+	//榜单item
+	struct CommonActorRankItem
+	{
+		0 require ActorInfo actor;
+		1 optional string title;					//主标题
+		2 optional string subTitle;					//副标题
+		3 optional string rankNum;
+		4 optional string rankTextColor;	
+		5 optional string rankBgColor;		
+		6 optional string btnText;
+		7 optional Action btnAction;
+		8 optional string btnColor;
+		9 optional byte uiFlag; 		//按位使用 第一位表示按钮是否隐藏 0:表示不隐藏 1:隐藏
+	};
+
+	//榜单
+	struct ONACommonActorRankList
+	{
+		0 require vector<CommonActorRankItem> itemList;
+		1 optional string reportKey;	        //上报参数
+		2 optional string reportParams;	        //上报参数
+
+	};	
+	
+    // 短视频用户头像
+    struct YooUser
+    {
+        0 require string title;					  // 标题
+        1 require string imgUrl;				  // 头像地址
+        2 require Action action;				  // 跳转Action
+        3 optional string reportKey;              // 上报参数
+        4 optional string reportParams;           // 上报参数
+    };
+
+	//火锅关注用户item
+	struct YooFollowCard
+	{
+        0 require string title;					  //标题
+        1 require string imgUrl;				  //头像地址
+        2 require Action action;				  //跳转Action
+        3 require long lastUpdateTime;           //最后一次更新时间
+        4 optional string reportKey;              //上报参数
+        5 optional string reportParams;            //上报参数
+    };
+
+    // 赛道列表内卡片
+    struct YooGameCard
+    {
+        0 optional Poster poster;                   // 内部first line是名字; second line是pick数量
+        1 optional YooUser picker;                  // 用户信息
+        2 optional string reportKey;                // 上报key
+        3 optional string reportParams;             // 上报参数
+    };
+	
+	//火锅关注频道，顶部关注用户列表
+	struct ONAYooFollowList
+    {
+        0 require vector<YooFollowCard> cardList;   // 卡片列表数据
+        1 optional string reportKey; 					//上报参数
+        2 optional string reportParams; 					//上报参数
+    };
+	
+	//火锅关注频道列表为空的卡片
+    struct ONAYooEmpty
+    {
+        0 require string title;                //主标题
+        1 require string subTitle;                //副标题
+        2 optional string reportKey;           //上报
+        3 optional string reportParams;        //上报
+    };
+	
+	//火锅关注频道推荐列表内部小卡片
+    struct ONAYooRecommendItem
+    {
+        0 require Poster poster;        				//海报
+        1 require ActorInfo user;                       //创建者的user
+        2 optional string reportKey;    				//上报参数
+        3 optional string reportParams;    				//上报参数
+    };
+	
+	//火锅关注频道,推荐列表
+    struct ONAYooRecommendGroup
+    {
+        0 require vector<ONAYooRecommendItem> recommendList;    // 横滑卡片列表
+        1 optional string reportKey; 							//上报参数
+        2 optional string reportParams;    						//上报参数
+    };
+    //poster样式展示的帖子，doki十佳帖
+	struct DokiFeedPoster {
+		0 optional string posterUrl;   //帖子封面图
+		1 optional int type; //0-图片 1-视频
+		2 optional string title;   //帖子标题
+		3 optional ActorInfo author;  //帖子作者
+		4 optional Action action;  //整体点击跳转
+		5 optional string reportKey; //曝光reportKey
+		6 optional string reportParams; //曝光reportParams
+		7 optional ImgFaceArea imgFaceArea; //人脸识别的中心点比重
+	};
+	
+	// 多张海报聚合数据
+    struct MultiPoster
+    {
+        0 optional string groupTitle;			//组标题
+        1 optional string groupActionText;		//标题栏右侧action图标文案
+        2 optional Action groupAction;			//标题栏action
+        3 optional vector<Poster> posterList;	//海报数组
+        4 optional string reportKey; 			//上报参数
+        5 optional string reportParams;    		//上报参数
+    };
+
+	//会员only类型购买文案类型
+	struct KnowledgePayBarVipOnlyInfo
+	{
+		0	optional string needloginTips;		//未登录-购买VIP
+		1	optional string loginedNonVipTips;	//已登录非会员-购买VIP
+	};
+
+	//单片类型购买文案类型
+	struct KnowledgePayBarSingleInfo
+	{
+		0	optional string needloginTips;		//未登录-购买课程
+		1	optional string loginedNonVipTips;	//已登录非会员-购买课程
+		2	optional string loginedIsVipTips;	//已登录是会员-购买课程
+	};
+	//Actor数据，额外增加两行显示文案，补充ActorInfo的不足
+	struct ActorData 
+	{
+		0 require ActorInfo actorInfo;            ////V+订阅号或者doki信息，ActorInfo.acountType（0/4-doki，1-V+），V+账号需要下发VRSSItem
+		1 optional string secondLine;             //名字下第二行副标题信息
+		2 optional string thirdLine;              //名字下第三行辅助信息
+		3 optional vector<string> actorCircleColors; //明星头像外圈颜色
+	};
+	//第三方拉动的App详情
+	struct PromotionAppDetail
+	{
+		0 optional string title;     //拉动标题
+		1 optional string imageUrl;  //拉动图标
+		2 optional Action action;    //跳转action
+		3 optional AppInfo appInfo;  //拉动app信息
+		4 optional string reportKey;     //上报参数
+		5 optional string reportParams;   //上报参数
+	};
+		//话题详情页播放ONAView 左图右文视频播放
+	struct TopicLeftImageCard
+	{
+		0 require Poster poster;	    //海报
+		1 optional string  reportKey;       //上报
+		2 optional string  reportParams;    //上报
+	};
+
+	// 660详情页/运营页主题专辑海报
+	struct TopicCoverPoster
+	{
+		0 require Poster poster;	    //海报
+		1 optional string  reportKey;       //上报
+		2 optional string  reportParams;    //上报
+		3 optional vector<string> imageUrls; // 图片url数组
+	};
+	
+};

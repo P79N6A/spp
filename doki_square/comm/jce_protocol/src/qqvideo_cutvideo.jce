@@ -1,0 +1,55 @@
+
+module cutvideo
+{
+	struct VideoGraffity
+	{
+		0 require int type;			// 涂鸦类型：0 资源ID；1 二进制数据
+		1 require string content;	// 涂鸦内容
+	};
+
+    struct VideoSplitRequest
+    {
+        0 require string vid;		// 原视频ID
+        1 require int startMs;		// 起始时间，单位毫秒
+        2 require int endMs;		// 终止时间，单位毫秒
+        3 optional int defn = 0;	// 清晰度，默认使用手机格式
+        // 涂鸦数据，key为涂鸦ID，处理时候作为文件名传给合成工具
+        4 optional map<string, VideoGraffity> graffiti; 
+        5 optional string script;	// 涂鸦脚本
+        6 optional string cid;		// 专辑ID
+        7 optional string pid;
+        8 optional string zid;
+        9 optional string columnId;	// 栏目ID
+		10 optional string title; //视频标题
+		11 optional string subtitle; //视频副标题
+        //520新增：splitType为2时，miniVid有效，将整个视频转为GIF，startMs、endMs为无效参数
+        12 optional string miniVid;       // 小视频视频ID
+        13 optional int splitType = 0;    // 0：只截取小视频；1：同时截取小视频和生成GIF；2：只生成GIF
+    };
+    
+    //520新增：小视频转GIF分享
+    struct VideoSplitGif
+    {
+        0 optional string miniVid;         //小视频Vid
+        1 optional string thumbnailUrl;    //默认缩略图Url
+        2 optional string gifUrl;          //实际的动图Url
+    };
+    
+    struct VideoSplitResponse
+    {
+        0 require int errCode;   	       // 返回值，0：成功；非0：失败
+        1 require string msg;
+        2 require string vid;	           // 生成的小视频ID
+		3 require string h5Url;		       // 分享url
+		4 require string imageUrl;	       // 海报url
+  	    5 require long time;		       // 对应的小视频时长（秒）
+		6 optional string playUrl;	       // 播放url，备用字段
+		7 optional string description;	   // 视频描述，备用字段
+		8 optional string title; //视频标题
+		9 optional string subtitle; //视频副标题
+		10 optional string reportParams;  //小视频播放上报参数
+        //520新增：小视频转GIF分享
+        11 optional VideoSplitGif gifInfo; // 小视频对应的gif信息
+    };
+
+};

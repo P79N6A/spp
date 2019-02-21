@@ -1,0 +1,1589 @@
+/*
+@brief:明星管理后台协议
+auth：jettchen
+time：2017.7.11
+*/
+module CStarAdminPro
+{
+	/*
+	@brief:机器环境信息
+	TestIp:10.198.17.218:16010
+	TestL5:520769:4784128
+	OnlineL5:817857:65536 ---粉丝管理台使用
+	OnlineL5:920705:196608 ---app后台业务使用
+	
+	right_admin
+	TestL5:1083073:65536[NOSET]  100.108.104.69:16021
+	OnlineL5:1093121:65536[NOSET]       9.66.94.123
+	
+	content_admin
+	TestL5:1083073:131072[NOSET]  100.108.104.69:16022
+	OnlineL5:1093185:65536[NOSET]
+	
+	feed_module
+	TestL5:1083073:393216[NOSET]  100.108.104.69:16023
+	OnlineL5:920705:262144[NOSET]
+	
+	topic_module
+	TestL5:1083073:458752[NOSET]  100.108.104.69:16024
+	OnlineL5:920705:327680[NOSET]
+	
+	doki_admin
+	TestL5:1083073:524288[NOSET]  100.108.104.69:16025
+	OnlineL5:920705:393216[NOSET]
+	
+	config_admin
+	TestL5:1083073:589824[NOSET]  100.108.104.69:16026
+	OnlineL5:920705:458752[NOSET]
+	*/
+	enum ModuleCmd
+	{
+		CMD_UPLOAD_PICTURE = 0xf092,
+		CMD_READ_IDENTITY = 0xf093,
+		CMD_SEARCH = 0xf094,
+		CMD_PUBLISH_NOTE = 0xf095,
+		CMD_OPER_NOTE = 0xf096,
+		CMD_MY_NOTE = 0xf097,
+		CMD_PUBLISH_TOPIC = 0xf098,
+		CMD_OPER_TOPIC = 0xf099,
+		CMD_MY_TOPIC = 0xf09a,
+		CMD_STAR_DYNC = 0xf09b,
+		CMD_SET_IDENTITY = 0xf09c,
+		CMD_READ_ALL_FANS = 0xf0c2,
+		CMD_IS_TITLE_EXIST = 0xf0c3,
+		CMD_MY_STAR = 0xf0c4,
+		CMD_MODIFY_NOTE = 0xf0c5,
+		CMD_MODIFY_TOPIC = 0xf0c6,
+		CMD_NOTE_DETAIL = 0xf0c7,
+		
+		CMD_SYNC_NOTE = 0xf0f4,
+		CMD_READ_ALL_STAR = 0xf0f5,
+		CMD_READ_ALL_NOTE = 0xf0f6,
+		CMD_READ_ALL_TOPIC = 0xf0f8,
+		CMD_OPER_TOPIC_RANK = 0xf0fc,
+		
+		CMD_NOTE_SEARCH = 0xf17f,
+		CMD_GET_FANS_MSG = 0xf180,
+		CMD_OPER_FANS_MSG = 0xf181,
+		
+		CMD_READ_FEED_STATUS = 0xf1b7,
+		CMD_OFF_FEDD_TRANS = 0xf1db,
+		
+		CMD_READ_VUID_IDENTITY = 0xf268,
+		
+		CMD_APPLY_IDENTITY = 0xf283, //申请权限
+		CMD_APPLY_MSG_LIST = 0xf284,//权限审批列表
+		CMD_HANDLE_APPLY_MSG = 0xf285,//处理权限审批消息
+		CMD_IS_ALLOW_APPLY = 0xf292,//是否允许申请权限
+		
+
+		CMD_CREATE_VIEDO_DOKI = 0xf2e0, //
+		CMD_MODIFY_VIEDO_DOKI = 0xf2e1,//
+		CMD_VIEDO_DOKI_LIST = 0xf2e2,//
+		CMD_DOKI_AUTO_PULL = 0xf2e3,//
+		CMD_UPDATE_EXPORT_STATUS = 0xf2e4,//更新数据导入状态
+		CMD_NEED_EXPORT_DOKI_LIST = 0xf31a,//查询需要导数据的剧集doki列表
+		CMD_OPER_VIDEO_DOKI = 0xf2e6,//
+		CMD_VIDEO_DOKI_DETAIL = 0xf306,//
+		
+		CMD_SAVE_DRAFT = 0xf30c,//
+		CMD_DRAFT_LIST = 0xf30d,//
+		CMD_DELETE_DRAFT = 0xf30e,//
+		CMD_OPER_FLOW_LIST = 0xf314,
+		
+		CMD_FEED_QUERY = 0xf39d,
+		
+		CMD_SYNC_DEL_WEIBO = 0xf3df,
+		CMD_RELATION_QUERY = 0xf4d4,
+		CMD_OPER_LIST = 0xf4db,
+		CMD_READ_VUID_STATUS = 0xf4dc,
+		CMD_READ_TOP_RANK = 0xf5c5,
+		CMD_OPER_IDENTITY = 0xf60c,
+		CMD_APPLY_OM_VUID = 0xf6e3,
+		
+		//中转
+		CMD_SNOWBALL_FEED_OPER = 0xf9ea, //帖子操作生成雪球中转
+		CMD_SQUARE_GOOD_FEEDS = 0xfa17, //广场页十佳贴请求
+		CMD_SQUARE_GOOD_FEEDS_L2 = 	0xfa42, //广场页十佳贴二级页
+		CMD_CONTENT_CONFIG_REQ = 	0xfa69, //通用配置请求：设置和查询推荐次数
+	};
+	enum ModuleErrCode
+	{
+		E_SUC = 0,
+		E_PACKET_ERROR = 1,    //包错误
+		E_NO_LOGIN = 2,        //未登录  提示用户登录
+		E_LOGIN_EEROR = 3,     //登录错误    提示请使用qq登录
+		E_NO_PERMISSION = 4,   //权限不足    提示权限不足
+		E_PARAM_ERROR = 5,     //参数错误    提示参数错误
+		E_PROXY_QUEUE_TIMEOUT = 6,     //spp队列超时
+		
+		E_TOO_MANY_TOP_NOTE = 12,   //置顶帖子过多
+		E_CID_STAR_ALL_NONE = 13,   //必须关联影视或者明星的其中1个
+		E_ACCOUNT_NOT_EXIST = 14,   //账号不存在
+		E_ALREADY_CREATOR = 15,   //已经拥有创作者权限
+		E_ALREADY_ADMINISTRATOR = 16,   //已经拥有管理员权限
+		E_ALREADY_SUPER_ADMINISTRATOR = 17,   //已经拥有超级管理员权限
+		E_RIGHT_NOT_EXIST = 18,   //此权限不存在
+		E_ALREADY_STAR_LEADER = 19,   //已经拥有团长权限
+		E_TOO_MANY_ADMINISTRATOR = 20,   //管理员已达到上限
+		E_TOO_MANY_STAR_LEADER = 21,   //团长已达到上限
+		E_TOO_MANY_CREATOR = 22,   //创作者已达到上限
+		E_FANS_LEVEL_TOO_LOW = 23,   //粉丝等级太低
+		E_NO_LEADER_ADMINISTRATOR = 24,   //没有团长跟管理员
+		E_ALREADY_APPLY = 25,   //今天已经申请过
+		E_APPLY_REJECTED = 26,   //申请已被拒绝，需要提示具体哪天之后才能申请
+		E_ALREADY_BIND_DOKI = 27,   //该cid或者lid已经被绑定过doki
+		E_EVENT_ALREADY_EXIST = 28,   //该doki已经存在过此类大事件
+		E_ALREADY_FORBIDDEN = 29,   //用户已经被禁言
+		E_TOP_RANK_ALREADY_EXIST = 30,   //该置顶排名已经存在
+		
+		E_ACCOUNT_ERROR = 101,        //账号系统出错
+		E_FANS_LEVEL_ERROR = 102,        //粉丝体系出错
+		E_USER_INFO_ERROR = 103,        //用户资料出错
+		E_DB_ERROR = 104,        //服务器DB出错
+		E_REDIS_ERROR = 105,     //服务器redis出错
+		E_NOTE_ERROR = 106,        //帖子业务出错
+		E_TOPIC_ERROR = 107,        //话题业务出错
+		E_PIC_ERROR = 108,       //图片服务器出错
+		E_IDENTITY_ERROR = 109,  //权限管理出错
+		E_MEDIA_ERROR = 110,     //媒资出错
+		E_BASE_DOKI_ERROR = 111,     //底层doki出错
+		E_GET_CURL_ERROR = 112,
+		E_EVENT_ERROR = 113,
+		E_PROMOTION_ERROR = 114,
+		E_ES_ERROR = 115,
+		E_GENERATE_GIF_ERROR = 116,
+		E_SET_UGC_GIF_ERROR = 117,
+		E_AUDIT_VIDEO_ERROR = 118,
+		
+		E_SERVER_ERROR = 201,        //系统出错
+	};
+	enum IdentityType
+	{
+		IDENTITY_CREATOR = 1,              //创作者
+		IDENTITY_ADMINISTRATOR = 2,        //管理员
+		IDENTITY_SUPER_ADMINISTRATOR = 3,  //超级管理员，即内部运营
+		IDENTITY_STAR_LEADER = 4,  //团长
+	};
+	
+	enum NoteSource
+	{
+	    UN_KNOWN = 0,             //普通用户
+		CREATOR = 1,              //创作者
+		ADMINISTRATOR = 2,        //管理员
+		SUPER_ADMINISTRATOR = 3,  //超级管理员，即内部运营
+		STAR_LEADER = 4,  //团长
+		
+		WEIBO = 10,  //明星微博抓取
+		INSTAGRAM = 11,  //明星instagram抓取
+		EPISODE = 12,  //剧集官微抓取  episode
+		
+		MACHINE_AGGREGATION = 20,//机器聚合
+		IEG_TGL = 21,//IEGtgl
+		OM_DATA = 22,//OM优质文章
+		DOBAN_DATA = 23,//豆瓣数据
+		DIALOG = 24,//对话体
+	};
+	enum SearchType
+	{
+		SEARCH_STAR = 0,        //搜索明星
+		SEARCH_TOPIC = 1,       //搜索话题
+		SEARCH_CID = 2,         //搜索专辑
+		SEARCH_LID = 3,         //搜索栏目
+		SEARCH_VIDEO_DOKI = 4,  //剧集doki
+		SEARCH_ACTIVITY = 5,  //活动
+		
+		
+		SEARCH_DOKI = 10,         //doki
+	};
+	//对 不加入帖子的操作包括 下架、移入
+    //下架操作造成除我的帖子或者话题页面，其它入口不可见; 移入操作将帖子变成待加入状态;
+
+    //对 待加入帖子的操作包括 加入、不加入、下架
+    //加入时可以选择帖子分类(明星作品、娱乐工厂)将帖子变成已加入状态，加入后将在明星首页广场看到该帖子; 不加入操作将帖子变成不加入状态; 下架操作造成除我的帖子或者话题页面，其它入口不可见;
+
+    //对 已加入帖子的操作包括 编辑、移除、下架
+    //编辑操作可以改变帖子的分类(明星作品、娱乐工厂);移除操作将帖子变成待加入状态;下架操作造成除我的帖子或者话题页面，其它入口不可见; 
+	enum OperType
+	{
+		OPER_DELETE = 1,       //删除
+		OPER_TOP = 2,          //置顶
+		OPER_HOT = 3,          //加精
+		OPER_UNDO_TOP = 4,     //取消置顶
+		OPER_UNDO_HOT = 5,     //取消加精
+		OPER_OFF = 6,          //下架
+		OPER_MOVE_IN = 7,      //移入待加入
+		OPER_JOIN = 8,         //加入到广场推荐页
+		OPER_NOT_JOIN = 9,     //不加入,已废弃
+		OPER_EDIT = 10,        //编辑分类,已废弃
+		OPER_MOVE_OUT = 11,    //移出广场推荐页
+		OPER_UP = 12,          //上架
+		OPER_DOWNLOAD = 13,          //下载
+		OPER_RECOMMEND=14,     //管理员、团长推荐10佳帖
+		OPER_UNDO_RECOMMEND=15, //反推荐
+		OPER_IN_SQUARE=16,     //入选十佳贴   被运营选中发表到广场
+		OPER_OUT_SQUARE=17,    //反入选十佳贴 被运营取消发表到广场
+		
+		OPER_FORBIDDEN_TALK = 20,    //禁言
+		OPER_CANCLE_FORBIDDEN_TALK = 21,    //取消禁言
+		OPER_GLOBAL_FORBIDDEN_TALK = 22,    //全局禁言
+		OPER_CANCLE_GLOBAL_FORBIDDEN_TALK = 23,    //取消全局禁言
+	};
+	//帖子状态 加精0x01;优质0x02;置顶0x04;被推荐0x08;入选广场十佳0x10
+	enum FeedStatus
+	{
+		FS_HOT  = 0x01,
+		FS_GOOD = 0x02,
+		FS_TOP 	= 0x04,
+		FS_RECOMMEND = 0x08,
+		FS_SQUARE = 0x10,
+	};
+	
+	enum StarType
+	{
+		STAR_CHINA = 1,     //国内明星
+		STAR_FOREIGN = 2,   //国外明星
+	};
+	enum NoteCategory
+	{
+		STAR_PRODUCT = 1,     //明星作品
+		ENTERTAIN_NEWS = 7,   //娱乐资讯
+		HOT_RICE = 20,   //精华饭制
+	};
+	
+	enum VIDEO_MAIN_TYPE
+	{
+		EN_VIDEO_MAIN_TYPE_MOVIE = 1,           // 电影
+		EN_VIDEO_MAIN_TYPE_TV    = 2,           // 电视
+		EN_VIDEO_MAIN_TYPE_COMIC = 3,           // 动漫
+		EN_VIDEO_MAIN_TYPE_SPORT = 4,           // 体育
+		EN_VIDEO_MAIN_TYPE_ENTERTAINMENT = 5,   // 娱乐
+		EN_VIDEO_MAIN_TYPE_GAME  = 6,           // 游戏
+		EN_VIDEO_MAIN_TYPE_BOKE  = 7,           // 播客
+		EN_VIDEO_MAIN_TYPE_HOT   = 8,
+		EN_VIDEO_MAIN_TYPE_DOCUMENTARY   = 9,   // 纪录片
+		EN_VIDEO_MAIN_TYPE_VARIETY       = 10,  // 综艺
+		
+		EN_HOBBY_DOKI_BEGIN = 1000,
+		EN_HOBBY_DOKI_1001 = 1001,//电竞赛事
+		EN_HOBBY_DOKI_1002 = 1002,//网络游戏
+		EN_HOBBY_DOKI_1003 = 1003,//游戏周边
+		EN_HOBBY_DOKI_1004 = 1004,//单机游戏
+		EN_HOBBY_DOKI_1005 = 1005,//达人解说
+		EN_HOBBY_DOKI_1006 = 1006,//游戏展会
+		EN_HOBBY_DOKI_1007 = 1007,//游戏节目
+		EN_HOBBY_DOKI_1008 = 1008,//收集游戏
+
+		EN_HOBBY_DOKI_1101 = 1101,//动漫周边
+		EN_HOBBY_DOKI_1102 = 1102,//原创动画
+		EN_HOBBY_DOKI_1103 = 1103,//连载动画
+		EN_HOBBY_DOKI_1104 = 1104,//宅文化	
+
+		EN_HOBBY_DOKI_1201 = 1201,//微电影
+		EN_HOBBY_DOKI_1202 = 1202,//电影节目
+		EN_HOBBY_DOKI_1203 = 1203,//原创短片
+		EN_HOBBY_DOKI_1204 = 1204,//电影剪辑
+		EN_HOBBY_DOKI_1205 = 1205,//网络电影
+		
+		
+		EN_HOBBY_DOKI_1301 = 1301,//连续剧
+		EN_HOBBY_DOKI_1302 = 1302,//网络剧
+		EN_HOBBY_DOKI_1303 = 1303,//剧集DIY
+		EN_HOBBY_DOKI_1304 = 1304,//电视剧节目
+		
+		EN_GAME_DOKI_BEGIN = 100000,//游戏doki
+		
+		EN_WECHAT_DOKI_BEGIN = 200000,//微信小程序的doki
+		
+		EN_ECY_IP_BEGIN = 300000, //鹅次元大IP
+
+		EN_ECY_COMPLEX_BEGIN = 400000, //鹅次元综合
+
+		EN_ECY_CREATION_BEGIN = 500000, //鹅次元创作
+	};
+
+/***********************结构体定义*************************/
+	struct stIdentityInfo
+	{
+		0 optional string starName;
+		1 require int identityType;
+		2 optional string strFtid;  //doki_id
+	};
+	struct stStarInfo
+	{
+		0 require string starId;    //明星id,即人名库id
+		1 optional string starName;
+		2 optional string headUrl;
+		3 optional string strFtid;  //doki_id
+	};
+	struct stLabelInfo
+	{
+		0 require string labelId;    //标签id
+		1 optional string labelName; //标签名称
+	};
+	struct ExtraReportKV
+	{
+		0 require string extraReportKey;  //等同于上报时“report_Key=reportKeyValue”中的report_Key字符串
+		1 require string extraReportParam; //等同于上报时“report_Key=reportKeyValue”中的reportKeyValue字符串
+	};
+	//定义动作信息
+	struct Action
+	{
+		0 require string url;				//跳转的地址，遵循统一跳转规则
+		1 require byte cacheType;			//目标页面数据cace的策略  0 不cache，1 内存cache ，2 文件cache
+		2 require byte preReadType;			//目标页数据预读取的策略 0 不预读，1 预读协议数据，2 预读图片
+		3 optional string reportParams;		//点击事件用来上报的内容(点击)
+		4 optional string reportKey;		//点击事件用来上报的事件名称，后台下发必须以"server_"开头
+		5 optional vector<ExtraReportKV> extraReportKVs; //点击事件上报，是哪个业务的点击
+	};
+	struct stUserInfo
+	{
+		0 require string headPicUrl;
+		1 optional string nickName;
+		2 optional int uid_type;   //用户类型,1为qq,2为微信,3为vuid
+		3 optional string uid;     //qq或者wxid
+		4 optional long grantor_vuid;   //授权者的vuid
+		5 optional Action action;   //跳转动作
+		6 optional bool official_certified = false;   //是否官方认证
+		7 optional bool is_train = false;   //是否实习期
+		8 optional int fans_level;//粉丝等级
+	};
+	struct stUserInfo2
+	{
+		1 optional long vuid;   //vuid
+		2 optional int identityType; //参考IdentityType定义，1为创作者,2为管理员,4为团长
+	};	
+	struct stVideoInfo
+	{
+		0 require string url;
+		1 optional string vid;
+		2 optional string title;
+		3 optional string img;
+		4 optional string tag;
+	};
+	struct stImgInfo
+	{
+		0 require string url;
+		1 optional string tag;
+		2 optional string clipUrl;  //裁剪的url
+		3 optional string width;    //宽度
+		4 optional string height;   //高度
+		5 optional string size;     //尺寸
+		6 optional string thumbUrl;     //尺寸
+	};
+	
+	struct stCidInfo
+	{
+		0 require string cid;
+		1 optional string title;
+		2 optional int type;                                //分类
+		3 optional string strTypeName;                      //分类名字
+	};
+	
+	struct stLidInfo
+	{
+		0 require string lid;
+		1 optional string title;
+		2 optional int type;                                //分类
+		3 optional string strTypeName;                      //分类名字
+	};
+	
+	struct stTopicInfo
+	{
+		0 require string topic_id;
+		1 optional string title;
+	};
+	struct stActivityInfo
+	{
+		0 require long id;
+		1 optional string title;
+	};
+	
+	struct stSearchResult
+	{
+		0 require string strResultId;                       //搜索结果的id
+		1 require string strResultShow;                     //搜索结果的显示
+		2 optional int type;                                //结果分类
+		3 optional string strTypeName;                      //分类名字
+		4 optional string strStarType;                      //人名类型
+		5 optional string strStarRemark;                    //备注
+		6 optional string strStarHeadUrl;                   //头像
+		7 optional string strFtid;                   //饭团id
+	};
+	// 帖子详细信息
+	struct stNoteDetail
+	{
+		0	require long fansAdminId;                    //管理台id
+		1	require string title;                          //标题
+		2	optional string content;                       //内容
+		3 	optional long createTime;					   //发表时间
+		4 	optional long modifyTime;					   //更新时间
+		5 	optional long readNum;                         //阅读统计
+		6 	optional long praiseNum;					   //点赞统计
+		7 	optional long commentNum;					   //评论统计
+		8 	optional long shareNum;					       //分享统计
+		9 	optional int source;					       //帖子来源(1为认证创作者,2为认证管理员,3为腾讯官方)
+		10  optional vector<stStarInfo> starInfoVec;    //关联的明星信息  这是个坑，后来扩展到非明星doki的时候前端其实需要填写dokiid
+		11  optional vector<stImgInfo> photoVec;	           //图片信息
+		12  optional vector<stVideoInfo> videoVec;	       //视频信息
+		13  optional stUserInfo userInfo;	               //该帖子作者的用户信息
+		14  optional int status;						   //帖子id在该明星下的状态, 加精0x01;优质0x02;置顶0x04
+		15  optional string ftNoteId;					   //关联的饭团帖子id
+		16  optional string delete_reason;					   //删除原因
+		17  optional stCidInfo cidInfo;                       //关联的Lid,栏目id
+		18  optional stLidInfo lidInfo;                       //关联的cid,影视id
+		19  optional string category;                       //帖子分类(明星作品、娱乐资讯)
+		20  optional stUserInfo offUserInfo;                       //下架操作者信息
+		21  optional stTopicInfo topicInfo;
+		22  optional string abstract;		             // 摘要
+		23  optional int top_type = 1;
+	};
+	// 话题详细信息
+	struct stTopicDetail
+	{
+		0	require long fansAdminId;                   //话题id
+		1	optional string title;                      //标题
+		2	optional string	brief;                      //简介
+		3 	optional long createTime;					//发表时间
+		4	optional long modifyTime;					//更新时间
+		5 	optional long noteNum;		                //话题下的帖子数目			
+		6   optional vector<stImgInfo> photoVec;	    //图片信息
+		7   optional int status;						//话题状态
+		8   optional string ftTopicId;					//关联的饭团话题id
+		9   optional vector<stStarInfo> starInfoVec;    //关联的明星信息  这是个坑，后来扩展到非明星doki的时候前端其实需要填写dokiid
+		10  optional stUserInfo userInfo;	            //该话题作者的用户信息
+		11  optional string delete_reason;				//删除原因
+		12  optional stCidInfo cidInfo;                 //关联的Lid,栏目id
+		13  optional stLidInfo lidInfo;                 //关联的cid,影视id
+		14  optional stUserInfo offUserInfo;                       //下架操作者信息
+		15  optional int type;//1为自拍话题类型
+		16  optional string ext_json;	//{"shareImages":[{"url":""},{"url":""}],"firstTitle":"","secondTitle":"","singleTitle":""}
+		17  optional vector<stActivityInfo> activityVec;//活动信息
+		18  optional string music_vid;
+		19  optional int channel_type;
+		20  optional string vidAttachmentId;//视频挂件
+		21  optional string enterButtonText;//类似“立即参与”这样的按钮提示文本
+	};
+
+	
+	// ---------- 请求和响应结构 ---------- //
+	//实习期转正、免职接口
+	struct stOperIdentityReq      //rightMsg
+	{
+		0 optional int type;                 //1：实习期考核通过转正；2：实习期考核不通过而免职  3: 任职期考核不通过而免职
+		1 optional long vuid;                //用户账号id
+		2 optional string dokiId;                    //dokiId
+		3 optional int identityType;                 //1为创作者,2为管理员,4为团长
+	};
+	struct stOperIdentityRsp
+	{
+		0 require int errCode;							//业务错误码
+		1 optional string strErrMsg;
+	};
+	
+	// 开通或者取消管理员或者创作者权限
+	struct stSetIdentityReq
+	{
+		0 require int iAccountType;                 //开通的账号类型，1：qq；2：wx; 3:vuid 注意先只支持qq
+		1 require string strAccount;                //开通的账号值，qq或者微信号或者vuid
+		2 require string starId;                    //明星id,即人名库id  这是个坑，后来扩展到非明星doki的时候前端其实需要填写dokiid
+		3 require int iOpType;                      //1为开通,2为取消开通
+		4 require int identityType;                 //1为创作者,2为管理员,4为团长
+	};
+	struct stSetIdentityRsp
+	{
+		0 require int errCode;							//业务错误码
+		1 optional string strErrMsg;
+	};
+	
+	//读取用户身份,用户信息在包头里;命令字为0xf093
+	struct stReadIdentityReq
+	{
+		0 optional int type;//0为读取登录用户的所有身份权限; 1为读取在指定key下的身份权限
+		1 optional string starId; //人名库明星id
+	};
+	struct stReadIdentityRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+		2 require int iDentityType;                                         //身份;1为创作者,2为管理员,3为内部运营,4为团长,
+		3 optional map<string,vector<stIdentityInfo> > key2IdentityMap;     //业务数据(标识用户分别在哪个明星下是创作者/管理员/团长, type为1的请求不用关注该字段)
+		4 optional int userType;     //扩展的用户身份;1为发帖白名单
+	};
+	
+	//读取指定明星下的所有创作者、管理员、团长信息
+	struct stReadAllFansReq
+	{
+		0 optional string starId;   //这是个坑，后来扩展到非明星doki的时候前端其实需要填写dokiid
+		1 optional int type;                      //1为app H5页面获取所有粉丝所用(需要跳过身份检查);
+	};
+	struct stReadAllFansRsp
+	{
+		0 require int errCode;												//业务错误码
+		1 optional string strErrMsg;										//业务错误原因
+		2 optional map<string, vector<stUserInfo> > key2IdentityMap;        //身份到用户信息的map
+		3 optional map<string, stUserInfo > uid2UserInfoMap;     //存储授权者的信息
+	};
+	
+	//读取所有明星
+	struct stReadAllStarReq
+	{
+		0 optional int type;  //1为国内明星;2为国外明星
+		1 optional string first_spell; //姓名首字母,传大写
+		2 optional int page_num;
+		3 optional int page_size;
+	};
+	struct stReadAllStarRsp
+	{
+		0 require int errCode;						//业务错误码
+		1 optional string strErrMsg;				//业务错误原因
+		2 optional map<string, vector<stStarInfo> > starInfoMap;    //姓名首字母到明星信息的map
+		3 require int page_num;
+		4 require int page_totalNum;
+	};
+
+	//读取所有帖子
+	struct stReadAllNoteReq
+	{
+		0 optional int flag;  //待加入1,已加入2,不加入3
+		1 optional int source; //0为查看所有来源;否则查看指定来源,请参考枚举类型 NoteSource
+		2 optional string starIds; //空为查看所有明星;否则查看指定明星
+		3 optional int page_num;
+		4 optional int page_size;
+	};
+	struct stReadAllNoteRsp
+	{
+		0 require int errCode;						//业务错误码
+		1 optional string strErrMsg;				//业务错误原因
+		2 optional vector<stNoteDetail> noteDetailVec;    //
+		3 require int page_num;
+		4 require int page_totalNum;
+	};
+	//读取所有话题
+	struct stReadAllTopicReq
+	{
+		0 optional int flag;  //待加入1,已加入2,不加入3
+		1 optional int source; //0为查看所有来源;否则查看指定来源,请参考枚举类型 NoteSource
+		2 optional string starIds; //空为查看所有明星;否则查看指定明星
+		3 optional int page_num;
+		4 optional int page_size;
+	};
+	struct stReadAllTopicRsp
+	{
+		0 require int errCode;						//业务错误码
+		1 optional string strErrMsg;				//业务错误原因
+		2 optional vector<stTopicDetail> topicDetailVec;    //
+		3 require int page_num;
+		4 require int page_totalNum;
+	};
+	//干预话题排序
+	struct stOperTopicRankReq
+	{
+		0 optional long id;               //管理台帖子id
+		1 optional string topic_id;       //饭团话题id
+		2 optional int rank;              //插入的名次
+		3 optional string begin_time;     //生效开始时间
+		4 optional string end_time;       //生效截止时间
+	};
+	struct stOperTopicRankRsp
+	{
+		0 require int errCode;						//业务错误码
+		1 optional string strErrMsg;				//业务错误原因
+	};
+	//搜索明星或者话题
+	struct stSearchReq
+	{
+		0 require int iSearchType;											//0:明星; 1:话题; 2:专辑; 3:栏目; 4:剧集doki; 5: 搜索活动 10:搜索DOKI
+		1 require string strSearchKey;										//搜索关键字
+		2 optional int star_type;										//0为所有;1为国内明星;2为国外明星
+	};
+	struct stSearchRsp
+	{
+		0 require int errCode;								//业务错误码
+		1 optional string strErrMsg;						//业务错误原因
+        2 require vector<stSearchResult> resultVec;         //搜索结果(包括id以及名字显示)
+	};
+
+	
+    //明星说、后援会、doki广场的搜索只保证搜索前面100条帖子
+    //已加入、待加入、未加入、支持按当前tab搜索
+
+    //搜索支持的字段：
+	//关键字   keyWords
+	//明星   starId
+	//身份(创作者/管理员/团长/内部运营)  见宏定义NoteSource
+	//vuid    
+	//发表时间  begin_time   end_time
+	//(已加入/未加入/待加入)   flag 待加入1,已加入2,不加入3
+	//指定的tab(明星说、后援会、doki广场)  type  2为明星说;3为后援会;4为DOKI广场
+
+	//限制条件:
+	//搜索的结果只有从管理台发出去的帖子
+	struct stNoteSearchReq
+	{
+        //搜索的json字段,需要urlEncode,比如{"keyWords":"加精","starId":"94432","source":3,"vuid":"","begin_time":"2017-09-14 10:00:00","end_time":"2017-12-15 10:00:00","flag":1,"type":3}
+		0 optional string strSearchKey;
+		1 optional int page_num;
+		2 optional int page_size;
+	};
+	struct stNoteSearchRsp
+	{
+		0 require int errCode;								//业务错误码
+		1 optional string strErrMsg;						//业务错误原因
+        2 optional vector<stNoteDetail> noteDetailVec;  //
+		3 optional int page_num;
+		4 optional int page_totalNum;
+	};
+	
+    //用户自拍或上传视频信息
+    struct stUgcVideoInfo
+    {
+        0 require   string strVid;           //视频vid
+        1 require   string strPicUrl;        //海报图片url
+        2 require   int    iFlag;            //标志，0:未定义 1:自拍视频 2:本地上传视频
+        3 optional  string strTitle;         //视频标题
+        4 optional  string strMusicVid;      //配乐vid
+        5 optional  string strMusicPicUrl;   //配乐海报
+        6 optional  string strMusicTitle;    //配乐标题
+        7 optional  string strShareId;       //唯一分享id，用于大冒险活动的
+    };
+	//新建帖子
+	struct stPublishNoteReq
+	{
+        0 require string title;		                 // 标题
+		1 optional string content;		             // 内容
+		2 optional string seq; 			             // sequence,防止终端重复提交
+		3 require vector<string> starIdVec;		     //关联的明星id,即人名库id 这是个坑，后来扩展到非明星doki的时候前端其实需要填写dokiid
+		4 optional string topicId;                   //关联的饭团话题id
+		5 optional string Lid;                       //关联的Lid,栏目id
+		6 optional string Cid;                       //关联的cid,影视id
+		7 optional vector<stImgInfo> photoVec;	     //图片url
+		8 optional vector<stVideoInfo> videoVec;     //视频url
+		9 optional int source;                       //10为weibo; 11为instagram; 12为cms上独家同步到动态的帖子
+		10 optional string abstract;		         //摘要
+		11 optional long ctime;		                 //发表时间
+		12 optional int type;		                 //1为对话体帖子类型;2为自拍视频帖子
+		13 optional string strLinkUrl;	             //对话体的跳转链接
+		14 optional stUgcVideoInfo ugcVideoInfo;     //自拍视频信息，目前只需要填写该结构体的strVid,此结构体不支持修改
+	};
+	struct stPublishNoteRsp
+	{
+		0 require  int 	  errCode;
+		1 optional string strErrMsg;
+		2 optional long fansAdminId;       //管理台帖子id
+	};
+	
+	
+	//修改帖子
+	struct stModifyNoteReq
+	{
+		0 require long id;                           //管理台帖子id
+        1 optional string title;		             // 标题
+		2 optional string content;		             // 内容
+		3 optional string seq; 			             // sequence,防止终端重复提交
+		4 optional vector<string> starIdVec;		 //关联的明星id,即人名库id  这是个坑，后来扩展到非明星doki的时候前端其实需要填写dokiid
+		5 optional string topicId;                   //关联的饭团话题id
+		6 optional string Lid;                       //关联的Lid,栏目id
+		7 optional string Cid;                       //关联的cid,影视id
+		8 optional vector<stImgInfo> photoVec;	     //图片url
+		9 optional vector<stVideoInfo> videoVec;     //视频url
+		10 optional int source;                      //1为创作者,2为管理员,3为内部运营 ----废弃了
+		11 optional string abstract;		         // 摘要
+		12 optional string note_id;
+		13 optional int type;		                 //1为对话体帖子类型;2为自拍视频帖子
+		14 optional string strLinkUrl;	             //对话体的跳转链接
+	};
+	struct stModifyNoteRsp
+	{
+		0 require  int 	  errCode;
+		1 optional string strErrMsg;
+	};
+	//同步cms删除微博帖子
+	struct stDelWeiboReq
+	{
+		0 optional string content;		             // 内容
+		1 optional string seq; 			             // sequence,防止终端重复提交
+		2 optional vector<string> starIdVec;		 //关联的明星id,即人名库id
+	};
+	struct stDelWeiboRsp
+	{
+		0 require  int 	  errCode;
+		1 optional string strErrMsg;
+	};
+	
+	// 我的帖子
+	struct stMyNoteReq
+	{
+		0 require int type;                  //0为查询全部明星下的帖子; 1为查询指定明星下的帖子,此时需填starId
+		1 optional string starId;
+		2 optional int page_num;
+		3 optional int page_size;
+	};
+	struct stMyNoteRsp
+	{
+		0 require int errCode;							//业务错误码
+		1 optional string strErrMsg;
+		2 optional vector<stNoteDetail> noteDetailVec;  //我创建的帖子列表
+		3 require int page_num;
+		4 require int page_totalNum;
+	};
+	//我的帖子或者话题涉及到的明星
+	struct stMyStarReq
+	{
+		0 require int type;                     //0为查看名下帖子涉及的所有明星;1为查看名下话题涉及的所有明星
+	};
+	struct stMyStarRsp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+		2 optional vector<stStarInfo> starInfoVec;     //明星信息 
+	};
+
+	enum E_TopType
+	{
+		TOP_NORMAL = 1,     //普通置顶
+		TOP_ACTIVITY = 2,   //活动置顶
+		TOP_NOTICE = 3,   //公告置顶
+	};
+	
+	//1为明星动态;2为明星说;3为后援会;4为DOKI广场
+	enum ChannelType
+	{
+		STAR_DYNC = 1,
+		STAR_TALK = 2,   //明星说
+		FANS_TEAM = 3,   //后援会
+		DOKI = 4,        //DOKI广场
+	};
+	// 操作帖子
+	struct stOperateNoteReq
+	{
+		0 require int type;                     //1为删除;2为置顶;3为加精;4为取消置顶;5为取消加精;6为下架; 详情见宏定义OperType
+		1 optional long fansAdminId;            //管理台id   
+		2 optional string note_id;              //帖子id
+		3 optional string starId;               //明星id  这是个坑，后来扩展到非明星doki的时候前端其实需要填写dokiid
+		4 optional string reason;               //下架原因
+		5 optional int top_type;                //详见宏定义 E_TopType,只有后援会置顶需要填写
+		6 optional int channelId;               //频道id，见宏定义ChannelType
+		7 optional string dataKey;//vuid=xxx&ftid=xxx
+		8 optional string topicId;            // 话题id，新增话题下帖子下架黑名单功能
+		9 optional vector<string> ids;//帖子id
+		10 optional int top_rank; //话题详情页，帖子置顶时设置的排名(排名不能与已有置顶帖子的排名冲突)
+		11 optional string title;
+		12 optional string pic;
+		13 optional int    picType;
+		14 optional long   onlineTime;//上架时间
+	};
+	
+	struct stOperateNoteRsp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+	};
+	
+	// 发表话题请求
+	struct stPublishTopicReq
+	{
+		0 require string title;		        //标题
+		1 require string brief;		        //简介
+		2 optional string seq; 			    //sequence，防止终端重复提交  mid
+		3 optional vector<stImgInfo> photoVec;	//图片url
+		4 optional vector<string> starIdVec;//关联的明星id,即人名库id;这是个坑，后来扩展到非明星doki的时候前端其实需要填写dokiid
+		5 optional string Cid;              //关联的专辑id
+		6 optional string Lid;              //关联的栏目id
+		7 optional int source;              //1为创作者,2为管理员,3为内部运营---废弃了
+		8 optional int type;//1为自拍话题类型
+        9 optional string ext_json;	//{"shareImages":[{"url":""},{"url":""}],"firstTitle":"","secondTitle":"","singleTitle":""}
+		10 optional vector<long> activityIdVec;
+		11  optional string music_vid;
+		12  optional int channel_type;
+		13  optional string vidAttachmentId;//视频挂件
+		14  optional string enterButtonText;//类似“立即参与”这样的按钮提示文本
+	};
+	struct stPublishTopicRsp
+	{
+		0 require  int 	  errCode;
+		1 optional string strErrMsg;
+		2 require  long fansAdminId;           //管理台话题id
+	};
+
+	// 修改话题请求
+	struct stModifyTopicReq
+	{
+		0 require long id;		        //管理台帖子id
+		1 require string title;		        //标题
+		2 require string brief;		        //简介
+		3 optional string seq; 			    //sequence，防止终端重复提交
+		4 optional vector<stImgInfo> photoVec;	//图片url
+		5 optional vector<string> starIdVec;//关联的明星id,即人名库id;这是个坑，后来扩展到非明星doki的时候前端其实需要填写dokiid
+		6 optional string Cid;              //关联的专辑id
+		7 optional string Lid;              //关联的栏目id
+		8 optional int source;              //1为创作者,2为管理员,3为内部运营
+		9 optional int type;//1为自拍话题类型
+        10 optional string ext_json;	//{"shareImages":[{"url":""},{"url":""}],"firstTitle":"","secondTitle":"","singleTitle":""}
+		11 optional vector<long> activityIdVec;
+		12  optional string music_vid;
+		13  optional int channel_type;
+		14  optional string vidAttachmentId;//视频挂件
+		15  optional string enterButtonText;//类似“立即参与”这样的按钮提示文本
+	};
+	struct stModifyTopicRsp
+	{
+		0 require  int 	  errCode;
+		1 optional string strErrMsg;
+	};
+	
+	//判断话题标题是否重复
+	struct stIsTitleExistReq
+	{
+		0 require int type;                         //0为帖子,1为话题
+		1 require string title;                    //标题
+	};
+	struct stIsTitleExistRsp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+		2 optional int exist;                         //0为不存在,1为存在
+	};
+	
+	// 操作话题
+	struct stOperateTopicReq
+	{
+		0 require int type;                  //1为删除;6为下架
+		1 require long fansAdminId;        //管理台侧生成的id
+		2 optional string reason;
+		3 optional string topicId;         //app话题后台侧生成的id  ---以后统一传这个id
+	};
+	struct stOperateTopicRsp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+	};
+	
+	// 我的话题请求
+	struct stMyTopicReq
+	{
+		0 require int type;                          //0为查询全部明星下的话题; 1为查询指定明星下的话题,此时需填starId
+		1 optional string starId;
+		3 optional int page_num;
+		4 optional int page_size;
+	};
+	struct stMyTopicRsp
+	{
+		0 require int errCode;							   //业务错误码
+		1 optional string strErrMsg;
+		2 optional vector<stTopicDetail> topicDetailVec;   //我创建的话题列表
+		3 require int page_num;
+		4 require int page_totalNum;
+	};
+	
+	// 明星动态页
+	struct stStarDyncReq
+	{
+		0 require string starId;                 //明星id,即人名库id 这是个坑，后来扩展到非明星doki的时候前端其实需要填写dokiid
+		1 optional int page_num;
+		2 optional int page_size;
+		3 optional int type;  //1为明星动态;2为明星说;3为后援会;4为DOKI广场
+	};
+	struct stStarDyncRsp
+	{
+		0 require int errCode;							//业务错误码
+		1 optional string strErrMsg;
+		2 optional vector<stNoteDetail> noteDetailVec;  //帖子列表
+		3 require int page_num;
+		4 require int page_totalNum;
+	};
+	
+	
+	//小视频详细信息
+	struct stShortVideoInfo
+	{
+		0 require string vid;				//视频vid
+		1 require string h5Url;			    //分享url
+		2 require long time;				//对应的小视频时长（秒）
+		3 require string imageUrl;			//海报url
+		4 optional string playUrl;			//播放url，备用字段
+		5 optional string description;		//视频描述，备用字段
+		6 optional bool isDemoVideo=false;   //是否是demo视频
+		7 optional string reportParams;     //上报参数
+		8 optional string originVid;        //原视频vid
+		9 optional long videoFileSize;		//视频文件大小,单位是byte
+		10 optional string reportKey;       //上报参数
+		11 optional string title;
+		12 optional string originCid;
+	};
+	struct stShortVideoSource
+	{
+		0 optional string title;
+		1 optional string imageUrl;
+		2 optional string jumpUrl;
+	};
+	// 粉丝留言详细信息
+	struct stFansMsgDetail
+	{
+		0	require string note_id;                        //粉丝留言id
+		1	optional string title;                         //标题
+		2	optional string content;                       //内容
+		3 	optional long createTime;					   //发表时间
+		4 	optional long modifyTime;					   //更新时间
+		5 	optional long readNum;                         //阅读统计
+		6 	optional long praiseNum;					   //点赞统计
+		7 	optional long commentNum;					   //评论统计
+		8 	optional long shareNum;					       //分享统计
+		9 	optional int source;					       //帖子来源(1为认证创作者,2为认证管理员,3为腾讯官方)
+		10  optional vector<stImgInfo> photoVec;	       //图片信息
+		11  optional vector<stShortVideoInfo> shortVideoVec; //小视频信息
+		12  optional vector<stShortVideoSource> shortVideoSourceVec; //小视频来源信息
+		13  optional stUserInfo userInfo;	               //该帖子作者的用户信息
+		14  optional int status;						   //帖子状态(第2个bit位表征是否置顶留言;第3个bit位表征是否加精留言)
+	};
+
+	// 明星粉丝留言页面
+	struct stStarFansMsgReq
+	{
+		0 require string starId;                 //明星id,即人名库id
+		1 optional int page_num;
+		2 optional int page_size;
+	};
+	struct stStarFansMsgRsp
+	{
+		0 require int errCode;							//业务错误码
+		1 optional string strErrMsg;
+		2 optional vector<stFansMsgDetail> FansMsgDetailVec;  //留言列表
+		3 require int page_num;
+		4 require int page_totalNum;
+	};
+
+	// 操作粉丝留言
+	struct stOperateFansMsgReq
+	{
+		0 require int type;                  //详见OperType定义,2为置顶,3为加精,4为取消置顶,5为取消加精,6为下架
+		1 require string note_id;           //粉丝留言id
+		2 optional string starId;
+	};
+	struct stOperateFansMsgRsp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+	};
+	// 读取帖子在某一维度的状态,以及用户在某一明星下是否被禁言;命令字为0xf1b7
+	struct stReadFeedStatusReq
+	{
+		0 require string feedId;
+		1 optional long vuid; //帖子作者
+		2 optional string starId;  //这是个坑，后来扩展到非明星doki的时候前端其实需要填写dokiid
+		3 optional int bitmap;      //读取掩码(只有掩码比特位被设置的情况下才会返回相应的数据), 0x01为读取帖子状态; 0x02为读取用户是否被禁言; 0x04读取登录态用户的操作权限列表right
+		4 optional string topicId;//话题id
+	};
+	struct stReadFeedStatusRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+		2 optional int feed_status; //帖子id在该明星下的状态, 加精0x01;优质0x02;置顶0x04;被推荐0x08;入选十佳0x10
+		3 optional int vuid_status; //用户id在该明星下的状态, 被禁言0x01
+		4 optional int right; //登录态用户的操作权限列表 :加精权限0x01;优质权限0x02;置顶权限0x04;禁言权限0x08;下架权限0x10;删除权限0x20
+		5 optional int top_type = 1; //1为普通置顶;2为活动置顶;3为公告置顶
+		6 optional stUserInfo2 operer; //推荐操作的管理员或者团长
+	};
+	
+	struct stReadVuidIdentityReq
+	{
+		0 optional string starId;  //人名库明星id 这是个坑，后来扩展到非明星doki的时候前端其实需要填写dokiid
+		1 optional vector<long> vuidList;      //
+	};
+	struct stReadVuidIdentityRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+		2 optional map<long, int> vuid2identity; //1为创作者;2为管理员;3为内部运营;4为团长
+	};
+	
+	//是否允许申请
+	struct stIsAllowApplyReq
+	{
+		0 optional string starId;  //人名库明星id  这是个坑，后来扩展到非明星doki的时候前端其实需要填写dokiid
+		1 optional int iDentityType;//
+	};
+	struct stIsAllowApplyRsp
+	{
+		0 require int errCode;			//业务错误码 OK为允许
+		1 optional string strErrMsg;    //
+		2 optional string tips;
+	};
+	//申请创作者、管理员、团长
+	struct stApplyIdentityReq
+	{
+		0 optional string starId;  //人名库明星id  这是个坑，后来扩展到非明星doki的时候前端其实需要填写dokiid
+		1 optional int iDentityType;      //要申请的权限,见宏定义IdentityType
+		2 optional string reason;
+	};
+	struct stApplyIdentityRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+		2 optional string tips;
+	};
+	//
+	struct stApplyMsgDetail
+	{
+		0 optional string nickName;
+		1 optional string headUrl;
+		2 optional Action action;
+		3 optional long ctime;
+		4 optional string content;
+		5 optional string reason;
+		6 optional int status; //1为申请,2为拒绝状态,3为同意状态
+		7 optional string dataKey;//审批的时候透传给后台
+		8 optional string dokiName;
+		9 optional int iDentityType;
+		10 optional string handle_reason;//审批理由(比如拒绝原因)
+	};
+	//查看权限申请消息列表
+	struct stApplyMsgListReq
+	{
+		0 optional int type;  //
+		1 optional string pageContext;//
+		2 optional string json; //{"doki_type":1,"doki_id":"94432","identity":1,"status":1,"begin_time":1514949795,"end_time":1514949795}
+		3 optional int page_num;
+		4 optional int page_size;
+		5 optional int page_type; //0表示使用pageContext翻页 1表示用page_num和page_size翻页
+	};
+	struct stApplyMsgListRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+		2 optional vector<stApplyMsgDetail> msgList;
+		3 optional string pageContext;
+		4 optional bool hasNextPage;					//是否有下一页
+		5 optional int page_num;
+		6 optional int page_totalNum;
+		7 optional long total_cnt;//匹配结果总数目
+	};
+	enum HANDLE_TYPE
+	{
+		TYPE_AGREE = 1, 
+		TYPE_REJECT = 2, 
+	};
+	//审批权限申请消息
+	struct stHandleApplyMsgReq
+	{
+		0 optional string dataKey;
+		1 optional int type; //1为同意;2为拒绝
+		2 optional string reason;//拒绝理由
+	};
+	struct stHandleApplyMsgRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+		2 optional string tips;
+	};
+	
+	//创建剧集doki  0xf2e0
+   //http://debugaccess.video.qq.com/star_admin/create_video_doki?vappid=90355472&vsecret=b5a6aa567a55d84008e258a9f69bfdb8e929aa97c4c12c24
+	struct stCreateVideoDokiReq
+	{
+		0 optional int type;//见宏定义VIDEO_MAIN_TYPE,表征电影、电视剧、动漫、综艺等等
+		1 optional string title;//doki剧名
+		2 optional string brief; //doki简介
+		3 optional string smallPic;//union里面可以取到专辑竖图(new_pic_vt)，然后在末尾替换下尺寸，把0改成220即可
+		4 optional string backgroundPic;//背景图
+		5 optional vector<string> cidVec;//关联的cid
+		6 optional vector<string> lidVec;//关联的lid
+		7 optional vector<string> labelVec;//相关的标签id
+		8 optional vector<string> starIdVec;//相关的明星id
+		9 optional vector<string> keyWords;//关键词
+		10 optional vector<string> gameIdVec;//游戏id
+	};
+	struct stCreateVideoDokiRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+		2 optional long dokiId;
+	};
+	
+	//修改剧集doki    0xf2e1
+	//http://debugaccess.video.qq.com/star_admin/modify_video_doki?vappid=90355472&vsecret=b5a6aa567a55d84008e258a9f69bfdb8e929aa97c4c12c24
+	struct stModifyVideoDokiReq
+	{
+		0 optional long dokiId;
+		1 optional int type;//见宏定义VIDEO_MAIN_TYPE
+		2 optional string title;//doki剧名
+		3 optional string brief; //doki简介
+		4 optional string smallPic;//union里面可以取到专辑竖图(new_pic_vt)，然后在末尾替换下尺寸，把0改成220即可
+		5 optional string backgroundPic;//背景图
+		6 optional vector<string> cidVec;//关联的cid
+		7 optional vector<string> lidVec;//关联的lid
+		8 optional vector<string> labelVec;//相关的标签id
+		9 optional vector<string> starIdVec;//相关的明星id
+		10 optional vector<string> keyWords;
+		11 optional vector<string> gameIdVec;//游戏id
+	};
+	struct stModifyVideoDokiRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+	};
+	
+	// 剧集doki信息的结构体
+	struct stVideoDokiDetail
+	{
+		0 require long dokiId;                   //剧集doki的id
+		1 optional int type;//见宏定义VIDEO_MAIN_TYPE
+		2 optional string title;//doki剧名
+		3 optional string brief; //doki简介
+		4 optional string smallPic;//union里面可以取到专辑竖图(new_pic_vt)，然后在末尾替换下尺寸，把0改成220即可
+		5 optional string backgroundPic;//背景图
+		6 optional vector<stCidInfo> cidInfoVec;//关联的cid信息
+		7 optional vector<stLidInfo> lidInfoVec;//关联的lid信息
+		8 optional vector<stStarInfo> starInfoVec;//相关明星信息
+		9 optional vector<stLabelInfo> labelInfoVec;//相关标签信息
+		10 optional int status;//0为上架;1为导数据中;2为下架
+		11 optional vector<string> keyWords;
+	};
+	//查看剧集doki列表接口
+	struct stVideoDokiListReq
+	{
+		//查看所有剧集doki,dataKey传type=video;查看所有兴趣doki则dataKey传type=hobby, type为空后台则会返回所有的doki(包括剧集和兴趣)
+		0 optional string dataKey;//type=xxx&status=xxx    type的值见宏定义VIDEO_MAIN_TYPE，传空表示所有，type传1,2表示查看电影、电视剧的剧集doki status留着扩展以防以后需要查看下架、正在导数据中的doki
+		1 optional int page_num;
+		2 optional int page_size;
+	};
+	struct stVideoDokiListRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+		2 optional vector<stVideoDokiDetail> detailVec;
+		3 require int page_num;
+		4 require int page_totalNum;
+	};
+	//剧集doki详情接口
+	struct stVideoDokiDetailReq
+	{
+		0 require long dokiId;                   //剧集doki的id
+	};
+	struct stVideoDokiDetailRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+		2 optional stVideoDokiDetail detail;
+	};
+	enum PULL_TYPE
+	{
+		PULL_CID = 1, 
+		PULL_LID = 2,
+		PULL_LABEL = 3, 		
+	};
+	//自动拉取接口
+	struct stDokiAutoPullReq
+	{
+		0 optional int type;//1拉取cid相关信息;2拉取lid相关信息;3拉取标签相关信息
+		1 optional string id;//
+	};
+	struct stDokiAutoPullRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+		2 optional string title;
+		3 optional string smallPic;//小圆图
+		4 optional string backgroundPic;//目前不需要自动拉取
+		5 optional vector<stStarInfo> starInfoVec;//相关明星数据
+		6 optional vector<stLabelInfo> labelInfoVec;//相关标签数据
+		7 optional int type;
+		8 optional string tips;
+	};
+	// 操作剧集doki   0xf2e6
+	//http://debugaccess.video.qq.com/star_admin/oper_video_doki?vappid=90355472&vsecret=b5a6aa567a55d84008e258a9f69bfdb8e929aa97c4c12c24
+	struct stOperateVideoDokiReq
+	{
+		0 require int type;                //6为下架; 12为上架; 详情见宏定义OperType
+		1 optional long dokiId;            //剧集doki的id
+	};
+	
+	struct stOperateVideoDokiRsp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+	};
+	
+	enum DRAFT_TYPE
+	{
+		DRAFT_FEED = 1, //帖子
+		DRAFT_TOPIC = 2, //话题
+		FEED_TIMER = 3, //帖子定时发布		
+	};
+	// 剧集doki信息的结构体
+	struct stDraftDetail
+	{
+		0 optional long id;                   //草稿箱的id
+		1 optional int type;//见宏定义DRAFT_TYPE
+		2 optional string content;//
+		3 optional long pub_time;//定时器的utc时间(单位是秒)
+		4 optional int status;
+	};
+	
+	// 保存草稿箱
+	struct stSaveDraftReq
+	{
+		0 optional stDraftDetail draft;//首次保存由后台生成id，后续覆盖保存需要传id 
+	};
+	struct stSaveDraftRsp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+		2 optional long id;//
+	};
+	// 删除草稿箱
+	struct stDeleteDraftReq
+	{
+		0 optional vector<long> ids;// 
+	};
+	struct stDeleteDraftRsp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+	};
+	// 拉取草稿箱列表
+	struct stDraftListReq
+	{
+		0 optional int type;// 
+		1 optional int page_num;
+		2 optional int page_size;
+	};
+	struct stDraftListRsp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+		2 optional vector<stDraftDetail> list;
+		3 optional int page_num;
+		4 optional int page_totalNum;
+	};
+
+	enum OPER_FLOW_TYPE
+	{
+		FLOW_WRITE_RIGHT = 1,//授予权限 {"fans_vuid":"123","starid":94432,"identity":1}
+		FLOW_UNDO_WRITE_RIGHT = 2,//收回权限 {"fans_vuid":"123","starid":94432,"identity":1}
+		FLOW_AGREE_APPLY = 3,//同意申请权限 {"data_key":"starid=94432&identity=1&vuid=123starname="}
+		FLOW_REJECT_APPLY = 4,//拒绝申请权限 {"data_key":"starid=94432&identity=1&vuid=123starname="}
+		FLOW_CONFIG_FANSCLUB_TAB = 5,
+		FLOW_CONFIG_DOKI_VOICE = 6,
+		FLOW_CONFIG_H5_TAB_NAME = 7,
+		FLOW_CONFIG_H5_TAB_URL = 8,
+		FLOW_CONFIG_DOKI_TAB_ORDER = 9,
+		FLOW_CONFIG_BIG_LEVEL_PIC_1 = 20,
+		FLOW_CONFIG_BIG_LEVEL_PIC_2 = 21,
+		FLOW_CONFIG_BIG_LEVEL_PIC_3 = 22,
+		FLOW_CONFIG_BIG_LEVEL_PIC_4 = 23,
+		FLOW_CONFIG_SMALL_LEVEL_PIC_1 = 30,
+		FLOW_CONFIG_SMALL_LEVEL_PIC_2 = 31,
+		FLOW_CONFIG_SMALL_LEVEL_PIC_3 = 32,
+		FLOW_CONFIG_SMALL_LEVEL_PIC_4 = 33,
+		FLOW_CONFIG_FANS_NAME_1 = 40,
+		FLOW_CONFIG_FANS_NAME_2 = 41,
+		FLOW_CONFIG_FANS_NAME_3 = 42,
+		FLOW_CONFIG_FANS_NAME_4 = 43,
+
+		FLOW_MODIFY_NOTE = 101,//修改帖子 before_oper:{"content":"","img":"","video":""} after_oper:{"content":"","img":"","video":""}
+		FLOW_DELETE_NOTE = 102,//删除帖子
+		FLOW_TOP_NOTE = 103,//置顶帖子
+		FLOW_HOT_NOTE = 104,//加精帖子
+		FLOW_UNDO_TOP_NOTE = 105,//取消置顶帖子
+		FLOW_UNDO_HOT_NOTE = 106,//取消加精帖子
+		FLOW_OFF_NOTE = 107,//下架帖子
+		FLOW_MOVE_IN_NOTE = 108,//移入待加入
+		FLOW_JOIN_NOTE = 109,//加入到doki广场
+		FLOW_NOT_JOIN_NOTE = 110,//不加入
+		FLOW_MOVE_OUT_NOTE = 111,//移出广场
+		FLOW_FORBIDDEN_USER = 112,//禁言用户
+		FLOW_UNDO_FORBIDDEN_USER = 113,//取消禁言用户
+		FLOW_GLOBAL_FORBIDDEN_USER = 114,//全局禁言用户
+		FLOW_UNDO_GLOBAL_FORBIDDEN_USER = 115,//取消全局禁言用户
+		
+		FLOW_MODIFY_TOPIC = 201,//修改话题 before_oper:{"brief":"","starids":"","cid":"","lid":""}  after_oper:{"brief":"","starids":"","cid":"","lid":""}
+		FLOW_DELETE_TOPIC = 202,//删除话题
+		FLOW_OFF_TOPIC = 203,//下架话题
+		FLOW_OPER_TOPIC_RANK = 204,//干预热门话题排序{"rank":1,"begin_time":"","end_time":""}
+		
+		FLOW_CREATE_VIDEO_DOKI = 301,//创建剧集doki
+		FLOW_MODIFY_VIDEO_DOKI = 302,//修改剧集doki before_oper:{"type":1,"title":"","brief":"","smallPic":"","backgroundPic":"","cids":"","lids":"","labelids":"","starids":"","keyWords":""}
+		FLOW_DELETE_VIDEO_DOKI = 303,//删除剧集doki
+		FLOW_OFF_VIDEO_DOKI = 304,//下架剧集doki
+	};
+	enum DATA_TYPE//对应操作流水中的data_type
+	{
+		DATA_STAR_DOKI = 1,    //明星doki,此时data_key传明星id
+		DATA_VIDEO_DOKI = 2,   //剧集doki,此时data_key传剧集doki id
+		DATA_DOKI = 3,         //先不用
+		DATA_NOET = 4,         //帖子,此时data_key传帖子id
+		DATA_TOPIC = 5,        //话题,此时data_key传话题id
+		DATA_USER = 6,         //用户,此时data_key传用户id
+	};
+	enum SCENE_TYPE//对应操作流水中的scene_type
+	{
+		SCENE_STAR_DOKI = 1,     //明星doki,此时scene_id传明星id
+		SCENE_VIDEO_DOKI = 2,    //剧集doki,此时scene_id传剧集doki id
+		SCENE_DOKI = 3,          //先不用
+		SCENE_NOET = 4,          //帖子,此时scene_id传帖子id
+		SCENE_TOPIC = 5,         //话题,此时scene_id传话题id
+	};
+	// 查操作流水
+	// data_type见宏定义DATA_TYPE  oper_type见宏定义OPER_FLOW_TYPE
+	// data_key 数据key; 明星id、doki_id、话题id、帖子id等
+	// scene_id 场景id;  明星id、doki_id、话题id、帖子id等
+	
+	//查询场景1.应该是选择一个data_type，再选择一个data_key(明星id、doki_id、话题id、帖子id)，查询真正修改该数据的流水
+	//查询场景2.应该选择一个操作类型，查询所有该类型的操作 
+	//查询场景3.查询指定用户的操作流水
+	//查询场景4.选择一个scene_type,再选择一个scene_id(明星id、doki_id、话题id、帖子id)，查询该场景下的所有流水, 对应doki内部的局部流水
+	
+	//data_type data_key是表征该流水就是操作该数据。scene_type scene_id可以理解为该被操作数据的一个归属。比如下架赵丽颖后援会的一个帖子， 后台存储的data_type data_key的是帖子，scene_type //scene_id会存赵丽颖。 如果data_type data_key传赵丽颖是查不出这个流水的，scene_type scene_id传赵丽颖就可以
+	
+	//数据类型+数据值可理解为操作流水的真正实体;场景类型+场景值可理解为操作流水的上下文背景。example 1.在赵丽颖doki下授权用户(开通管理员)的操作，操作的真正实体为用户，上下文背景则是赵丽颖，此时根据赵丽颖这个场景值则可以搜索到该流水。example 2：在赵丽颖doki下置顶一个帖子，操作的真正实体为帖子，上下文背景则是赵丽颖，此时根据该帖子id的数据值或者根据赵丽颖这个场景值可以搜搜到该流水
+	//查询条件的json {"qq":"583493713","vuid":0,"data_type":0,"data_key":"","scene_type":0,"scene_id":"","oper_type":103,"begin_time":"2017-12-11 12:00:00","end_time":"2017-12-11 12:00:00"} 
+	struct stOperFlowListReq
+	{
+		0 optional string json;
+		1 optional int page_num;
+		2 optional int page_size;
+	};
+	struct stOperFlowListRsp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+		2 optional vector<string> list; //json的list  {"nickname":"御六气[vuid]","mtime":"2017-12-11 12:00:00","oper_type":3,"reason":"","before_oper":"","after_oper":"","action_url":""}
+		3 optional int page_num;
+		4 optional int page_totalNum;
+	};
+
+
+	//更新数据导入状态表
+	struct stUpdateExportStatusReq
+	{
+		0 optional int bit_value;//mengyaoqin用0x1;jettchen用0x2;lukejguo用0x4;  update t_doki_test set data_export=data_export|bit_value where doki_id in (ids);
+		1 optional vector<string> ids;//doki_id列表
+		2 optional string scene;//mengyaoqin用fansclub_new;lukejguo用fansclub_hot
+	};
+	struct stUpdateExportStatusRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+	};
+	
+	// 剧集doki信息的结构体
+	struct stDokiBrief
+	{
+		0 optional long id;                   //剧集doki的id
+		1 optional vector<string> cids;
+		2 optional vector<string> lids;
+		3 optional int data_export;
+	};
+	//查询需要导数据的剧集doki列表
+	struct stNeedExportDokiListReq
+	{
+		0 optional int bit_value;//mengyaoqin用0x1;jettchen用0x2;lukejguo用0x4;  select doki_id,cids,lids from t_doki_test where data_export&bit_value=bit_result order by doki_id limit 5;
+		1 optional int bit_result;
+	};
+	struct stNeedExportDokiListRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+		2 optional vector<stDokiBrief> list; //doki信息列表
+	};
+	
+	
+	enum VIDEO_TYPE
+	{
+		VIDEO_TYPE_VID = 1,
+		VIDEO_TYPE_CID = 2,
+		VIDEO_TYPE_LID = 3,
+	};
+	enum FEED_TYPE//发帖行为类型
+	{
+		FEED_TYPE_PUBLISH = 1,//原创
+		FEED_TYPE_REPLY = 8,//回复
+	};
+	enum FEED_CONTENT_TYPE//帖子内容类型  按bit位赋值
+	{
+		FEED_CONTENT_TEXT = 1,//纯文本     第1个bit
+		FEED_CONTENT_PIC = 2,//带图片      第2个bit
+		FEED_CONTENT_VIDEO = 3,//带视频    第3个bit
+		FEED_CONTENT_VOICE = 4,//带语音    第4个bit
+	};
+	
+ 	enum FEED_STATUS//帖子审核状态
+ 	{
+ 		FEED_STATUS_NORMAL          = 0,
+ 		FEED_STATUS_DELETE_BY_ADMIN = 1, //审核不通过后台删除
+ 		FEED_STATUS_VERIFYING       = 2, //审核中 
+ 		FEED_STATUS_DELETE_BY_USER  = 3  //用户删除
+ 	};
+	enum ACCOUNT_TYPE//账号类型
+	{
+		ACCOUNT_TYPE_QQ = 1,
+		ACCOUNT_TYPE_WX = 2,
+	};
+	enum DOKI_TYPE//对应操作流水中的data_type
+	{
+		DOKI_STAR_DOKI = 1,    //明星doki,此时doki_id传明星id
+		DOKI_VIDEO_DOKI = 2,   //剧集doki,此时doki_id传剧集doki id
+	};
+	//scene字段含义：发表场景0未知，1视频详情页评论2分享面板(包括小窗和全屏) 3录制面板(包括截图和小视频) 4饭团粉丝留言(包括饭团和V+) 5话题详情页6电影打分7管理台发表
+	//oper_status 1为候选; 2为入选
+	//  content_type:帖子内容类型; scene:场景; status:帖子审核状态(查看所有的话需要传-1,因为0是正常有效值); identity:发表者身份; type:发帖行为类型;
+	//  {"feed_id":"","title":"","content":"","video_type":0,"video_id":"","content_type":0,"scene":0,"status":-1,"account_type":0,"account_id":"",
+	//  "doki_type":0,"doki_id":"","identity":0,"type":0,"begin_time":0,"end_time":0,"oper_status":0,"topic_id":"9999_37"
+	//  "online_time":0} 
+	struct stFeedQueryListReq   //0xf39d
+	{
+		0 optional string json;
+		1 optional int page_num;
+		2 optional int page_size;
+		3 optional int type;//1查feed;2查om数据 3;十佳贴查询feed
+	};
+	
+	//  {"feed_id":"5510072551060","time":1514949795,"title":"","content":"","user":"","identity":1,"content_type":1,"vid":"","cid":"","lid":"",
+	//  "from":0, "type":1,"pic_num":10,"video_num":10,"relate_doki":"赵丽颖,林更新","status":1,"scene":1,"pv_num":100,"reply_num":100,"like_num":100,
+	//  "like_pv_ratio":"100%","comment_pv_ratio":"100%","target_id":"","comment_id":"","action_url":"","pic_url":["url_1","url_2"]}
+	struct stFeedQueryListRsp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+		2 optional vector<string> list; //json的list  
+		3 optional int page_num;
+		4 optional int page_totalNum;
+		5 optional long total_cnt;//匹配结果总数目
+	};
+	
+	struct stOffNoteTransInfo
+	{
+		0 require string dateKey;                  //人名库明星id  star_id=94432&note_id=123456789
+	};
+	
+	//feedid与commentid的映射查询
+	struct stRelationQueryReq   //对应命令字 0xf4d4 http://debugaccess.video.qq.com/star_admin/relation_query?vappid=90355472&vsecret=b5a6aa567a55d84008e258a9f69bfdb8e929aa97c4c12c24&type=2&id=6427825936164293980
+	{
+		0 optional int type;//1:通过feedid查询commentid; 2:通过commentid查询feedid
+		1 optional string id;
+	};
+	struct stRelationQueryRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+		2 optional string id;
+	};
+	
+	struct stOperListReq
+	{
+		0 optional string json;//{"doki_id":"","type":0,"account_type":0,"account_id":"","oper_account_type":0,"oper_account_id":"","begin_time":0,"end_time":0}
+		1 optional int page_num;
+		2 optional int page_size;
+	};
+	
+	//  {"time":1514949795,"account_desc":"","vuid":123,"oper_account_desc":"","doki_id":"94432","doki_desc":"赵丽颖","type":22,"valid_time_desc":"3天","reason":"123456789","datakey":""}
+	struct stOperListRsp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+		2 optional vector<string> list; //json的list  
+		3 optional int page_num;
+		4 optional int page_totalNum;
+	};
+	
+	struct stReadVuidStatusReq
+	{
+		0 optional long vuid; //
+		1 optional vector<string> ftIds;
+	};
+	struct stReadVuidStatusRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+		2 optional string tips; //有提示则不让发帖，透传tips给终端
+	};
+	
+	struct stReadTopRankReq
+	{
+		0 optional int type;//1说明strKey为话题id
+		1 optional string strKey; //
+		2 optional int bitmap;//0x1获取rank_map; 0x2获取feedIds
+	};
+	struct stReadTopRankRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+		2 optional map<string, int> rank_map; //帖子id到置顶排名的映射
+		3 optional vector<string> feedIds;//已经排好序的帖子id列表
+	};
+
+	//om账号申请映射的视频vuid   CMD_APPLY_OM_VUID = 0xf6e3
+	struct stApplyOmVuidReq
+	{
+		0 optional int source;//游戏doki组传1
+		1 optional string strKey; //填写om数据的mediaId
+	};
+	struct stApplyOmVuidRsp
+	{
+		0 require int errCode;			//业务错误码
+		1 optional string strErrMsg;
+		2 optional long vuid; //errCode为0但vuid也是0说明vuid不足了
+	};
+	
+	//雪球中转 帖子操作
+	struct stRelayFeedOper
+	{
+		0 optional string feedid;			//帖子id
+		1 optional string dokiid;
+		2 optional long operatorVuid;  	//操作者
+		3 optional long authorVuid;		//帖子作者
+		4 optional long oper;			//操作类型（见enum OperType）
+		5 optional IdentityType identityType; //操作者的身份
+		6 optional long opertime;     //操作时间
+		7 optional int 	scene;	//场景
+		8 optional string picUrl; //壁纸url
+	};
+	
+	//十佳贴信息
+	struct GoodFeedInfo
+	{
+		0 optional string feedid;		//帖子id
+		1 optional long authorVuid;		//帖子作者
+		2 optional long operatorVuid;  	//推荐人
+		3 optional IdentityType identityType; //推荐人的身份
+		4 optional long opertime;     //推荐时间
+		5 optional string operDateTitle;	//入选日期，透传给app
+		6 optional string pic;		//运营配置的图片
+		7 optional string title;	//运营配置的title
+		//8不用
+		9 optional int    picType;  // 0：普通图片 1：视频封面图
+		10 optional long  selectTime; //运营入选时间
+	};
+	
+	//广场页十佳贴请求
+	struct SquareGoodFeedsRequest
+	{
+		0 optional int iScene; //0：广场页  1：二级页
+	    1 optional string pageContext;  //翻页上下文，空表示从今天开始，
+	};
+	
+	struct SquareGoodFeedsResp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+		2 optional vector<GoodFeedInfo> feeds;
+	    3 optional string nextPageContext;   //翻页上下文
+	};
+	
+	//其它设置，比如推荐次数 CMD_CONTENT_CONFIG_REQ = 	0xfa69, //通用配置请求
+	struct ContentConfigureReq
+	{
+		0 optional int type; //1：设置高级粉丝推荐次数 2：查询次数
+		1 optional string starId;
+		2 optional int recommendCount; //总的推荐次数
+		3 optional string vuid;
+	};
+	struct ContentConfigureResp
+	{
+		0 require int errCode;							//业务错误码
+        1 optional string strErrMsg;					//业务错误原因
+		2 optional int recommendCount; //总的推荐次数
+		3 optional int usedCount; //已经使用的推荐次数
+	};	
+};

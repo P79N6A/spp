@@ -1,0 +1,93 @@
+#include "qqvideo_common.jce"
+
+module jce
+{
+	// 收藏二级页导航信息
+	struct FavoritesTopBarItem
+	{
+		0 optional byte type; // 0：视频tab； 1：问题tab； 2：feed tab
+		1 optional string dataKey; // 问题、feed tab拉取数据用，视频tab不用填
+		2 optional string title; // tab title
+	};
+
+	// 收藏二级页导航请求
+	struct FavoritesTopBarRequest
+	{
+		0 require string userId; // 当前页面的用户id
+	};
+
+	// 收藏二级页导航回包
+	struct FavoritesTopBarResponse
+	{
+		0 require int errCode;
+		1 optional vector<FavoritesTopBarItem> itemList; // tab 列表
+	};
+	
+	
+	// 收藏二级页问题信息
+	struct FavoritesQAItem
+	{
+		0 optional long favoritesTime; // 单位秒
+		1 optional QAPrimaryFeed qaPrimaryFeed; // 问题feed
+	};
+
+	// 收藏二级页问题tab列表请求
+	struct FavoritesQAListRequest
+	{
+		0 require string dataKey;  // 请求dataKey
+		1 optional string pageContext;					//翻页上下文
+	};
+
+	// 收藏二级页问题tab列表回包
+	struct FavoritesQAListResponse
+	{
+		0 require int errCode;
+		1 optional vector<FavoritesQAItem> itemList; // qa feed item 列表
+		2 optional string pageContext;					//翻页上下文
+		3 optional bool hasNextPage;					//是否还有下一页数据
+		4 optional int qaFavoritesCount;       // 当前用户问题收藏个数
+	};
+	
+	// 收藏二级页feed信息
+	struct FavoritesFeedItem
+	{
+		0 optional long favoritesTime; // 单位秒
+		1 optional CirclePrimaryFeed primaryFeed; // feed
+	};
+
+	// 收藏二级页feed tab列表请求
+	struct FavoritesFeedListRequest
+	{
+		0 require string dataKey;      // 请求dataKey
+		1 optional string pageContext; //翻页上下文
+	};
+
+	// 收藏二级页feed tab列表回包
+	struct FavoritesFeedListResponse
+	{
+		0 require int errCode;
+		1 optional vector<FavoritesFeedItem> itemList; // feed item 列表
+		2 optional string pageContext;					//翻页上下文
+		3 optional bool hasNextPage;					//是否还有下一页数据
+		4 optional int feedFavoritesCount;       // 当前用户帖子收藏个数
+	};
+	
+	// 收藏操作请求
+	struct FavoritesOperationRequest
+	{
+		0 optional vector<string> feedIdList; // 操作的feed列表
+		1 optional byte feedType; // 0:普通帖子； 1 ：提问帖
+		2 optional byte operationType; // 0: 收藏； 1：取消收藏；2：clean收藏
+	};
+
+	// 收藏操作回包
+	struct FavoritesOperationResponse
+	{
+		0 require int errCode;
+		1 optional string errMsg;
+		2 optional int qaFavoritesCount;       // 当前用户问题收藏个数
+		3 optional int feedFavoritesCount;       // 当前用户帖子收藏个数
+		4 optional int maxQAFavoritesCount;       // 最大问题收藏个数
+		5 optional int maxFeedFavoritesCount;       // 最大帖子收藏个数
+	};
+};

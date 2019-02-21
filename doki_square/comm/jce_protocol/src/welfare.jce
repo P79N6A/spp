@@ -1,0 +1,349 @@
+////////////////////////////////////////////////////
+//
+//	福利社业务后台内部接口协议
+//	测试环境l5:	
+//		0xf83a:	520769:5898240[NOSET]
+//      0xf9fe: 520769:13500416[NOSET]
+//		其他:		328257:4521984[NOSET]
+//
+//	正式环境l5:
+//      0xf9fe: 1096193:65536[NOSET]
+//
+//
+///////////////////////////////////////////////////
+
+module WelfareClubInner
+{
+	//命令字
+	enum Command
+	{
+		CMD_GET_WELFARE_ENTRANCE	    					= 0xf827,			//福利社广场入口请求-----------通过l5调用
+
+		CMD_WELFARE_PAPER_PUSH_MSG	    				= 0xf828,			//福利社壁纸操作数据通知消息---中转
+
+		CMD_WELFARE_PAPER_DOWN_COUNT						= 0xf83a,			//福利社壁纸下载量计数推送-----通过l5调用
+		CMD_WELFARE_PAPER_CHECK_RESULT					= 0xf83b,			//壁纸审核识别结果消息通知-----通过l5
+		
+		CMD_GET_WELFARE_HOT_LIST								= 0xf843,			//拉取最热的壁纸或者表情包数据-----通过l5调用
+		CMD_CHECK_PAPER_OFF_STATUS							= 0xf846,			//查询壁纸是否加精--------------通过l5
+
+		CMD_GET_FEED_PAPER_DEC_RESULT						= 0xf8a6,			//查询帖子壁纸识别结果--------------通过l5
+		
+		CMD_GET_WELFARE_PAPAER_LASTLY_DOWN_COUNT = 0xf9fe,     				// 拉取最近一段时间doki壁纸下载量---通过l5
+		
+		CMD_START_PAPER_SORT_MSG 									= 0x01,    					// 壁纸最热排序更新触发消息---通过l5， spp_welfare_exp_idx
+		
+		CMD_GET_WELFARE_PAPER_EXTINFO 						= 0xfb17,    				// 获取壁纸关联信息---通过l5
+		
+		CMD_GET_WELFARE_NEW_DATA									=	0xfc4a,						// 拉取明星福利更新数据	---通过l5，(for channer)后援会插入模块使用
+		
+		CMD_CHECK_HAS_WELFARE_DATA								= 0xfd21,						// 查询是否有doki福利数据	---通过l5，(for beepeng)判断doki主页是否出福利tab
+	};
+
+	//账号类型
+	enum EAccountType
+	{
+		E_ACCOUNT_GUID       = 0,        //guid
+		E_ACCOUNT_QQ         = 1,        //qq
+		E_ACCOUNT_VUID       = 2         //vuid
+	};
+
+	struct StUserId
+	{
+		0 require EAccountType utype;      	//账号类型
+		1 require string uid;     		//账号id
+	};
+	
+	//用户信息
+	struct StUserInfo
+	{
+		0 require StUserId userid;      	//账号
+		1 require string head;			//头像
+		2 require string nick;			//昵称
+	};
+
+	struct StWelfareEntrance
+	{
+		0 optional string pic;			//图片
+		1 optional string title;
+		2 optional string subTitle;
+		3 optional string url;			//跳转url
+		4 optional string dokiId;
+		5 optional long downCnt;
+		6 optional int src;			//1:关注, 2:热门
+	};
+
+	enum EKeyIdType
+	{
+		E_KEY_TYPE_PIC       = 1,     //壁纸图片
+		E_KEY_TYPE_DOKI      = 2,     //doki
+		E_KEY_TYPE_FEED      = 3,     //feed
+	};
+	
+	//福利数据类型
+	enum EDataType
+	{
+		E_DATA_TYPE_DEFAULT   		    	= 0,     //默认---壁纸
+		
+		E_DATA_TYPE_PAPER   		    	= 1,     //壁纸
+		E_DATA_TYPE_EMOTICON				= 2,     //表情包
+	};
+	
+	//图片审核结果
+	enum EPicStatus
+	{
+		E_PIC_NORMAL       			= 1000,         //图片状态正常
+		
+		E_PIC_CLARITY_INVALID    	= 1001,         //图片清晰度不够(分数（清晰度>=50）)
+		E_PIC_SIZE_INVALID       	= 1002,         //图片大小不符(分辨率)
+		E_PIC_REPEAT       			= 1003,         //图片重复
+		E_PIC_FACE_INVALID       	= 1004,         //图片人脸识别问题(壁纸中未识别该明星)
+		E_PIC_SCALE_INVALID       	= 1005,         //图片比例不符(宽高比 图片：1~2.4；视频：1.3~2.4)
+
+		E_PIC_QRCODE       			= 1006,         //图片有二维码
+		E_PIC_BLACK_SIDE       		= 1007,         //图片有黑边
+
+		E_PIC_GIF_UNSUPPORT			= 1008,			//gif不支持
+		
+		E_PIC_PHONESNAP					= 1009,			//截屏不支持
+	};
+	
+	struct StCntItem
+	{
+		0 optional EKeyIdType keyType;
+		1 optional string keyId;				//壁纸图片或者dokiid
+		2 optional long lCnt;					//总下载量
+		3 optional long lPartCnt;				//时间段内下载量(doki需要近六小时的，图片不需要)
+	};	
+	
+	struct StPicStatusItem
+	{
+		0 optional string pic;				//壁纸图片
+		1 optional EPicStatus status;		//状态
+		2 optional string dokiid;		
+	};
+
+	struct StHotPaper
+	{		
+		0 optional string pic;
+		1 optional string feedid;
+		2 optional string datakey;
+		3 optional long downCnt;
+		4 optional string thumbPic;
+	};
+
+	struct StHotDoki
+	{		
+		0 optional string dokiid;
+		1 optional string datakey;
+		2 optional vector<StHotPaper> vctPaper;
+	};
+	
+	//福利数据项
+	struct StWelfareData
+	{
+		0 optional string url;
+		1 optional string id;
+		2 optional string feedid;
+		3 optional string datakey;
+	};
+	
+	//-------------------------------------------------------------------------------------------------------
+
+	//doki广场拉取福利社入口数据
+	struct StGetWelfareEntranceReq
+	{
+		0 optional int curTime;		//当前时间
+	};
+
+	struct StGetWelfareEntranceRsp
+	{
+		0 require int errcode;
+		1 require string errmsg;
+
+		2 optional StWelfareEntrance stData;
+	};
+
+	//-------------------------------------------------------------------------------------------------------
+	//福利社壁纸操作数据通知
+	struct StWelfarePaperMsg
+	{		
+		0 require int type;			//枚举值与doki管理台的OperType保持一致。3为加精，5为取消加精，6为下架，13为下载	
+		1 optional string datakey;
+	};
+
+	//-------------------------------------------------------------------------------------------------------
+
+	//福利社壁纸下载量推送
+	struct StWelfarePaperDownCntReq
+	{
+		0 require string datakey;
+		1 optional vector<StCntItem>  vctCnt;		//下载量数据
+	};
+
+	struct StWelfarePaperDownCntRsp
+	{		
+		0 require int errcode;
+		1 require string errmsg;
+	};
+
+	//-------------------------------------------------------------------------------------------------------
+
+	//壁纸审核识别结果消息通知
+	struct StWelfarePaperCheckResultReq
+	{
+		0 require string feedid;
+		1 require int status;				//0:帖子正常状态， 2:帖子审核不通过 3:帖子被删除
+		2 optional int type;                // 1:静态壁纸，2：动态壁纸
+		3 optional vector<StPicStatusItem>  vctStatus;
+	};
+
+	struct StWelfarePaperCheckResultRsp
+	{		
+		0 require int errcode;
+		1 require string errmsg;
+	};
+
+	//-------------------------------------------------------------------------------------------------------
+	
+	//拉取最热的壁纸或者表情包数据
+	struct StGetWelfareHotListReq
+	{
+		0 optional string dokiid;		//当前dokiid
+		1 optional int cnt;
+		2 optional EDataType eDType;		//数据类型, 壁纸/表情包
+	};
+
+	struct StGetWelfareHotListRsp
+	{		
+		0 require int errcode;
+		1 require string errmsg;
+		2 optional vector<StHotDoki> vctData;
+	};
+	//-------------------------------------------------------------------------------------------------------
+	
+	//查询壁纸下架状态
+	struct StCheckPaperIsOffReq
+	{
+		0 optional string datakey;	
+	};
+
+	struct StCheckPaperIsOffRsp
+	{		
+		0 require int errcode;
+		1 require string errmsg;
+		2 optional int status;			//0x1 加精
+	};
+	//-------------------------------------------------------------------------------------------------------
+
+	
+	//查询壁纸识别结果
+	struct StGetFeedPaperDecReq
+	{
+		0 optional string feedid;	
+	};
+
+	struct StGetFeedPaperDecRsp
+	{		
+		0 require int errcode;
+		1 require string errmsg;
+		2 optional map<string, vector<EPicStatus> > mapResult;
+	};
+    //-------------------------------------------------------------------------------------------------------
+	
+	struct LastlyDownItem
+	{
+	   0 optional string url;
+	   1 optional string doki_id;
+	   2 optional int lastly_down_cnt;
+	};
+	
+    struct GetWelfarePaperLastlyDownCntReq
+    {
+        0 optional int type; 							// 0-doki 1-壁纸
+        1 optional int page_num;  				// 一页拉取数量：0-全量
+        2 optional string page_context;
+    };
+
+    struct GetWelfarePaperLastlyDownCntRsp
+    {
+       0 optional int errcode;
+       1 optional string errmsg;
+       2 optional vector<LastlyDownItem> vec_down_cnt;
+       3 optional string page_context; // 为空表示数据已经拉取完
+    };
+    
+    
+    //------------------------------------------------------
+    //壁纸最热tab的索引存储结构
+    struct StDokiList
+    {
+    	0 optional int timestamp;
+    	1 optional vector<string> vctDokiId;
+    };
+    
+    //壁纸最热排序更新触发消息
+    struct StStartPaperSortReq
+    {
+    	0 optional int timestamp;
+    	1 optional vector<string> vctDoki;
+    };
+    
+    struct StStartPaperSortRsp
+    {
+    	0 require int errcode;
+			1 require string errmsg;
+			2 optional vector<string> vctSuccDoki;
+			3 optional vector<string> vctFailDoki;
+    };
+    
+    //------------------------------------------------------
+        
+    //获取壁纸关联的feedid
+    struct StWelfarePaperExtInfoReq
+    {
+    	0 optional string datakey;
+    };
+    
+    struct StWelfarePaperExtInfoRsp
+    {
+    	0 require int errcode;
+			1 require string errmsg;
+			2 optional string feedid;
+    };
+    
+    //-----------------------------------------------------
+    
+    //拉取明星福利更新数据	
+    struct StWelfareNewDataReq
+    {
+    	0 optional string dokiid;				//dokiid
+    	1 optional int cnt=3;						//需要的数据条数
+    	2 optional EDataType eDType;		//数据类型, 壁纸/表情包
+    };
+    
+    struct StWelfareNewDataRsp
+    {
+    	0 require int errcode;
+			1 require string errmsg;
+			2 optional vector<StWelfareData> vctData;
+    };
+    
+    //-----------------------------------------------------
+    
+    //查询是否有doki福利数据	
+    struct StCheckHasWelfareReq
+    {
+    	0 optional string dokiid;				
+    };
+    
+    struct StCheckHasWelfareRsp
+    {
+    	0 require int errcode;
+			1 require string errmsg;
+			2 optional bool bHasWelfare = false;
+    };
+    
+    //-----------------------------------------------------
+    
+};

@@ -1,0 +1,549 @@
+#include "qqvideo_ad_common.jce"
+#include "qqvideo_ad_defines.jce"
+#include "qqvideo_debug.jce"
+//框内广告协议
+module jce
+{
+    //用户状态(原Pu字段)
+    enum EAdVipState 
+    {
+    	EAdVipStateUnknown 	           = -1,            //未知  
+    	EAdVipStateNotLogin 	         = 0,             //未登录  
+    	EAdVipStateLogin 	             = 1,             //登录的普通用户 
+    	EAdVipStateHollyWoodVip        = 2,             //好莱坞会员 
+    	EAdVipStateWebHollyWoodVip     = 3,             //客户端嵌web播放器好莱坞会员（wind用）
+    	EAdVipStateQQVip  	           = 4,             //qq会员（web，pc客户端，H5页面有效） 
+    	EAdVipStateHollyWoodSuperVip   = 5,             //超级会员（web，pc客户端，H5页面有效）
+    	EAdVipStateFreeAd 	           = 6,             //购买了“免广告”
+    	EAdVipStateQQMusicVip  	       = 7,             //音乐绿钻会员
+      EAdVipState15VIP               = 8,             //15个会员(没有使用了)
+      EAdVipStateTVVIP               = 9,             //tv会员
+      EAdVipStateSPORTVIP            = 10,            //体育会员
+      EAdVipStateSupplementaryVip    = 11,            //腾讯视频VIP的附属卡会员
+    };
+
+    //离线视频播放类型
+    enum EAdOfflineVideoType
+    {
+    	EAdOfflineVideoUnknown         = 0,             //未知  
+    	EAdOfflineVideoInWifi          = 1,             //wifi下的离线视频播放  
+    	EAdOfflineVideoWwan            = 2,             //移动网络下的离线视频播放 
+    	EAdOfflineVideoNoNetwork       = 3,             //无网络下的离线视频播放
+    	EAdOfflineVideoPreDownload     = 4,             //预下载广告
+    };
+
+    //播放模式,13,14是从8分离出来
+    enum EAdPlayMode
+    {
+    	EAdPlayModeUnknown	           = 0,
+    	EAdPlayModeNormal	             = 1,             //点播
+    	EAdPlayModeLive		             = 2,             //直播
+    	EAdPlayModeOffline	           = 3,             //离线
+    	EAdPlayModeClose	             = 4,             //关闭广告(离线并控制关闭,前端逻辑)
+    	EAdPlayModeDLNA		             = 6,             //DLNA
+    	EAdPlayModeHotspot	           = 8,             //热点,好莱坞当前播在使用
+    	EAdPlayModeWhyMeDetail	       = 10,            //whyme 详情页
+    	EAdPlayModeWhyMeTab 	         = 11,            //whyme tab页面
+    	EAdPlayModeMultiCameraVideo    = 12,            //多机位视频
+    	EAdPlayModeHotSpotNormal       = 13,            //热点频道普通点播视频，目前没有使用
+    	EAdPlayModeHotSpotLive	       = 14,            //热点频道普通点播视频，目前没有使用
+      EAdPlayModeVerticalVideo       = 15,            //竖屏视频
+    };
+
+    //屏幕模式
+    enum EAdScreenMode
+    {
+      EAdScreenModeUnknown                  = 0,
+      EAdScreenModeSmall                    = 1,       //小窗      
+      EAdScreenModeFullScreen               = 2,       //横屏
+      EAdScreenModePortraitFull             = 3,       //竖屏全屏
+    };
+    //广告模版定义
+    enum EAdInsideViewType
+    {
+        EEnumAdInsideViewUnknown            = 0,     //未指定视图
+        EEnumAdInsideStandardPauseItem      = 1,     //暂停广告spa视图,依赖于主工程的poster数据结构
+        EEnumAdInsideAdxPauseItem           = 2,     //暂停广告广平视图,依赖于主工程的poster数据结构
+        EEnumAdInsideEmptyItem              = 3,     //空单数据
+        EEnumAdInsideVideoItem              = 4,     //视频贴片广告
+        EEnumAdInsideCornerItem             = 5,     //超级角标广告（含直播超级角标）
+        EEnumAdInsideNormalCornerItem         = 6,     //普通角标广告
+        EEnumAdInsideAnchorRichMediaItem      = 7,     //富媒体伴随（边看边买）广告
+        EEnumAdInsideVideoInsertReporterItem  = 8,     //创意中插广告        
+        EEnumAdInsideCoolSpaPauseItem         = 9,     //spa清爽型暂停广告订单信息，不依赖于主工程的数据结构
+        EEnumAdInsideCoolAdxPauseItem         = 10,    //广平清爽型暂停广告订单信息，不依赖于主工程的数据结构
+    };
+
+    //广告请求平台信息
+    struct AdVideoPlatformInfo
+    {
+      0 optional string adxEncryData;  //广平密串
+      1 optional string pf;            //平台信息 iphone端填写iphone
+      2 optional string chid;             //渠道信息,移动端必填,视频侧填0,极速版:173
+      3 optional string sdtfrom;       //iphone：v3004,(请求面包系统时需要)
+      4 optional string platform;      //Android phone为10303(iphone 10403)业务编号1，设备编号3，播放方式3)          
+      5 optional string device;        //用数字表示，仅安卓使用
+      6 optional int newNetType;       //0-无网络 1-wifi 2-2g 3-3g 4-4g 5-5g
+      7 optional string openudid;        //移动设备唯一标识
+    };
+
+    //广告请求信息
+    struct AdVideoInfo
+    {
+    	0 optional  string vid;          //视频vid
+    	1 optional  string coverId;      //视频专辑ID
+    	2 optional  int isLive;          //是否直播,0-非直播,1-直播
+    	3 optional  string livepId;      //直播pid
+    	4 optional  string lid;          //栏目id
+    	5 optional  int tpId;            //回流需要使用(对应videoType，视频类型，电视剧，综艺，定向使用)
+
+    	6 optional  string defn;         //视频清晰度 sd\hd\shd 分别表示标清，高清，超高清，缺省hd(hls)
+    	7 optional  string preVid;       //秒播id
+    };
+
+    //广告请求页面信息
+    struct AdPageInfo
+    {
+    	0 optional  EAdPlayMode adPlayMode;  //playMode
+    	1 optional  int    style;            //style：视频样式 0-未定义 1-feed流样式 2-不出广告(终端逻辑)
+    	2 optional  string page;   	         //feed流短视频场景id vplus_home:V＋主页 detail_page:详情页下feed流 //third_page:标签二级页 second_page:子频道一级页面
+    	3 optional  string channelId;	       //频道ID
+    	4 optional  string reportKey;	       //视频透传reportKey
+    	5 optional  string reportParams;     //视频透传reportParams 保留字段,不传该字段
+      6 optional  string flowId;           //流水id，播放器透传，和播放器流水id一致  
+    };
+
+    //广告离线视频信息
+    struct AdOfflineInfo
+    {
+    	0 optional EAdOfflineVideoType  offlineVideoType;    //离线请求
+    	1 optional vector<string> vidList;                   //offline为2的情况下(移动网络), 必须指定广告素材vid集合,才能出单
+    };
+
+
+    //广告富媒体
+    struct AdRichMediaItem
+    {
+    	0 optional string richMediaUrl;    //富媒体url
+    	1 optional string richMediaZip;    //富媒体下载zip包
+      2 optional bool zipFailedSkipAd;   //富媒体包下载失败是否需要跳过广告
+      3 optional string richMediaParams; //富媒体透传params信息
+      4 optional bool isValid = false;   //富媒体是否有效
+
+    };
+
+
+    //广告额外上报数据
+    struct AdInSideExtraReportItem
+    {
+      0 optional string soid;                                 //上报流水id  
+      1 optional string adid;                                 //上报曝光id
+      2 optional bool needOperationReport = false;            //是否需要运营上报
+      3 optional bool needWisdomReport = false;               //是否智慧点上报
+      4 optional bool needRetryReport = false;                //上报是否需要重试，spa广告不需要重试，广平需要重试
+      5 optional map<string,string> operationReportMap;       //广平dp3上报透传信息
+
+    };
+
+
+    //暂停广告信息
+    struct AdPauseOrderItem
+    {
+      0 optional AdOrderItem  orderItem;                //订单信息
+      1 optional bool isBlurbackground = false;         //1-背景虚化
+      2 optional string md5;                            //素材md5
+    };
+
+
+    //订单信息
+    struct AdxPauseOrderItem
+    {
+       0 require  AdPauseOrderItem  pauseOrderItem;         //订单Id
+       1 optional AdRichMediaItem richMediaItem;            //富媒体信息
+       2 optional AdShareItem shareItem;                    //分享信息
+       3 optional AdInSideExtraReportItem extraReportItem;  //广告额外上报信息
+
+    };
+
+    //贴片广告标题信息
+    struct AdInsideVideoTitle
+    {
+       0 optional string dspName;                //第三方投放平台的dspName
+       1 optional string fullTitle;              //全屏点击样式长标题／详情点击样式,不需要判断app安装状态的广告类型从这里获取副标题，需要判断app安装状态的，已安装时从这里获取 
+       2 optional string fullUnInstallTitle;     //全屏点击样式长标题／详情点击样式,未安装时从这里获取副标题 
+       3 optional string shortTitle;             //全屏点击样式短标题，不需要判断app安装状态的广告类型从这里获取副标题，需要判断app安装状态的，已安装时从这里获取
+       4 optional string shortUnInstallTitle;    //全屏点击样式短标题，未安装时从这里获取副标题
+    };
+
+
+    //spa清爽型暂停广告订单信息，不依赖于主工程的数据结构 viewType=EEnumAdInsideCoolSpaPauseItem
+    struct AdInsideCoolSpaPauseItem
+    {
+       0 optional AdPauseOrderItem  pauseOrderItem;    //订单信息
+       1 optional AdcPoster poster;                       //广告海报  
+       2 optional AdInsideTitleInfo titleInfo;         //暂停广告标题信息
+    };
+
+
+    //Adx清爽型暂停广告订单信息，不依赖于主工程的数据结构 viewType=EEnumAdInsideCoolAdxPauseItem
+    struct AdInsideCoolAdxPauseItem
+    {
+       0 optional AdxPauseOrderItem adxOrderItem;    //订单信息
+       1 optional AdcPoster poster;                     //广告海报  
+       2 optional AdInsideTitleInfo titleInfo;       //暂停广告标题信息
+    };
+
+    //框内空单信息 viewType=EEnumAdInsideEmptyItem
+    struct AdInsideEmptyItem
+    {
+       0 optional AdOrderItem orderItem;    //订单信息
+    };
+
+    //视频素材信息
+    struct  AdVideoItem
+    {
+      1 optional string url;         //视频素材地址
+      2 optional string md5;         //素材MD5值
+      3 optional int fileSize;       //素材文件大小 ，单位确认下
+      4 optional int duration;       //素材时长 单位：秒
+      5 optional int width;          //素材宽度
+      6 optional int height;         //素材高度
+      7 optional string vid;         //贴片广告素材视频vid
+      8 optional int encodeFormat;   //编码格式类型
+    };
+
+
+    //广告语言识别信息
+    struct AdSpeechInfo
+    {
+      0  optional bool isValid = false;              //语音识别是否有效
+      1 optional string  voiceToken;                 //语音识别Token,需要传给后台
+      2 optional float  confidence;                  //语音识别置信度
+      3 optional int openType;                       //0-打开落地页，1-跳过广告
+      4 optional string mainTitle;                   //语音标题：例如：说出
+      5 optional string adWord;                      //广告词
+      6 optional string subTitle;                    //语音副标题：例如：跳过广告
+    };
+
+    //联动广告信息
+    struct AdLinkInfo
+    {
+      0 optional bool isValid = false;             //联动广告是否有效
+      1 optional string  imageUrl;                 //图片url
+      2 optional string  title;                    //标题
+      3 optional string subTitle;                  //副标题支持 html 标签
+      4 optional float startCount;                 //评星
+      5 optional string buttonTitle;               //联动广告按钮文案
+      6 optional bool isBannerValid = false;       //是否支持全屏banner展示
+      7 optional int bannerShowTime;               //全屏banner开始展示的时间 单位: ms
+    };
+
+    //贴片广告视图信息
+    struct AdInsideVideoPoster
+    {
+      0 optional bool enableScreenClick = false;             //0-不允许全屏点击 1-允许全屏点击
+      1 optional int skipAdDuration;                         //播放skipAdDuration秒后，可跳过广告，0表示不可跳过广告
+      2 optional string skipAdtitle;                         //跳过广告标题，支持html标签
+      3 optional string skipAdSubtitle;                      //跳过广告副标题，支持html标签
+      4 optional int  actionButtonType;                      //0-无点击按钮，1-详情点击样式,2-全屏点击样式,3-vip推荐点击样式
+      5 optional AdInsideVideoTitle titleInfo;               //底部标题信息 
+      6 optional AdAction buttonAction;                      //行动按钮跳转 
+    };
+
+    //免流信息
+    struct  AdFreeFlowItem
+    {
+      0 optional int flowType = 0;       //免流类型：0-不免流，1-联通免流，2-移动免流，3-电信免流
+      1 optional int flowSubType = -1;   //免流子类型：联通免流：
+                                         //0-普通免流订购业务-15元包月，
+                                         //1-小王卡免流，
+                                         //2-大王卡免流，
+                                         //3-普通免流订购业务-20元包月
+      2 optional string userMob;         //伪码
+    };
+
+
+    //贴片广告信息
+    struct AdInsideVideoItem
+    {
+      0 optional int adSubType;                              //0-普通广告，1-华纳美剧无法跳过广告，2-hbo无法跳过广告，3-vip推荐，4-关闭广告
+      1 optional AdOrderItem  orderItem;                     //订单信息
+      2 optional AdVideoItem videoItem;                      //视频信息
+      3 optional AdInsideVideoPoster videoPoster;            //贴片广告视图信息
+      4 optional AdShareItem shareItem;                      //分享信息
+      5 optional AdSpeechInfo speechInfo;                    //语音识别信息
+      6 optional AdLinkInfo linkInfo;                        //联动广告信息
+      7 optional AdRichMediaItem richMediaItem;              //富媒体信息
+      8 optional AdInSideExtraReportItem extraReportItem;    //广告额外上报信息
+    };
+
+    //广告返回的正片视频信息
+    struct AdGetVInfoItem
+    {
+      0 optional string videoId;             //视频vid
+    };
+
+
+    //框内广告模版包裹结构体
+    struct AdTempletItem
+    {
+        0 require EAdInsideViewType viewType;        //框内广告view的类型
+        1 optional vector<byte> data;                //模版对象序列化后的内容
+        2 optional DebugInfo debugInfo;              //debugInfo为调试信息，有需要的控件取出并显示
+        3 optional int index;                        //广告位置索引
+    };
+
+
+    //框内广告请求包体
+    struct AdPauseRequest
+    {
+      0 optional  AdVideoInfo adVideoInfo;                  //视频信息
+      1 optional  EAdVipState adVipState;                   //会员信息
+      2 optional  AdPageInfo adPageInfo;                    //视频上下文信息
+      3 optional  AdOfflineInfo adOfflineInfo;              //离线视频信息
+      4 optional  AdVideoPlatformInfo adVideoPlatformInfo;  //平台渠道相关信息
+      5 optional  AdSdkRequestInfo adSdkRequestInfo;        //广平sdk请求广告需要使用的相关信息 
+      6 optional  EAdScreenMode screenMode;                 //屏幕模式
+      7 optional  vector<string> requestAdHistory;          //用于新鲜度控制（暂时只传信息流）
+    }; 
+
+    //返回框内广告
+    struct AdPauseResponse
+    {
+      0 require int errCode;
+      1 optional AdTempletItem pauseAdItem;                 //框内暂停广告数据
+      2 optional string adCookie;                           //广告cookie，下次请求的时候需要将cookie带上，上报时也需要给请求注入cookie
+    };
+
+    //playMode配置
+    struct AdPlayModeConfigItem
+    {
+       0 optional EAdPlayMode  adPlayMode;                    //广告playMode
+       1 optional int playModeSwitchState;                    //playMode出广告策略：0-未配置，1-不出广告，2-允许广告
+    };
+
+    //框内广告配置
+    struct AdConfigItem
+    {
+       0 require EAdType  adType;                             //广告类型
+       1 optional int newSdkSwitchState;                      //是否使用新sdk，0-未配置，1-老sdk，2-新sdk
+       2 optional vector<AdPlayModeConfigItem> playModeList;  //playmode 配置
+    };
+
+    //框内广告请求配置
+    struct AdRequestConfigItem
+    {
+       0 require int  adReqeustType;                          //请求广告类型，0-未使用，1-打点广告请求
+       1 optional int newSdkSwitchState;                      //是否使用新sdk，0-未配置，1-老sdk，2-新sdk
+    };
+    //框内广告sdk配置请求
+    struct AdInsideConfigRequest
+    {
+       0 require string  requestId;                           //每次拉取配置时的唯一id
+    };
+
+    //框内广告sdk配置回包
+    struct AdInsideConfigResponse
+    {
+       0 require int errCode;
+       1 optional string configId;                             //配置id
+       2 optional vector<AdConfigItem> configItemList;        //配置列表
+       3 optional vector<AdRequestConfigItem> requestConfigItemList;       //广告请求配置列表
+    };
+
+    //框内贴片广告请求包体
+    struct AdInsideVideoRequest
+    {
+      0 optional  int requestAdType;                        //1-前贴片，2-后贴片
+      1 optional  AdVideoInfo adVideoInfo;                  //视频信息
+      2 optional  EAdVipState adVipState;                   //会员信息
+      3 optional  AdPageInfo adPageInfo;                    //视频上下文信息
+      4 optional  AdOfflineInfo adOfflineInfo;              //离线视频信息
+      5 optional  AdVideoPlatformInfo adVideoPlatformInfo;  //平台渠道相关信息
+      6 optional  AdSdkRequestInfo adSdkRequestInfo;        //广平sdk请求广告需要使用的相关信息 
+      7 optional  AdFreeFlowItem freeFlowItem;              //免流信息
+      8 optional map<string,vector<string>> filterMap;      //广告去重信息，缓存三次请求数据带给后台 
+      9 optional vector<string> watchedVidList;             //5分钟内观看完前贴片广告对应的视频列表，秒播时后台判断当前视频vid在这个列表，则不返回贴片广告
+
+    }; 
+
+    //返回框内贴片广告
+    struct AdInsideVideoResponse
+    {
+      0 require int errCode;
+      1 optional string errMsg;
+      2 optional vector <AdTempletItem> videoAdItemList;    //框内贴片广告数据
+      3 optional string adCookie;                           //广告cookie，下次请求的时候需要将cookie带上，上报时也需要给请求注入cookie
+      4 optional map<string,vector<string>> filterMap;      //广告去重信息
+      5 optional AdGetVInfoItem getVInfoItem;               //广告后台返回的正片视频信息，主要在秒播时使用
+      6 optional map<string,string> extraDp3ReportMap;      //广平dp3上报透传信息通用字段
+      7 optional int emptyAdReason;                         //返回全空单的原因：0-有广告，1-会员不出广告
+
+    };
+
+    //超级角标控制信息
+    struct AdCornerControlInfo 
+    {
+      0 optional bool   showCloseAdBtn = false; //关闭按钮是否展示
+      1 optional bool   showAdIcon = true;      //广告标识是否显示
+      2 optional bool   enableClick = false;    //广告是否可点
+      3 optional float  posX;                   //x轴位置（以播放器左上角为原点的相对位置）
+      4 optional float  posY;                   //y轴位置 （以播放器左上角为原点的相对位置）
+      5 optional float  posH;                   //高度（相对高度，以播放器的高度为参考）
+      6 optional float  posW;                   //宽度（相对宽度，以播放器的宽度为参考）
+      7 optional float  ratio;                  //相对素材框的比例
+      8 optional int    interval;               //间隔时长, 单位：毫秒
+      9 optional int    playTime;               //素材总存在（播放/展示）时长，单位：毫秒
+    };
+
+    //超级角标素材信息
+    struct  AdCornerResourceInfo 
+    {
+      0   optional  int              type;          //素材类型，1-视频，2-图片，其他非法
+      1   optional  string           url;           //素材地址
+      2   optional  string           md5;           //素材MD5值
+      3   optional  int              fileSize;      //素材文件大小，从GVD服务获取
+      4   optional  int              duration;      //素材时长 单位：毫秒
+      5   optional  int              width;         //素材宽度
+      6   optional  int              height;        //素材高度
+    };
+
+    //打点超级角标广告信息
+    struct AdInsideCornerItem 
+    {
+      0 optional AdOrderItem              orderItem;                //订单信息
+      1 optional AdCornerResourceInfo     resourceInfo;             //素材资源信息
+      2 optional AdCornerControlInfo      controlInfo;              //控制信息
+      3 optional AdShareItem              shareItem;                //分享信息
+      4 optional AdInSideExtraReportItem  extraReportItem;          //广告额外上报信息
+      5 optional bool                     isWhole = false;          //是否是全程角标
+      6 optional long                     expiredTime;              //订单过期时间，离线播放时判断订单是否可播
+    };
+
+    //直播流M3U8的TMP标签中的互动数据信息体
+    struct LiveEventMsgInfo
+    {
+      0 optional    string                      eventMsg;                 //直播流M3U8的TMP标签中的互动数据
+      1 optional    int                         encryptType;              //解密类型
+    };
+
+    //直播超级角标请求包体
+    struct AdInsideLiveCornerRequest 
+    {
+      0 optional    LiveEventMsgInfo            liveEventMsgInfo;        //直播流M3U8的TMP标签中的互动数据信息
+      1 optional    AdVideoInfo                 adVideoInfo;            //视频、直播信息
+      2 optional    EAdVipState                 adVipState;              //用户登录信息（对应Pu字段)
+      3 optional    AdPageInfo                  adPageInfo;             //视频、直播上下文信息
+      4 optional    AdVideoPlatformInfo         adVideoPlatformInfo;    //平台渠道相关信息
+      5 optional    AdSdkRequestInfo            adSdkRequestInfo;       //广平sdk请求广告需要使用的相关信息 
+    };
+
+    //返回直播超级角标广告
+    struct AdInsideLiveCornerResponse 
+    {
+      0 require   int                      errCode;          
+      1 optional  string                   errMsg;
+      2 optional  vector<AdTempletItem>    cornerItemListData;    //角标们数据(解包有单是AdInsideCornerItem,空单是AdInsideEmptyItem)
+      3 optional  string                   adCookie;              //广告cookie，下次请求的时候需要将cookie带上，上报时也需要给请求注入cookie
+    };
+
+    //框内打点信息
+    struct AdAnchorPointItem
+    {
+        0 optional string        anchorId;              //打点Id
+        1 optional int           anchorTime;            //打点时间
+        2 optional bool          needReplace = false;   //是否需要被替换
+        3 optional string        dataKey;               //实时请求时带上
+        4 optional int           rangeBegin;            //广告相对正片的开始时间点（点播专用）（如果空单就传0）
+        5 optional int           rangeEnd;              //广告相对正片的结束时间点（点播专用）（如果空单就传0）
+
+    };
+
+    //框内打点结构体
+    struct AdAnchorItem
+    {
+        0 optional EAdType                     adType;                //广告类型
+        1 optional AdAnchorPointItem           pointItem;             //打点信息
+        2 optional vector<AdTempletItem>       templetItemList;       //数据解包有单是AdInsideCornerItem、AdInsideNormalCornerItem、AdInsideAnchorRichMediaItem、AdInsideVideoInsertReporterItem、AdInsideVideoItem，空单是AdInsideEmptyItem)
+    };
+    
+    //打点公共信息
+    struct AdAnchorCommonInfo 
+    {
+      0 optional int    playDuration;          //广告时长，单位：毫秒
+    };
+
+    //普通角标Item
+    struct AdInsideNormalCornerItem 
+    {
+      0 optional AdOrderItem                 orderItem;                //订单信息
+      1 optional AdShareItem                 shareItem;                //分享信息
+      2 optional AdCornerResourceInfo        resourceInfo;             //素材资源信息
+      3 optional AdAnchorCommonInfo          commonInfo;               //打点公共信息
+      4 optional AdInSideExtraReportItem     extraReportItem;          //广告额外上报信息
+      5 optional bool                        showCloseAdBtn = true;    //关闭按钮是否展示
+      6 optional bool                        showAdIcon = true;        //广告标识是否显示
+      7 optional bool                        enableClick = true;       //广告是否可点
+    };
+
+    //富媒体伴随广告（边看边买）Item
+    struct AdInsideAnchorRichMediaItem 
+    {
+      0 optional AdOrderItem                 orderItem;                //订单信息
+      1 optional AdShareItem                 shareItem;                //分享信息
+      2 optional AdInSideExtraReportItem     extraReportItem;          //广告额外上报信息
+      3 optional AdRichMediaItem             richMediaItem;            //富媒体信息
+    };
+
+    //创意中插Item
+    struct AdInsideVideoInsertReporterItem 
+    {
+      0 optional AdOrderItem                 orderItem;                                   //订单信息
+      1 optional AdInSideExtraReportItem     extraReportItem;                             //广告额外上报信息
+      2 optional bool                        shouldHideWholeSuperCorner = true;           //是否应该隐藏全程超级角标
+    };
+
+    //统一打点请求包体
+    struct AdInsideAnchorRequest 
+    {
+      1 optional    AdVideoInfo                 adVideoInfo;            //视频、直播信息
+      2 optional    EAdVipState                 adVipState;             //用户登录信息（对应Pu字段)
+      3 optional    AdPageInfo                  adPageInfo;             //视频、直播上下文信息
+      4 optional    AdVideoPlatformInfo         adVideoPlatformInfo;    //平台渠道相关信息
+      5 optional    AdSdkRequestInfo            adSdkRequestInfo;       //广平sdk请求广告需要使用的相关信息 
+      6 optional    AdFreeFlowItem 				freeFlowItem;           //免流信息
+      7 optional    AdOfflineInfo 				adOfflineInfo;          //离线视频信息
+      8 optional    string 				        sessionId;              //vinfo透传广告sessionId
+
+    };
+
+    //统一打点请求回包（返回打点请求订单）
+    struct AdInsideAnchorResponse 
+    {
+      0 require   int                      errCode;          
+      1 optional  string                   errMsg;
+      2 optional  vector<AdAnchorItem>     anchorItemList;    
+      3 optional  long                     expiredTime;               //统一订单过期时间
+      4 optional  string                   adCookie;                  //广告cookie，下次请求的时候需要将cookie带上，上报时也需要给请求注入cookie
+    };
+
+    //框内打点实时更新请求包体
+    struct AdInsideAnchorUpdateRequest
+    {
+      0 optional  vector<AdAnchorPointItem> anchorPointItemList;      //需要更新的打点结构体  
+      1 optional  AdVideoInfo adVideoInfo;                            //视频信息
+      2 optional  AdVideoPlatformInfo adVideoPlatformInfo;            //平台渠道相关信息
+      3 optional  AdFreeFlowItem freeFlowItem;                        //免流信息
+      4 optional  map<string,vector<string>> filterMap;               //广告去重信息，缓存三次请求数据带给后台 
+    }; 
+
+
+    //框内打点实时更新请求包体
+    struct AdInsideAnchorUpdateResponse
+    {
+      0 require   int errCode;
+      1 optional  string errMsg;
+      2 optional  vector<AdAnchorItem>       anchorItemList;    
+      3 optional  map<string,vector<string>> filterMap;               //广告去重信息
+    };
+};

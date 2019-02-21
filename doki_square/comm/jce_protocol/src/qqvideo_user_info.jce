@@ -1,0 +1,160 @@
+#include "qqvideo_common.jce"
+
+module jce
+{
+	enum VIDEO_CMD
+	{
+		GET_USER_PROFILE = 0xed02							//命令字
+	};
+	
+	enum VIDEO_USER_TYPE
+	{
+		WX_TYPE = 1,									//微信用户
+		QQ_TYPE = 2,									//qq用户
+        VIDEO_INNER_TYPE = 3,  //视频用户
+        MOBILE_TYPE = 4  //手机用户
+	};
+	
+	struct CheckBindInfo
+	{
+		0 optional string strAccountId;
+		1 optional string strAction;
+		2 optional string strBindType;
+		3 optional int iIsVip;
+		4 optional string strTips;
+	};
+	
+	struct PropertyInfoItem
+	{
+		0 require int iPropertyType;
+		1 require string strPropertyName;
+		2 require long ldPropertyCount;
+		3 optional string strPropertyActivity;
+		4 optional string strPropertyUrl;
+	};
+	
+	struct PropertyInfo
+	{
+		0 optional vector<PropertyInfoItem> vecProperty;
+	};
+	
+	struct UserBasicInfo
+	{
+		0 require string strUserId ;
+        1 optional string strSex;
+        2 optional string strNick;
+        3 optional string strHeadUrl;
+        4 optional string strCity;
+        5 optional string strCountry;
+        6 optional bool bHas100;
+	};
+	
+	struct VipInfo {
+		0 require  string strUserId;             // 用户uin/openid/guid/unionid/vuserid
+		1 optional long ldBeginTime;         // vip会员开始时间, UNIX时间戳
+		2 optional long ldEndTime;           // vip会员结束时间, UNIX时间戳
+		3 optional int iStatus;				// 用户状态, VipStatus
+		4 optional int iVipLevel;           // 用户vip等级
+		5 optional int iVipScore;           // 用户积分
+		6 optional string strServiceType;     // 开通渠道
+		7 optional int iOpenDay;            // 最近一次开通时长, 单位为天
+		8 optional int iType;				// 用户的账户类型, LoginType
+		9 optional string strAppid;           // 如果是wx账户，返回appid, 其他为空
+		10 optional long ldVipid;             // 内部vipid
+		11 optional int iIsAnnual;           // 是否年会员
+		12 optional long ldAnualBeginTime;    // 年会开始时间, UNIX时间戳
+		13 optional long ldAnualEndTime;      // 年会结束时间, UNIX时间戳
+		14 optional int iServiceId;          // 会员包的id;
+		15 optional string strLastgivedate;    // 上次赠券/赠片时间;
+    };
+
+	struct STVideoUserKey
+	{
+		0 require string strUserId;						//用户id
+		1 require int iUserType;						//用户类型，取值来自VIDEO_USER_TYPE
+		2 optional string strUserToken;					//用户票据
+		3 optional string strAppid;
+		4 optional int iIsTokenValid;
+	};
+
+    struct STMedalItem
+    {
+        0 require bool bIsLight;					//是否点亮
+        1 require string strName;					//勋章名字
+        2 require string strPic;					//勋章图像
+    };
+
+    struct STStarInfo
+    {
+        0 require bool bIsStar = false;  //是否明星
+        1 optional string strNick;  //明星昵称
+        2 optional string strHead;  //明星头像
+		3 optional string strStarId;  //明星id
+		4 optional string strFtId;  //饭团id
+        5 optional string strTargetId;  //union中绑定的targetid
+        6 optional string extDataKey;  //扩展dataKey，后台灵活扩展字段
+    };
+
+    struct STCertifyInfo
+    {
+        0 require int certifyFlag;  			//认证标记，0表示未认证，1表示已认证，其它值定义可扩展
+        1 optional string certifyTips; 			//认证提示，比如"先花5秒钟进行身份认证"
+		2 optional string hasCertifyTips;       //已经认证了的提示 
+    };
+	//field字段目前包括，vipinfo,vcoin,basicinfo,bindinfo,medalinfo
+	struct GetUserProfileRequest
+	{
+		0 require int iVersion;							//版本号, 目前为1
+		1 optional vector<string> vecFields;			//请求字段
+		2 optional string strExt;
+	};
+	
+	struct GetUserProfileResponse
+	{
+        0 require int errCode;  //返回码
+        1 require string errMsg;  //错误信息
+        2 optional UserBasicInfo stUserBasic;  //用户基本信息，头像昵称等
+        3 optional VipInfo stVipInfo;  //vip信息
+        4 optional PropertyInfo stProperty;  //虚拟财产，如v币
+        5 optional CheckBindInfo stCheckBindInfo;  //账号绑定信息
+        6 optional STVideoUserKey stUserKey;  //用户key
+        7 optional vector<STMedalItem> vecMedals;  //勋章信息
+        8 optional STStarInfo stStarInfo;  //明星标志信息
+        9 optional STCertifyInfo stCertifyInfo;  //实名认证信息
+	};
+
+	//用户成长体系相关的等级结构，比如粉丝等级(徽章)
+	struct DegreeItem
+    {
+        0 require string degreeId;					//等级Id
+        1 optional string degreeText;			    //等级说明，比如粉丝等级(徽章)，可能是Lv.4
+        2 optional string degreeName;			    //等级名称，比如粉丝等级(徽章)，可能是"鹿晗.真爱粉"
+        3 optional string degreeMark;			    //等级标识，比如粉丝等级(徽章)，可能标识为某某“明星”
+        4 optional string smallIconUrl;			    //等级图标小
+        5 optional string bigIconUrl;			    //等级图标大
+        6 optional Action degreeAction;			    //等级跳转，比如粉丝等级(徽章)，跳转到徽章详情页面
+        7 optional int degreeLevel;			        //等级的级别或者是子等级，数值类型
+        8 optional int degreeFlag;					//等级标记，比如标记粉丝徽章是否用户选中(外显)，1表示已选中
+    };
+
+    //用户成长体系相等级分类列表
+    struct DegreeItemList
+    {
+        0 optional string categoryTitle;			//分类标题
+        1 optional vector<DegreeItem> itemList;		//等级Item列表
+    };
+
+    struct GetUserDegreeRequest
+	{
+		0 require string userId;					//用户Id
+		1 optional string pageContext;				//下一页上下文
+	};
+	
+	struct GetUserDegreeResponse
+	{
+        0 require int errCode;                           //返回码
+        1 optional vector<DegreeItemList> degreeGroup;   //等级分组，比如VIP等级组，粉丝等级(徽章)组
+        2 optional string pageContext;					 //下一页上下文
+		3 optional bool hasNextPage;					 //是否有下一页数据
+	};
+};

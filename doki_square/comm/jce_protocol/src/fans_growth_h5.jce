@@ -1,0 +1,524 @@
+
+// 粉丝等级适配服务
+module FansAdapt
+{
+    /********************************************************
+	// 测试L5： 834625:65536
+	// 正式L5： 856321:65536
+	*********************************************************/
+	
+    /**************************基础信息**********************/
+	enum FansGrowthCmd
+	{
+	    // 读命令字
+		// 用户徽章信息 -- 返回当前等级信息、当前粉丝值、下一级粉丝值
+		CMD_GET_USR_BADGE_INFO =  0xf161,        // 用户徽章信息 -- 返回 -- 这里会返回用户收获信息
+		
+		// 用户徽章等级信息 -- 仅仅返回徽章级别ID、级别图片、总粉丝值
+		CMG_GET_BADGE_LEVEL_INFO = 	0xf1b8,     
+		
+        // 获取守护任务列表 --  依照参数， 取聚合分类列表或者摘要列表
+        CMD_GET_USR_TASK_LIST_REQ = 0xf160,     	
+		CMD_GET_BADGE_LEVEL_INTRO = 0xf15f,     // 徽章等级介绍
+		
+		CMD_GET_MY_SPECIAL_REWARD = 0xf15e,      // 专属福利页
+		CMD_GET_SIGN_REWARD_LIST = 0xf15d,       // 天天签到，更多福利 -- 签到日历
+		CMD_GET_FVALUE_FLOW_UNDER_STAR = 0xf15c, // 粉丝值明细
+		CMD_GET_REWARD_ITEM_DETAIL = 0xf15b,     // 福利详情
+	    CMD_GET_FANS_RANK = 0xf1be,              // 粉丝值排行榜
+		
+		CMD_GET_DOKI_DEGREE_TASK = 0xf1ca,       // APP拉取激励
+		CMD_CHECK_LEVEL_CHANGE   = 0xf1d9,       // 检查粉丝升级状态
+		
+		
+		// 写命令字
+		CMD_USER_SIGN_IN  = 0xf15a,              // 用户签到  -- 签到礼物在此返回
+	    CMD_RECV_TASK_REWARD = 0xf159,           // 领取任务福利
+		CMD_EXEC_FANS_TASK     = 0xf17b,         // 执行任务
+		CMD_CHECK_LEVEL_GIFT = 	0xf39e, // 检查粉丝升级礼包
+		//内部系统调用		
+        CMD_BATCHGET_FANSLEVE = 0xf609,			//批量获取粉丝值和等级
+	};
+	
+	enum ERewardType
+	{
+	    E_REWARD_VCOIN = 1,   //V币
+		E_REWARD_FVALUE =2,  //粉丝值
+		E_REWARD_STAR_PIC =3 ,     //专属福利 -  签名壁纸
+		E_REWARD_STAR_VOICE = 4,   //专属福利 - 音频
+		E_REWARD_STAR_VIDEO = 5,   //专属福利 - 视频
+		E_REWARD_PRIVILEGE = 6,    //专属福利 - 特权
+		E_REWARD_OTHER
+	};
+	
+	enum ETaskType
+	{
+	    E_TASK_MUST = 1,   //必修任务
+		E_TASK_BROWSE = 2, //浏览任务
+		E_TASK_INTERACTIVE=3, //互动任务
+		E_TASK_CREATE = 4, //创作任务
+	};
+	
+    struct ExtraReportKV
+	{
+		0 require string extraReportKey;  //等同于上报时“report_Key=reportKeyValue”中的report_Key字符串
+		1 require string extraReportParam; //等同于上报时“report_Key=reportKeyValue”中的reportKeyValue字符串
+	};
+	//定义动作信息
+	struct Action
+	{
+		0 require string url;				//跳转的地址，遵循统一跳转规则
+		1 require byte cacheType;			//目标页面数据cace的策略  0 不cache，1 内存cache ，2 文件cache
+		2 require byte preReadType;			//目标页数据预读取的策略 0 不预读，1 预读协议数据，2 预读图片
+		3 optional string reportParams;		//点击事件用来上报的内容(点击)
+		4 optional string reportKey;		//点击事件用来上报的事件名称，后台下发必须以"server_"开头
+		5 optional vector<ExtraReportKV> extraReportKVs; //点击事件上报，是哪个业务的点击
+	};
+	
+	//任务订单
+	struct stTaskInfo
+	{
+		0	require string strBillNo;  //任务订单号
+	};
+		
+    /***********************结构体定义*************************/
+	struct FansGrowthTask          //部分为静态数据 -- 配置中心获取
+	{
+	    0 require int iTaskType;         //任务类型
+		1 require int iTaskId;           //任务ID -- 标识某种子类任务
+	    2 optional int iRewardVCoin;     //V币
+		3 optional int iRewardFValue;    //粉丝值
+		4 optional int iWeight;          //权重
+		5 optional string strDesc;    //任务描述
+		6 optional string strTaskExt;    //扩展参数
+		7 optional int iTaskCount;       //最大任务次数
+		8 optional string strImage;      //任务图片
+		9 optional int iTaskDone;          //完成任务数
+		10 optional vector<stTaskInfo> vecBillList;//已完成、待可领取任务的编号
+		11 optional string strJumpKey;    //跳转参数
+		12 optional int dwStatus;          //任务状态  1:已完成, 2F:当签到任务时有效，说明可以补签
+		13 optional int   iType;          //任务类型，1:每天任务 2:签到任务 3:永久任务
+		14 optional int   iProps;         //奖励道具数
+		15 optional int progress;         // 任务进度
+		16 optional int time;         // 当前任务浏览时长
+//		16 optional int iPlatform;     	// 客户端类型：主要区分pc签到任务（0：全平台，1:pc 其他端暂时不区分）
+ 	};
+	
+	struct FansGrowthTaskType
+	{
+	    0 require int iTaskType;
+		1 optional int iTaskWeight;       //类型权重
+		2 optional string strTaskDesc;
+	};
+	
+	// 奖励项	-- 包括专属福利的详情信息
+	struct RewardItem                  //部分为静态数据
+	{
+	    0 require int iRewardType;        //福利类型  -- 
+		1 require int iRewardId;          //仅对专属福利有意义
+	    2 optional string strDesc;        //描述
+		4 optional string strVoice;       //语音 -- 待定
+		5 optional string strVid;         //视频
+		6 optional int iFValue;           //粉丝值
+		7 optional int iVCoin;            //V币
+		8 optional string strImage;       //V币/粉丝值图片、视频海报图
+		9 optional string strUrl;         //语音下载链接
+		10 optional string strExt;        //扩展信息
+		11 optional string strImage_1;    // 没有获得特权时的图标
+		12 optional string strImage_s;    // 图标的小icon
+	};
+	
+	struct RewardType                    //部分为静态数据
+	{
+	    0 require int iRewardType;
+	    1 optional string strDesc;       //描述
+	};
+
+    // 用户徽章信息
+	struct UserBadgeInfoReq
+	{
+	     0 optional string strDataKey;   //格式： starid=94432&fantuanid=10223
+	}; 
+	
+    // 获取徽章等级信息 -- 每个小等级对应一个徽章
+	struct stBadgeLevel
+	{
+	    0 optional int iStarId;          //明星ID
+	    1 optional int iLevelId;         //徽章等级 -- 1~12递增 -- 粉丝等级
+		2 optional string strBadgeIcon;  //徽章图标
+		3 optional string strLevelIcon_h;  //等级图 -- 横图 -- horizontal
+		4 optional string strLevelIcon_v;  //等级图 -- 竖图 -- vertical
+		5 optional int iFansVal;         //粉丝值 
+		6 optional string strLevelName;  //主等级名称 -- 譬如“真爱粉”
+		7 optional string strLevelText;  //LV.4
+		8 optional int iSortKey;         //排序维度 -- 数值
+		9 optional int iRankNameId;      //称号等级 -- 称号ID -- 多个等级对应同一个称号
+		10 optional string strUrl;       //跳转链接
+		11 optional int iFantuanId;      //饭团ID信息
+		12 optional string strLevelIcon_450_336;  //原图：strLevelIcon_v
+		13 optional string strLevelIcon_225_168;  //原图：strLevelIcon_v
+	};
+	
+	struct UserBadgeInfoRsp
+	{
+	     0 optional int errCode;
+		 1 optional string strErrMsg;
+		 2 optional string strBadgeImage;     
+		 3 optional string strBadgeDesc;
+
+		 6 optional int    iUsrFValue;        //用户当前粉丝值
+		 7 optional int    iDaysFollowed;     //守护时间
+		 8 optional int    iDaysSigned;       //签到时间
+		 9 optional int    iDayFValue;        //当日粉丝值
+		 10 optional int   iDayVCoin;         //当日V币
+		 11 optional int   iTotalFValue;      //总粉丝值
+		 12 optional int   iTotalVCoin;       //总V币数
+		 
+		 13 optional int   iSpecialRewards;   //专属福利数
+		 14 optional string strFansNick;        //配置信息 -- 鹿饭	
+		 15 optional string strStarName;        //明星名字
+		 16 optional string strStarImage;       //明星头像
+		 
+		 17 optional stBadgeLevel stCurrLevel; //当前等级 -- 依子等级填写
+		 18 optional stBadgeLevel stNextLevel; //下一等级 -- 依子等级填写
+		 
+		 19 optional int dwTotalProps;  //当天获得道具数
+		 20 optional int iFollowStatus; // 0 - 未关注  1 - 已关注
+	};
+	
+	//获取我的收获/奖励
+	struct UserRewardReq
+	{
+	     0 optional string strDataKey;   //格式： starid=xxx&fantuanid=xxxx&reqtype=xxx  说明reqtype=1下发部分任务 reqtype = 2下发全部任务
+	     1 optional int    iType;           //0: 今日所得； 1：总收获 
+	}; 
+	
+	struct UserRewardRsp
+	{
+	     0 optional int errCode;
+		 1 optional string strErrMsg;
+		 2 optional vector<RewardItem> vecRewardList;
+		 3 optional vector<RewardType> vecRewardType;
+	};	
+	
+	// 任务列表请求
+	struct UserTaskListReq
+	{
+	     0 require string strDataKey;  //格式： starid=94432&fantuanid=10223
+		 1 optional int   iType;        //0: 摘要任务 1：聚类任务
+	};
+
+	struct UserTaskListRsp
+	{
+	     0 optional int errCode;
+		 1 optional string strErrMsg;
+		 2 optional vector<FansGrowthTask> vecTaskList;
+		 3 optional vector<FansGrowthTaskType> vecTaskType;
+	};	
+		
+	// 子等级信息
+	struct BadgeSubLevel   
+	{    
+	     0 optional int iFValue;         //粉丝值
+		 1 optional string strDesc;      //LV3
+		 2 optional int iSubLevelId;     //子等级ID -- 1~3重复出现
+		 3 optional string strImage;
+	};
+	
+	//主等级信息
+	struct BadgeLevel
+	{
+	     0 optional string strImage;      //主等级图
+		 1 optional string strLevelName;  //等级名称
+		 2 optional string strPrivilegeDesc; //特权信息描述
+		 3 optional vector<BadgeSubLevel> vecSubLevelList;
+		 4 optional int    iLevelId;      //主等级ID -- 1~12递增
+	};
+	
+	// 徽章介绍 -- 外部通用接口 -- 只返回徽章图标与等级信息
+	struct BadgeLevelIntroReq
+	{
+	     0 optional string strDataKey;  //格式： starid=94432&fantuanid=10223
+	};
+	
+	struct BadgeLevelIntroRsp
+	{
+	     0 optional int errCode;
+		 1 optional string strErrMsg;
+		 2 optional vector<BadgeLevel> vecBadgeLevels;
+	};		
+	
+   //专属福利信息
+	struct stWelfare
+	{
+			0		require int dwGiftId;  //专属福利ID
+	};
+		
+    // 用户签到奖励
+	struct stSignReward
+	{
+			0		require int dwFansVal;			//粉丝值
+			1		optional int dwVCoin;				//V币值
+			2		optional vector<stWelfare> vecWelfare;  //专属福利
+	};
+		
+    // 签到日历
+    struct SignRewardListReq
+	{
+	     0 require string strDataKey;  //格式： starid=xxx&fantuanid=xxxx
+	};
+	
+	struct SignRewardListRsp
+	{
+	     0 optional int errCode;
+		 1 optional string strErrMsg;
+		 2 optional string strImage;
+		 3 optional int iFValue;        //签到总粉丝值
+		 4 optional int iSpecailRewards;//签到专属礼物数
+		 5 optional int iSignDay;       //连续签到时间
+		 6 optional vector<stSignReward> vecSignRewardList;
+	};	
+	
+	
+	// 用户粉丝值流水明细
+    struct MyFValueFlowReq
+	{
+	     0 require string strDataKey;  //格式： starid=xxx&fantuanid=xxxx
+		 1 optional string strRefreshContext; //分页项
+	};
+	
+	// 消费明细
+	struct ConsumeItem                    //部分为静态数据
+	{
+	    0 optional string strDate;         //消费日期
+		1 optional string consumeEvent;    //消费内容描述，譬如评论帖子
+	    2 optional string consumeDesc;     //消费类型描述，譬如+2 V币
+		3 optional string ctx;             //消费上下文
+	};
+	
+	struct MyFValueFlowRsp
+	{
+	     0 optional int errCode;
+		 1 optional string strErrMsg;
+		 2 optional vector<ConsumeItem> vecFValueFlowList;
+		 3 optional string strPageContext;  //翻页参数
+		 4 optional int    iHasNextPage;    //是否有下一页
+	};		
+	
+	
+	// 礼包详情
+    struct RewardItemInfoReq
+	{
+	     0 require string strDataKey;  //格式： starid=xxx&fantuanid=xxxx
+		 1 require int    iRewardId;   //奖励项ID
+	};
+	
+	struct RewardItemInfoRsp
+	{
+	     0 optional int errCode;
+		 1 optional string strErrMsg;
+		 2 optional RewardItem stRewardInfo;
+	};		
+	
+	// 我的专属福利 -- 专属福利获得途径
+	// 1. 粉丝值升级
+	// 2. 签到任务  
+    struct PrivilegeItem
+    {
+        0 optional int id;
+        1 optional string desc;        //描述
+        2 optional string image;       // 获得特权时的图标
+        3 optional string image_1;    // 没有获得特权时的图标
+        4 optional string image_s;    // 图标的小icon
+    };
+	
+	struct LevelPrivilegeInfo
+	{
+	   0 optional int fans_level;
+	   1 optional vector<int> all_privilege_id;
+	   2 optional vector<int> have_privilege_id;
+	};
+	
+	struct AllPrivilegeList
+	{
+		0 optional vector<PrivilegeItem> item_list;
+		1 optional vector<LevelPrivilegeInfo> level_privilege_info;
+	};
+	
+    struct UserSpecialRewardReq
+	{
+	     0 require string strDataKey;  //格式： starid=xxx&fantuanid=xxxx
+	};
+	
+	struct UserSpecialRewardRsp
+	{
+	     0 optional int errCode;
+		 1 optional string strErrMsg;
+		 2 optional vector<RewardItem> vecSpecialRewardList;
+		 3 optional vector<AllPrivilegeList> all_privilege_list;
+	};	
+	
+	//用户收获信息摘要
+	struct stUserRewardBrief
+	{
+		0 	optional  long  ddwFansVal;		//粉丝值
+		1 	optional  long  ddwVCoin;		//V币值
+		2 	optional  vector<stWelfare> vecWelfare;  //专属福利列表
+		3 	optional  long  ddwProps;			//心跳值
+		4 	optional  int  iBonusTimes;			// 奖励倍数
+	};
+	
+	// 领取任务福利 -- 粉丝值为直接到账，只有V币需要领取
+	struct RecvTaskRewardReq
+	{
+	     0 require string strDataKey;  //格式： starid=xxx&fantuanid=xxxx 
+		 1 optional int    iTaskId;   //任务ID
+		 2 optional vector<stTaskInfo> vecBillList;//任务的编号
+	};
+	
+	struct RecvTaskRewardRsp
+	{
+	     0 optional int errCode;
+		 1 optional string strErrMsg;
+		 2 optional stUserRewardBrief		stBeforeReward;  //领取前用户总收获
+		 3 optional stUserRewardBrief		stAfterReward;   //领取后用户总收获 
+	};	
+	
+	// 签到接口
+	struct UsrSignInReq
+	{
+	     0 optional string strDataKey;  //格式： starid=xxx&fantuanid=xxxx&iReSign=0
+	};
+	
+	struct UsrSignInRsp
+	{
+	     0 optional int errCode;
+		 1 optional string strErrMsg;
+		 2 optional int iIntoNewLevel;      //是否升级 0: 未升级  1：用户升级
+		 3 optional stUserRewardBrief		stBeforeReward;  //领取前用户总收获
+		 4 optional stUserRewardBrief		stAfterReward;   //领取后用户总收获 
+		 5 optional vector<RewardItem>      vecRewardList;    
+		 6 optional vector<stUserRewardBrief>	vecSignConf;     //用户签到任务配置数据
+		 7 optional int                     iSignDay;            //用户签到了多少天
+		 8 optional int iOldLevel;          // 升级前的等级ID   1 ~ 12 
+		 9 optional int iCurrLevel;         // 升级后的等级ID 
+		 10 optional int iReSignLimit;		// 本月剩余可补签次数
+		 11 optional int iMissResign; 		// 本月剩余漏签的天数
+		 12 optional int iCurLevelResignNum; // 当前等级可补签次数
+		 13 optional int iMouth;			// 当前月份 [1, 12]
+	};
+	
+	// 执行任务
+	struct DoFansTaskReq
+	{
+		0 require	long  ddwStarId;	 //明星ID
+		1 require string  strScene;    
+		2 optional string strTaskKey;  //任务唯一标志或者记录流水相关信息json格式
+	};
+	
+	struct DoFansTaskRsp
+	{
+		0 require int iErrCode;
+		1 optional string strErrMsg;
+	};
+	
+	
+	// 徽章等级信息图标 -- 非H5接口
+	struct GetBadgeLevelInfoReq
+	{
+	       0  require long lVuid;   //用户vuid
+           1  require int  dwFlag;	//查询标志位	
+		   // 0x01: 所关注的所有明星下的徽章信息  0x02:指定明星下的徽章信息
+		   // 0x03: 所关注的所有明星下等级最高的徽章信息
+           2  optional vector<long> vecStarId;		// 明星ID列表, dwFlag == 0x02 时采用
+	};   
+	
+	struct GetBadgeLevelInfoRsp
+	{
+		   0  require int errCode;
+		   1  optional string strErrMsg;
+           2  optional vector<stBadgeLevel> vecUsrBadge; //明星ID -> 徽章信息		   
+	}; 
+
+	// 粉丝等级排行榜
+	struct stFansRankInfo
+	{
+		0 optional int  iFansVal;    //当天所获粉丝值
+		1 optional string strNick;   //粉丝昵称 
+		2 optional string strFansIcon; //粉丝头像
+		3 optional string strBadgeIcon; //徽章小图
+		4 optional string strBadgeLevelTxt; //等级信息 譬如骨灰粉55级
+		5 optional Action stAction;  //跳转参数
+	};
+	
+	//查询粉丝值日排行榜
+	struct GetFansRankReq
+	{
+		0	require long	ddwStarId;	//明星ID
+		1   optional string pageContext;
+	};
+	struct GetFansRankRsp
+	{
+		0	require int errCode;
+		1	optional string strErrMsg;
+		2   optional vector<stFansRankInfo> vecFansRank;  //粉丝排行
+		3   optional string pageContext;
+		4   optional bool hasNextPage;
+	};	
+	
+    // 检查等级升级状态
+	struct CheckLevelStatusReq
+	{
+		0	require string strDataKey;	//starid=94432&fantuanid=10223
+		1   optional int iOldLevel;     //当前等级
+	};
+	
+	struct CheckLevelStatusRsp
+	{
+		0	require int errCode;
+		1	optional string strErrMsg;
+        2   optional vector<RewardItem>  vecRewardList;  // 特权信息
+        3   optional int iCurrLevel;   //当前等级 -- iCurrLevel > iOldLevel 表示升级   	
+        4   optional stBadgeLevel stOldLevel;  //旧等级信息
+        5   optional stBadgeLevel stNewLevel;  //新等级信息
+		6   optional string level_gift_desc;
+	};
+	// 领取升级礼包
+	struct CheckLevelGiftReq
+	{
+		0  require long lVuid;   	//用户vuid
+		1  require long lFtId;   	//ft id
+  		2  require long lStarId;    //lStarId
+	    3  require int  isAll;		//是否检查所有
+		4 optional int iLevel; 		//检查的等级
+	};
+	struct CheckLevelGiftRsp
+	{
+		0 require int errCode;
+		1 optional string strErrMsg;
+		2 optional string desc;
+	};
+	struct UsrDokiLevel
+	{
+		0  require long lVuid;   		//用户vuid
+		1  require long lFtId;   		//ft id
+		2  optional long lFansVal;		// 粉丝值
+		3  optional long lBadgeLevel;	//徽章等级
+
+		4 optional string strBadgeIcon; //徽章小图
+		5 optional string strBadgeLevelTxt; //等级信息 譬如骨灰粉55级
+	};
+
+	// 批量查询粉丝值和等级
+	struct BatchGetFansLevelReq
+	{
+		0  require vector<UsrDokiLevel> vecUsrDoki;
+		1  optional bool  isNeedBadeg;		//是否需要查询徽章图片、等级名字
+	};
+	struct BatchGetFansLevelRsp
+	{
+		   0  require int errCode;
+		   1  optional string strErrMsg;
+           2  optional vector<UsrDokiLevel> vecUsrDokiLevel;
+	}; 
+};     

@@ -1,0 +1,175 @@
+//定义消息字典表
+module videocircle
+{
+	//DicInformation
+	struct PlayImgUrl
+	{
+		0   require unsigned int  dwPlayTime; //dwPlayTime播放时间；
+		1   require string strUrl; //图片的URL链接；原图或者涂鸦的图片URL
+		2   optional string strWaterFlagUrl; //加上水印后的图片
+		3   optional string strHandWriteInfo; //涂鸦信息，是一段文字；
+		4	optional unsigned byte cImageStyle;	//图片类型,0:jpeg 1:gif
+		5   optional string strThumbUrl;		//缩略图
+		100 optional int width;					//海报图的长和宽
+		101 optional int height;				//海报图的长和宽
+	};
+
+	struct VoiceInfo
+	{
+		0 require string strVoiceId;                //音频id
+		1 optional unsigned int dwDuration;         //录音时长
+        2 optional bool bPermanent;
+        3 optional byte cStorageFlag;
+	};
+
+    struct TopicInfo
+    {
+        0 optional string strTopicId;				//话题id
+        1 optional string strTopicText;				//话题名
+		2 optional byte cType; 						//话题类型
+		3 optional string strExtraKey;				//扩展key
+		4 optional vector<string> vecRelateFansId;  //关联的饭团id
+		5 optional vector<string> vecRelateVid;  //关联的视频id
+		6 optional vector<string> vecRelateCid;  //关联的专辑id
+		7 optional vector<string> vecRelateLid;  //关联的栏目id
+    };
+
+	//社交相关的信息，保存在这个结构体内；例如微信评分等；
+	struct SnsInfo
+	{
+		0 optional string cstrWxScore;
+	};
+
+	struct DanmuInfo
+	{
+		0 optional string strDmDataKey;
+		1 optional unsigned int dwPlayTime;
+	};
+
+	struct UserInfo
+	{
+		0  optional unsigned byte cUserType;	//用户type，0:默认值,普通用户发表；1、明星用户发表；2、
+		1  optional string strHead;				//头像
+		2  optional string strNick;				//昵称
+		3  optional string strStarId;			//明星id
+		4  optional string strFtId;				//明星对应的饭团id
+	};
+
+	//App扩展信息
+	struct AppExtInfo
+	{
+		0  require unsigned  int  dwAppId; //扩展信息的appid，逻辑层会检查
+		1  require string wstrExtInfo; //允许应用填写的扩展信息；
+	};
+
+	//视频VID相关信息
+	struct VidInfo
+	{
+		0  require string strVid; //视频ID
+		1  optional string strCid; //专辑ID
+		2  optional string strLid; //栏目id
+		3  optional unsigned int vtype; //节目的类型码，如 1：表示电影
+		4  optional string strVidTitle; //视频Title
+		5  optional string strPid; //视频Pid
+		6  optional string strJumpUrl; //如果非空，客户端将以JumpUrl进行跳转
+	};
+
+	//BasicInfo1，和数据字典表定义一致；
+	struct BasicInfo1
+	{
+		0 require long ddwTweetID;//视频消息ID，每一次发表都会产生唯一的消息ID；
+		1 require unsigned int dwTime; //消息发表的时间；
+		2 require long dwUserID ;//消息发表用户的ID
+		3 require unsigned byte cStatus ;//消息的状态，0：正常，3：用户删除
+		4 require unsigned byte cType; //消息类型，1：表示原创，其他类型看字典表
+		5 require unsigned byte cContentType ;//消息的内容，消息参见正文类型字典表
+		6 require unsigned byte cFrom ;//消息的来源
+		7 require unsigned byte cAccessLevel; //访问级别，目前为0，表示对所有用户公开；
+	};
+
+	//消息父亲节点相关信息；
+	struct ParentInfo
+	{
+		0 require long ddwRootID ;//评论或者赞消息类型，根节点消息ID；
+		1 require long dwRootUserID ;//评论或者赞消息类型，根节点发表者用户ID
+		2 require long ddwParentID ;//评论或者赞类型消息，父亲节点消息ID，如果不涉及二级评论，ddwParentID==ddwRootID
+		3 require long dwParentUserID;//评论或者赞类型消息，父亲节点发表者用户ID，如果不涉及二级评论，dwParentUserID == dwRootUserID
+	};
+
+	//后台发表和消息里面的小视频
+	struct CircleShortVideoUrl
+	{
+		0 require string vid;				//视频vid
+		1 require string h5Url;			    //分享url
+		2 require long time;				//对应的小视频时长（秒）
+		3 require string imageUrl;			//海报url
+		4 optional string playUrl;			//播放url，备用字段
+		5 optional string description;		//视频描述，备用字段
+	};
+
+	//饭团相关的消息基础信息
+	struct FtBasicInfo
+	{
+		0 optional long ddwTweetID;		//饭团产生的消息id
+		1 optional long ddwFantuanID;	//饭团id
+		2 optional string strTitle;		//消息id对应的title
+		3 optional long ddwFloorNum;	//饭团的楼层数
+		4 optional long dwFtCreatTime;	//饭团的主贴和评论真实发表时间
+		5 optional int  dwFtFlags;         //饭团内容的标志位,0x01：图文混排；0x02：内容超过4K
+	};
+
+    struct VoteInfo
+    {
+        0 optional string strVoteId;
+        1 optional string strVoteTitle;
+    };
+
+    struct FanInfo
+    {
+        0 optional string strFanId;
+    };
+
+    struct MiniVideoFromInfo
+    {
+        0 optional string vid;
+        1 optional string cid;
+        2 optional string lid;
+        3 optional string title;
+        4 optional string url;
+    };
+
+    struct FtExtInfo
+    {
+        0 optional MiniVideoFromInfo videoInfo;
+    };
+
+    struct OMInfo
+    {
+        0 optional string strArticleId;
+        1 optional string strArticleTitle;
+    };
+
+	//管理台信息
+	struct MgrInfo
+	{
+		0 optional int identity;//1-创作者,2-管理员,3-超级管理员
+	};
+
+	struct ScoreInfo
+	{
+		0 optional int dwType;				//评分类型, 备注：注意不要超过255，底层存储uint8
+		1 optional double ddwScore;			//评分，备注：底层存储是uint64，底层存储时乘以100，读取时除以100
+	};
+
+	struct GoodScoreInfo
+	{
+		0 optional string strBussinessId;		//商家id
+		1 optional vector<ScoreInfo> vecScores;	//评分信息
+		2 optional string orderId;				//订单id
+		3 optional byte userType;				//发表的用户类型,1-商家,0-用户
+		4 optional byte commentType;			//评论类型，1-追评，0-普通
+		5 optional byte isAnonymity;			//是否匿名，1-匿名，0-非匿名
+		6 optional string skuid;			    //商品id下的子id
+		7 optional string strFlowOrderId;       //物流订单id
+	};
+};

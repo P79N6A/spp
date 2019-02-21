@@ -1,0 +1,184 @@
+// DOKI扩展服务
+module DokiAPI
+{
+    //测试环境 891841:196608
+    //正式环境 891841:262144
+    enum CMD
+    {
+        CMD_JOIN_WELCOME              = 0xf9f6, // 加入DOKI欢迎弹窗
+		CMD_FANS_COUNT_BY_FEED        = 0xf9ff, // 帖子圈粉数
+		CMD_GET_USR_IN_DOKI_INFO      = 0xfa01, // 用户在DOKI下的信息
+		CMD_FLW_MSG                   = 0xec29, // 关注DOKI中转
+		CMD_FLW_DOKI_LIST             = 0xfb49, // 用户关注DOKI ID列表
+		CMD_APP_FLW_DOKI_LIST         = 0xfb80, // 用户关注DOKI ID列表 -- app接口 -- 包含头像、跳转链接、以及DOKI更新信息
+    };
+
+    // 帖子圈粉数请求 
+	// 命令字 0xf9ff
+	struct stFeedFansCountReq
+    {
+        0 require string strFeedId; 
+		1 require string strDokiid;     
+		2 optional int   iFrom;         // 场景 0 - 帖子详情 1 - 管理台
+    };
+    
+    struct stFeedFansCountRsp
+    {
+        0 optional int errCode;         // 返回码
+        1 optional string strErrMsg;  
+        2 optional int iFansCount;      // 圈粉数
+    };
+	
+	
+	// 用户在DOKI下基本信息
+	struct stUsrInDoki
+	{
+	    0 optional int iFlwStat;       // 0 - 未关注   1 - 已关注 
+		1 optional long lAttentTime;   // 关注时间 
+		2 optional long lRank;         // 用户在明星粉丝榜下的排行
+	};	
+	
+	// 命令字:
+	// 		CMD_GET_USR_IN_DOKI_INFO      = 0xfa01
+	// 获取用户在doki下的信息
+	struct stGetUsrInDokiInfoReq
+	{
+		0 require vector<string> vecDokiid; // 至多支持10个
+		1 require string strVuid;
+		2 optional int  iFrom;              // 场景控制
+	};
+	 
+	struct stGetUsrInDokiInfoRsp
+	{
+		0 require int errCode;
+		1 optional string strErrMsg;
+		2 optional map<string, stUsrInDoki> mpDokiidToUsrInfo;
+	};	
+
+   
+    // 命令字：  0xec29
+    // 关注消息雪球中转结构体
+    struct stFlwDokiMsg
+	{
+		0 require string strVuid;           // 用户（关注者）VUID
+		1 require string strDokiid;         // 
+
+		// dataKey格式更新：
+		// feedid=AAA&dokiid=BBB&poster=CCC&pubTime=DDD
+		// CCC表示发帖人vuid 
+		// DDD表示帖子发表时间（用于）
+		2 optional string strDataKey;       // 
+	};	
+
+	// DOKI弹窗骨干粉丝
+	struct stKeyFan
+	{
+		0 optional string strIcon;   //用户头像
+		1 optional string strReason; //上榜理由
+		2 optional string strNick;   //用户昵称
+		3 optional string strVuid;   //用户Vuid
+	};
+
+	// 混合信息Key枚举
+	enum EMixedInfoKey
+	{
+		ELETTER             = 1,  //团长信
+		EVOICE 			    = 2,  //DOKI语音，VALUE为语音URL
+        EUSR_NICK 			= 3,  //用户昵称
+        EDOKI_NICK 			= 4,  //DOKI昵称
+        ERANK   			= 5,  //DOKI下用户排行
+        ELETTER_AUTHOR_NICK = 6,  //团长信作者昵称
+        EBADGE              = 7,  //徽章url
+        EBADGE_LEVEL        = 8,  //徽章等级
+        EDOKI_HEADER        = 9,  //doki头像
+        ELETTER_AUTHOR_HEADER = 10, //团长信作者头像
+        EDOKI_CUTOUT        = 11, //doki抠图
+        EJOIN_TIME          = 12, //关注时间
+	};
+
+    // 命令字： 0xf9f6
+    // DOKI主页加入弹窗 -- H5请求
+	struct stJoinDokiMsgReq
+	{
+		0 require string  strDokiid;         // dokiid
+		1 optional string strVuid;           // 作为H5分享页时读取
+		2 optional int    iScene;            // 使用场景
+	};
+
+    // DOKI主页弹窗请求响应
+    struct stJoinDokiMsgRsp
+	{
+		0 require int errCode;
+		1 optional string strErrMsg;
+		2 optional map<string, string> mpMixedInfo; // KEY信息见EMixedInfoKey
+		3 optional vector<stKeyFan>    vecKeyFan;
+	};
+
+	// 粉丝信息
+	struct stFeedFan
+	{
+		0 optional string strVuid;   //
+		1 optional string strNum;    // 圈粉数
+	};
+
+    // 命令字：0xfacb
+	// DOKI圈粉数排行榜请求
+	struct stFeedFansReq
+	{
+		0 require string strDokiid;         // dokiid
+		1 optional int   iTopN;             // 前N个 - 至多10个
+	};
+
+    // DOKI帖子圈粉数响应
+    struct stFeedFansRsp
+	{
+		0 require int errCode;
+		1 optional string strErrMsg;
+		2 optional vector<stFeedFan>    vecFeedFan;
+	};	
+
+
+	enum EDokiType
+	{
+        EDOKI_STAR          = 0,        // 普通明星，2006表资料
+        EDOKI_VIDEO         = 1,        // 剧集DOKI
+        EDOKI_INTEREST      = 2,        // 兴趣doki
+        EDOKI_INNER         = 3,        // 内部保留使用
+        EDOKI_GAME          = 4,        // 游戏DOKI        
+        EDOKI_PHOTO         = 5,        // 自拍DOKI
+        EDOKI_ACGN          = 6,        // 鹅次元DOKI
+        EDOKI_ANIME         = 7,        // 动漫DOKI
+        EDOKI_NOVEL         = 8,        // 小说DOKI
+        EDOKI_ALLTYPE       = 1000,     // 所有类型DOKI
+
+
+        // DOKI聚合类，需多个类别DOKI合并下发 按以下定义填写
+        EDOKI_GROUP_ACGN    = 2000,     // 鹅次元版区 -- 包含EDOKI_ACGN\EDOKI_ANIME\EDOKI_NOVEL
+ 	};
+
+ 	enum EDokiListScene
+ 	{
+ 	    ELS_TEMPRARY         = 0,        // 时效性短的场景，包括"DOKI周年活动"，"明星教室"
+ 	    ELS_ACGN             = 1,        // 鹅次元APP关注列表
+ 	    ELS_ACGN_RECC        = 2,        // 鹅次元广场feed推荐
+ 	};
+
+
+    // 用户关注的doki id列表
+	// 命令字 - CMD_FLW_DOKI_LIST - 0xfb49
+	struct stFlwDokiListReq
+	{
+	    0 require string strVuid;       // 
+		1 optional int   iDokiType;     // 根据类型过滤, 值参考EDokiType, 注意：读取所有类别数据 必须传EDOKI_ALLTYPE
+		2 optional int   iSortFlag;     // 0：关注时间自大到小（新到旧）排序  1：关注时间自小到大（旧到新）排序
+		3 optional int   iScene;        // 定义见EDokiListScene， 本字段用于区分服务SET和分流，不影响回包数据
+	};
+	
+	struct stFlwDokiListRsp
+	{
+		0 optional int errCode;
+		1 optional string strErrMsg;           
+		2 optional vector<string> vecDokiList;           // doki 列表信息
+		3 optional map<string, string> mpDokiid2NameId;  // dokiid 到 人名id 映射 -- 除了iDokiType=EDOKI_STAR，其余类型 人名ID即dokiid
+	};	
+};

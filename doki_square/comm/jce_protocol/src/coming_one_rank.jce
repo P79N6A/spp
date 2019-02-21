@@ -1,0 +1,143 @@
+/*
+	明日之子榜单相关协议
+  ######## 测试L5: 520769 12386304
+  ######## 正式L5：990209 196608
+
+            接口						#   命令字    #       请求包   
+  ##     	粉丝贡献榜				#   0xf6ed    #  stFansRankReq
+  ##     	明星排行榜				#   0xf6ee    #  stStarRankReq
+  ##     	赛道点赞总数				#   0xf6ff    #  stChannelVoteReq
+  ##     	明星页投票流水			#   0xf771    #  FansVoteFLowDataReq
+*/
+
+#include "user_info.jce"
+module ComingOneRank
+{
+	// 人气榜粉丝信息
+	struct STFansInfo
+	{
+		0 require jceUserInfo::stUserInfo stFansData;
+		1 require long		   lScore;	// 点赞数
+		2 require int		   iRank;	// 贡献排名
+		3 optional string	   strPersonalLink;//粉丝个人页
+	};
+
+	// 背景图
+	struct BannerImg
+	{
+		0 require string strStarBg;						//人物背景图
+		1 require string strRankBg;						//榜单背景图
+		2 require string strRankName;					//榜单名字图
+		3 require string strStarName;					//明星名字
+	};  
+
+	//粉丝贡献榜 请求结构
+    struct stFansRankReq
+    {
+    	0 require  int iTimeType;					// [0日榜] [1周榜] [2总榜] [3全明星混合粉丝榜] [4好友投票榜]
+        1 optional long lRankTime;					//请求时间戳（为0）则默认为最新一期
+        2 optional unsigned int iReqNum;			//每页数量
+        3 optional unsigned int iPage;				//页数（从0开始）
+		4 optional long lStarId;                  //明星ID [iTimeType=0|1|2|4 时必填明星id]
+    };
+    
+    //粉丝贡献榜 响应结构
+	struct stFansRankRsp
+	{
+		0 require int iErrCode;				 						//业务错误码
+		1 optional string strErrMsg;								//业务错误原因
+		2 optional unsigned int iPeriod;							//当前期数
+		3 optional BannerImg stBannerImg;							//排行榜头部图，page=0返回
+		4 optional vector<STFansInfo> vecUserInfo;		 			// 粉丝数据
+        5 optional unsigned int iNextPage;							//是否还有下一页（0：没有 1：有）
+    };
+
+
+    // 点赞统计信息
+	struct STChannelVoteInfo
+	{
+		0 optional long		   lTotalVoteNum;	// 点赞总数
+		1 optional int		   iTotalVoteFans;	// 点赞总人数
+	};
+	
+	struct stChannelVoteReq
+    {
+    	0 optional  vector<string> vecChannelId;	               
+    };
+	struct stChannelVoteRsp
+	{
+		0 optional int iErrCode;				 					//业务错误码
+		1 optional vector<STChannelVoteInfo> vecChannelVoteInfo;	// 点赞统计信息
+		2 optional long		   lTotalVoteNum;	// 全频道点赞总数
+		3 optional int		   iTotalVoteFans;	// 全频道点赞总人数
+    };
+
+	// 明星个人信息
+	struct STStarInfo
+	{
+		0 optional string strStarId;          //明星id
+		1 optional string strDokiId;          //Doki id
+      	2 optional string strName;              //明星名字
+        3 optional string strHeader;            //头像  
+        4 optional string strChannel;            //赛道
+        5 optional string strActStatus;            //晋级状态 
+        6 optional string strFrom;            //来源
+        7 optional int    iVoteStatus;            //点赞状态 [0不可点赞] [1可点赞]
+        8 optional bool   bPush;            //厂牌星推
+	};
+
+	// 明星数据信息
+	struct STStarData
+	{
+		0 optional long		  lScore;	// 点赞数
+		1 optional long		  lVoteFansNum;	// 投票人数
+		2 optional long		  lVoteCnt;	// 投票次数
+		3 optional int		  iRank;	// 排名
+		4 optional string	  strBattle; //战斗次数
+		5 optional vector<int> vecPastRank; // 往期排名
+	};
+
+	struct STStarRankInfo
+	{
+		0 optional STStarInfo		  stInfo;	// 个人信息
+		1 optional STStarData		  stData;	// 数据
+	};
+
+    //明星排行榜 请求结构
+    struct stStarRankReq
+    {
+    	0 require  int iReqTime;							// 请求时间戳
+		1 require  int iState;								// [0不可点赞] [1可点赞] [2混合] [4我点赞过的选手] 
+    	2 require  int iStarType;							// [1混合] [2晋级] [4淘汰] [8:iState=4时按投票时间排序][16:iState=4时按投票数量排序]
+    	3 require  int iReqType;							// [0明星排行榜列表] [1明星在排行榜中个人信息]
+        4 optional unsigned int iNum;						//每页数量
+        5 optional unsigned int iPage;						//页数（从0开始）
+        6 optional string strStarId;       					// iState=8 or iReqType=1 时务必填写
+		7 optional int  iFrom;								// [0app] [1音乐] [2微博] [3酷我]
+    };
+    
+    //明星排行榜 响应结构
+	struct stStarRankRsp
+	{
+		0 require int iErrCode;				 						//业务错误码
+		1 optional vector<STStarRankInfo> vecStarInfo;		 		//明星数据
+		2 optional unsigned int iPeriod;							//当前属于第几期
+        3 optional unsigned int iNextPage;							//是否还有下一页（0：没有 1：有）
+        4 optional unsigned int iCurPage;							//当前页数
+        5 optional unsigned int iTotalPage;							//总页数
+    };
+
+		// 点赞跑马灯
+    struct FansVoteFLowDataReq
+	{
+		1 require string strStarId;					// 单个请求starid
+	};
+    
+	//返回数据
+    struct FansVoteFLowDataRsp
+	{
+		1 require int iErrCode;				 									//业务错误码
+		2 optional string strErrMsg;											//业务错误原因
+		3 optional vector<STFansInfo> vecUserInfo;								// 粉丝贡献值跑马灯数据 size <= 50
+	};
+};

@@ -1,0 +1,2000 @@
+#include "qqvideo_cmd.jce"
+#include "qqvideo_ona.jce"
+#include "qqvideo_common.jce"
+#include "qqvideo_game.jce"
+#include "qqvideo_user_info.jce"
+#include "qqvideo_ad.jce"
+module jce
+{	
+	//频道列表请求
+	struct ChannelListRequest
+	{
+		0 require int version;	                //本地频道数据版本号
+		1 optional int type;	                // 0 表示首页频道列表， 1 热点；2 好莱坞；3 直播tab；注意此参数要与tabindex保持一致！！10001 ipad儿童版导航
+		2 optional int personalFlag;            // 0 表示不需要个性化列表 1 表示需要
+		3 optional long personalListCreateTime; //上次个性化列表生成时间
+		4 optional string dataKey;              //用于相同type下不同的A/B分桶
+		5 optional int userSortType;			//表示当前用户使用的频道排序类型。0：终端默认排序，1：后台默认排序（非个性化），2：后台个性化排序，3：用户手动排序
+	};
+	
+	//频道列表结果返回
+	struct ChannelListResponse
+	{
+		0 require int 						errCode;	         //业务错误码
+		1 require int						version;	         //数据版本
+		2 optional vector<ChannelListItem>	list;		         //频道数据列表
+		3 optional ChannelListPersonalizeData personalizeData;   //频道个性化推荐的数据
+		4 optional int serverSortType;						//后台下发导航排序版本。1：后台默认排序（非个性化），2：后台个性化排序
+		5 optional vector<ChannelCategory> categoryList;				//导航类目列表
+		6 optional int areaType;                                 //地域类型 0:内地 1:海外
+		7 optional string defaultChannelId;					     //默认选中的频道id
+		8 optional string navBucketId;                           //导航推荐分桶id，透传到核心上报
+		9 optional Action action;		//跳转频道管理页的action
+	};
+	
+	//指定频道数据请求
+	struct ChannelDataRequest
+	{
+		0 require string channelItemId;		//频道编号(这里注意频道编号全局唯一)
+		1 require string pageContext;		//分页上下文，第一页为 ""
+		2 optional string refreshContext;	//刷新上下文，每次刷新的时候，如果后台带了这个字段下来需要带回去
+		3 optional int filtertype;          // 过滤类型 默认 0:不过滤    1:过滤单片付费的影片（应付苹果审核）
+		4 optional int hasCache;           //1有缓存0无缓存
+		5 optional string lastGroupId;                 //翻页带给后台的当前数据源中最后一个item的groupid，用于后台是否下发分割线的标志
+		6 optional string hotWordTimeStamp;   //搜索热词时间戳
+		7 optional string reportContext;   //后台上报参数上下文，app只做透传
+		8 optional string dataKey;         //频道差异化处理按照dataKey来区分 如A/Btest 该字段后台会透传到action跳转里面
+		9 optional int refreshType;        //刷新类型 默认 0:普通刷新 1:超时刷新，软置顶用
+		10 optional string channelSubKey;  //频道页辅助标识key，channelId相同时，用这个字段区分不同频道
+		11 optional string insertPosterKey;  //频道页feeds流支持顶部插入海报需要透传的key值
+		12 optional vector<string> dataKeyList;	// 模块请求信息列表，辅助后台插入推荐数据        
+		13 optional int loadTypeForRec;      //请求类型  该字段只针对个性化推荐  0 手动刷新  1页面超时刷新  2预加载 3 翻页加载下一页
+		14 optional int userSortType;			//表示当前用户使用的频道排序类型。0：终端默认排序，1：后台默认排序（非个性化），2：后台个性化排序，3：用户手动排序
+		15 optional vector<string> adContextList; //用于去重已曝光的广告模块(key)list
+		16 optional int channelMode;              //频道请求对应的客户端模式  0  普通模式 1 儿童模式 2 VIPTab下频道请求区分
+		17 optional string searchDataKey;      //频道页用于获取搜索热词的Key，终端透传ChannelListItem.searchDataKey
+		18 optional int displayScene;          //0 非二级页展示  1 二级页展示
+		19 optional AdRequestInfo adRequestInfo; //焦点图广告请求参数
+		20 optional AdSdkRequestInfo sdkRequestInfo;//广平sdk请求广告需要使用的相关信息
+		21 optional string subDataKey;     //不为空，AB Test会跟Channel的AB联动，ChannelListItem里透传过来的
+		22 optional int isPageVisible;     // 0 请求时不在当前页。  1 请求时在当前页
+	};
+	
+    //频道页数据回包
+	struct ChannelDataResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 require bool hasNextPage;					//是否有下一页
+		2 require string pageContext;				//取下一页会带这个字段上去
+		3 optional vector<TempletLine>	data;		//频道内容数据，每一个结点，都是一行数据
+		4 optional string refreshContext;			//刷新上下文，第一页数据有效
+		5 optional string refreshWording;			//刷新提示语，如果有则客户端以小黄条显示
+		6 optional byte optType;					//扩展字段，以低两位表示在网络返回为空时是否清除本地数据，0表示默认不清除，1表示清除
+		7 optional int refreshType = 0;				//表示登录登出等操作终端的刷新方式，0表示默认不刷新，1表示刷新
+		8 optional SearchHotWordInfo hotWordInfo;    //搜索运营热词信息
+		9 optional int dataType = 0;                 // 频道数据类型 0:运营数据  1:个性化数据
+		10 optional int showLastReadPositionFlag = 0; // 是否展示上次观看至海报，0:不展示  1:展示
+		11 optional string reportContext;   //后台上报参数上下文，app只做透传
+		12 optional int timeOut;					// 刷新时间间隔  大于0才使用，否则使用ChannelListItem中的timeOut， 单位秒
+		13 optional int autoPlayIndex = -1;     //feeds流频道页自动播放的海报位置，默认值-1，不作处理
+		14 optional ChannelEventInfo eventItem;  //频道活动信息，561新增，譬如明星入驻
+		15 optional vector<string> adContext; //当前页下发的广告模块(key)list
+		16 optional PromotionEventInfo  promotionInfo;  //频道推广活动信息  590新增，活动资源位信息
+		17 optional ChannnelExtraInfo channnelExtraInfo; // 频道页附属信息，以<key, value含义值>展示
+		18 optional ChannelInsertItem channelInsertItem; // 当前频道插入到快捷区域的辅助信息
+		19 optional byte flowLayoutType;				 //0 单瀑、1 双瀑布局
+	};
+	//详情页feed流数据请求
+	struct DetailFeedFlowRequest
+	{
+	    0 require string dataKey;	//请求feed流的datakey
+		1 require string pageContext;		//分页上下文，第一页为 ""
+		2 optional string refreshContext;	//刷新上下文，每次刷新的时候，如果后台带了这个字段下来需要带回去
+		3 optional int filtertype;          // 过滤类型 默认 0:不过滤    1:过滤单片付费的影片（应付苹果审核）
+		4 optional string reportContext;   //后台上报参数上下文，app只做透传
+		5 optional string vid;	        //当前vid
+		6 optional vector<string> adContextList; //用于去重已曝光的广告模块(key)list
+		7 optional AdRequestInfo adRequestInfo; //请求广告需要的平台相关信息
+	};
+	
+	struct DetailFeedFlowResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 require bool hasNextPage;					//是否有下一页
+		2 require string pageContext;				//取下一页会带这个字段上去
+		3 optional vector<TempletLine>	data;		//feed流数据列表
+		4 optional string refreshContext;			//刷新上下文，第一页数据有效
+		5 optional string reportContext;   //后台上报参数上下文，app只做透传
+		6 optional vector<string> adContext; //当前页下发的广告模块(key)list
+		7 optional string adChannelId;   //分配给详情页广告的channelId，用于广告的曝光。
+	};
+	
+	//详情页数据请求
+	struct VideoDetailsRequest
+	{
+		0 optional string lid;			//栏目id
+		1 optional string cid;			//专辑id
+		2 optional string vid;			//视频id
+		3 optional string historyVid;	//本地的历史播放纪录，可能存在，也可能不存在
+		4 optional string expansion;	//扩展信息
+		5 optional string outWebId;		//外站来源编号
+		6 optional string sessionId;  //详情页会话Id，用于详情页和秒播后台-终端串联监控
+		7 optional vector<string> adContextList; //用于去重已曝光的广告模块(key)list
+		8 optional AdRequestInfo adRequestInfo; //请求广告需要的平台相关信息
+	};
+
+		//详情页扩展字段
+	struct VideoDetailsExtraInfo 
+	{
+	    0 optional bool shouldShowEyeProtectedBanner;              //是否支持展示护眼模式提示条
+	};
+	
+	//详情页数据返回
+	struct VideoDetailsResponse
+	{
+		0 require int errCode;										//业务错误码
+		1 optional vector<TempletLine> uiData;						//UI显示元素
+		2 optional string vid;										//视频id
+		3 optional string lid;										//栏目id
+		4 optional string cid;										//专辑id
+		5 optional map<string,VideoDataList> videoDataMap;			//视频数据集合
+		6 optional map<string,CoverDataList> coverDataMap;			//专辑类数据集合（往期，推荐等）
+		7 optional map<string,VideoIntroduction> introductionMap;	//影片简介数据
+		8 optional string defaultVideoDataKey;						//默认的剧集列表数据key
+		9 optional string defaultCoverDataKey;						//默认的专辑列表数据key
+		10 optional vector<KVItem> outWebList;						//外站来源列表
+		11 optional map<string,ActorList> actorDataMap;				//明星列表数据集合
+		12 optional vector<KVItem> outWebToastList;					//外站来源付费提示
+		13 optional map<string,map<int,CoverDataList>> videoCoverMap; //用于剧集的辅助专辑类数据集合（会员看全季：0前插；-1后插；任意>0的位置表示主数据自然序号的后面）
+		14 optional VideoMoreDetails detailMoreInfo;				//扩展结构和扩展数据信息
+		15 optional string expansion;								//从哪来回哪去逻辑，由后台下发标识app填充到
+		16 optional string forceVideoDataKey;						//强制的专辑列表数据key，如果这个值有效以此来与defaultCoverDataKey组成展开结构
+		17 optional vector<string> sequentPlayKeys;                 //为了防止续播的key下一个没有找到，这是个补充逻辑 
+		18 optional string feedFlowDataKey;                         //拉取feed流的datakey，如果不为空，则优先级高于评论模块
+		19 optional vector<MarkScore> markScoreDesc;                //影片打分描述信息
+		20 optional byte pageType;									//上拉加载更多的类型，0评论，1feed流
+		21 optional MultiLanguageInfo multiLanguageInfo;			//多语言信息
+		22 optional map<string,Navigation> navigationMap;			//导航数据集合
+		23 optional string detailsFlowDataKey;                      //详情页除主协议外，用于拉取额外数据的dataKey，在pageType=2时使用
+		24 optional VideoDetailsExtraInfo extraInfo;                //扩展字段
+	};
+	
+	//视频列表页数据请求，支持筛选过滤
+	struct VideoListRequest
+	{
+		0 require string channelId;				//频道id
+		1 optional string filterValue;			//过滤条件字符串
+		2 optional string pageContext;			//翻页上下文
+		3 optional int filtertype;          // 过滤类型 默认 0:不过滤    1:过滤单片付费的影片（应付苹果审核）
+		4 optional string type;				// 业务自由使用
+		5 optional string dataKey;  		// 业务自由使用
+	};
+	
+	//视频列表数据结果返回
+	struct VideoListResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 require int uiType;						//海报显示3/4左图右文 5/6上图下文
+		2 require vector<Poster> posterList;		//海报数据列表
+		3 optional VideoFilter filter;				//过滤器
+		4 optional string pageContext;				//翻页上下文
+		5 optional bool hasNextPage;				//是否还有下一页
+		6 optional vector<VideoFilter> filterList;        //过滤器列表
+	};
+	
+	//获取指定的评论列表
+	struct GetCommentListRequest
+	{
+		0 require string commentKey;			//用来标示评论从哪里取，这个key由后台统一
+		1 optional string pageContext;			//翻页上下文
+		2 optional string filterKey;			//评论过滤字段，提供只拉单独属性的评论能力，如果为null，后台吐所有类型的评论
+		3 optional string vid;					//增加一个vid字段，提供详情页vid切换的时候评论切换的能力
+		4 optional int pageFlag;				//翻页标志：＝0拉取最新的数据；＝1:向上拉最新的数据；=2：向下拉最新的数据
+		5 optional string lastId;				//进入和切tab拉新和拉历史下一页都透传上次返回，轮询取最老id
+		6 optional int scene;					//场景
+		7 optional int mode;                    //模式  0:普通模式  1:showroom模式
+	};
+	
+	//获取评论列表的回包
+	struct GetCommentListResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 require bool hasNextPage;						//是否有下一页
+		2 optional string pageContext;					//翻页上下文
+		3 optional int commentCount;					//评论总数
+		4 optional vector<CommentItem>	commentList;	//评论数据
+		5 optional vector<CommentItem>	hotCommentList;	//置顶消息列表
+		6 optional vector<CommentNoticeItem> noticeList;//评论通知列表
+	};
+	
+	//发表评论，回复评论，点赞，举报评论
+	struct PostCommentRequest
+	{
+		0 require string commentKey;					//评论系统的key，由server下发
+		1 require int postType;							// 0 发表评论， 1 回复，2 顶， 3 举报, 4 删除
+		2 require int reportType;						//举报类型
+		3 optional string content;						//评论内容
+		4 optional string commentId;					//顶，举报的时候使用
+		
+		5 optional string voteId;						//队伍id，直播的时候使用
+		6 optional string voteSubjectId;				//战队的时候使用
+		7 optional string voteOptionId;
+		
+		8 optional LBSInfo lbsInfo;						//可能携带的位置信息
+		9 optional string imageUrl;						//可能携带的图片信息
+		10 optional STStarInfo starInfo;				//明星信息
+		11 optional ApolloVoiceData voiceData;			//语音信息
+		12 optional int liveStatus;						//直播状态
+		13 optional string tabId;						//tabId
+	};
+	
+	//发表评论的回包
+	struct PostCommentResponse
+	{
+		0 require int errCode;
+		1 optional vector<CommentItem>	commentList;	//评论数据 
+	};
+	
+	//获取用户所有的关注数据
+	struct GetVideoAttentListRequest
+	{
+		0 optional long dataVersion;		//本地数据版本号，默认为空
+	};
+	
+	//用户所有关注数据结果返回
+	struct GetVideoAttentListResponse
+	{
+		0 require int errCode;										//错误码
+		1 optional long dataVersion;								//当前数据的版本信息
+		2 optional int  updateFlag;									//是否有数据更新，如果为false，则VideoAttentInfoList为null
+		3 optional int  total;										//关注的总数量，非VideoAttentInfoList中包含的数量
+		4 optional vector<VideoAttentItem> VideoAttentInfoList;		//关注数据列表
+	};
+	
+	//针对单条关注纪录做操作,协议支持批量操作，每次操作只能有一个option类型
+	struct VideoAttentOptionRequest
+	{
+		0 require vector<VideoAttentItem> attentKeyList;		//关注项的key,支持批量操作
+		1 require byte option;						//具体的操作  0 表示查询 ，1 表示 添加关注 ，2 表示取消关注
+		2 optional string iosTokenId;				//iOS专用		
+	};
+	
+	//单条关注纪录操作返回结果
+	struct VideoAttentOptionResponse
+	{
+		0 require int errCode;									//业务错误码
+		1 optional vector<VideoAttentItem> attentItemList;		//在查询和添加关注的时候请返回这个结构，取消关注的时候，随便	
+	};
+	
+	//新关注的操作请求
+	struct NewAttentOptionRequest {
+		1 require byte option;		//操作类型 1-设置关注 2-取消关注 3-取消全部关注(此时attentKeyList为null)
+		2 optional vector<NewAttentKey> attentKeyList;
+	};
+
+	//新关注的操作返回
+	struct NewAttentOptionResponse {
+		1 require int errCode;
+		2 optional vector<NewAttentItem> attentItemList;
+	};
+
+	//新关注的查询请求
+	struct NewQueryAttentStateRequest {
+		1 require vector<NewAttentKey> attentKeyList;
+	};
+
+	//新关注的查询返回
+	struct NewQueryAttentStateResponse {
+		1 require int errCode;
+		2 optional vector<NewAttentItem> attentItemList;
+	};
+
+	//新关注的获取关注列表请求
+	struct NewGetAttentListRequest {
+		1 optional long lastDataVersion;		//本地数据版本号 (首次为0)
+	};
+
+	//新关注的获取关注列表返回
+	struct NewGetAttentListResponse {
+		1 require int errCode;
+		2 optional long dataVersion;				//当前数据的版本信息
+		3 optional int updateFlag;					//是否有数据更新，如果为0，则attentItemList为null
+		4 optional vector<NewAttentItem> attentItemList;	//关注数据列表
+		5 optional int total;					//关注的总数量，非本次返回的列表的数量
+	};
+
+	//详情页相关视频列表请求
+	struct DetailVideoListRequest
+	{
+		0 require string dataKey;					//数据key
+		1 optional string pageContext;				//翻页上下文
+		2 optional string dataType;				    //请求类型，可能会以此路由
+		3 optional string vid;	                    //此字段并不只代表vid还可能代表其他用来刷新的key
+	};
+	
+	struct DetailVideoListResponse
+	{	
+		0 require int errCode;							//业务错误码
+		1 optional string pageContext;					//翻页上下文
+		2 optional vector<VideoItemData> videoList;		//视频列表数据
+		3 optional bool hasNextPage;					//是否还有下一页数据
+		4 optional VideoMoreDetails detailMoreInfo;		//扩展结构和扩展数据信息
+		5 optional ONAPosterTitle title; //标题
+		6 optional map<string,VideoIntroduction> introductionMap;	//影片简介数据
+		7 optional ONALoadMoreAction  moreAction; 			//查看全部
+		8 optional int uiType;           //  ：0 大背景框 3行  1中背景框2 行  2小背景框1行  3 左横图右文 4 左竖图右文 5上横图下文 6 上竖图下文
+	};
+	
+	//详情页专辑列表相关请求
+	struct DetailCoverListRequest
+	{
+		0 require string dataKey;					//数据key (因此key用于唯一确定一个列表，需要与ONAView或者Map中key值对应，个性化插件按模块下发相同字符串，其他推荐信息：vid/cid...由下面扩展字段携带)
+		1 optional string pageContext;				//翻页上下文
+		2 optional string dataType;				    //请求类型，可能会以此路由
+		3 optional string vid;	                    //此字段并不只代表vid还可能代表其他用来刷新的key
+		4 optional string cid;						//专辑id,当前cid
+		5 optional string lid;						//栏目id,当前lid
+	};
+	
+	struct DetailCoverListResponse
+	{	
+		0 require int errCode;							//业务错误码
+		1 optional string pageContext;					//翻页上下文
+		2 optional vector<CoverItemData> coverList;		//视频列表数据
+		3 optional bool hasNextPage;					//是否还有下一页数据
+		4 optional int uiType;            //  ：0 大背景框 3行  1中背景框2 行  2小背景框1行  3 左横图右文 4 左竖图右文 5上横图下文 6 上竖图下文
+	};
+	
+	//用户播放历史纪录请求
+	struct WatchRecordListRequest
+	{
+		0 optional string pageContext; 					//翻页上下文，第一页为空
+		1 optional long dataVersion;					//上次server返回的版本号
+	};
+	
+	struct WatchRecordListResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 optional string pageContext;					//翻页上下文
+		2 optional bool hasNextPage;					//是否有下一页
+		3 optional vector<WatchRecord> recordList;		//结果列表
+		4 optional long dataVersion;					//版本号，如果版本号和本地缓存的版本号相同，则不可更新本地缓存
+	};
+	
+	//用户播放历史纪录上传
+	struct WatchRecordUploadRequest
+	{
+		0 require vector<WatchRecord> uploadList;		//请从结构中只读取需要的字段
+	};
+	
+	struct WatchRecordUploadResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 optional vector<WatchRecord> recordList;		//服务器将填充完毕的纪录重新返回，主要是 poster结构的字段
+	};
+	
+	//删除本地的播放历史纪录
+	struct WatchRecordDeleteRequest
+	{
+		0 optional vector<string> recordIdList;			//需要删除的纪录id
+		1 optional bool isDeleteAll;					//是否删除所有纪录
+	};
+	
+	struct WatchRecordDeleteResponse
+	{
+		0 require int errCode;							//业务错误码
+	};
+	
+	//获取指定的缓存列表
+	struct GetCacheListRequest
+	{
+		0 optional string lid;			//栏目id
+		1 optional string cid;			//专辑id
+		2 optional string vid;			//视频id
+		3 optional string pageContext;	//翻页上下文
+		4 optional string definition;	//清晰度
+		5 optional int requestType;		
+		//requestType & 0x01 == 0 , 表示请求全部;requestType & 0x01 == 1 , 表示只请求vid对应的资源;（requestType >> 1） & 0x01 == 0, 仅支持翻下一页;（requestType >> 1） & 0x01 == 1, 仅支持上下翻页
+		6 optional string cacheDataKey;	//缓存列表的后台兼容逻辑，以cacheDataKey或者lidcidvid为参数
+		7 optional int direction = 0 ;  //0，首次请求，无上/下拉动作 1,请求下一页/上拉动作  2,请求上一页/下拉动作
+		8 optional int maxGridCount;    //每一页拉取的最大格子数
+		9 optional map<string, string> extraMap;	//透传播放器信息给后台，用在杜比上面
+	};
+	
+	//获取缓存列表的回包
+	struct GetCacheListResponse
+	{
+		0 require int errCode;			         //业务错误码
+		1 optional bool hasNextPage;	         //是否有下一页
+		2 optional string pageContext;	         //翻页上下文
+		3 optional int uiType;			         //参考ONADetailsVideoList的uiType，但只有0和2两种值：0 表示多行文本 2 表示小方格，
+		4 optional vector<CacheItem> cacheList;	 //缓存数据
+		5 optional string name;					 //cid或者lid对应的剧集名字
+		6 optional string downloadRightName;	 //版权名字
+		7 optional vector<Definition> definitionList;  //清晰度列表
+		8 optional string definition;	          //返回的清晰度
+		9 optional string preText;                 //预约下载提示文本
+		/*------为上翻的逻辑增加的字段------------------------------*/
+		10 optional string previousPageContext;  //请求上一页的上下文
+		11 optional bool hasPreviousPage;        //是否有上一页
+		12 optional bool needMultipleChoice = false; //是否需要多选模式
+		13 optional bool needPreCheckDownloadCopyRight;    //是否需要在下载入口前置判断
+		14 optional VipDownloadRightConfig vipDownloadRightConfig;	//下载底层页vip用户的特权配置信息
+		/*------下载拉登录的标记字段------------------------------*/
+		15 optional bool needLoginFirst = false;        //是否需要先登录
+	};
+	
+	//批量获取缓存列表（预约下载用于检查视频信息）
+	struct GetPreCacheItemListRequest
+	{
+		0 require vector<PreCacheRequest> request;	// 请求结构体
+	};
+	
+	//批量获取缓存列表的回包（预约下载用于检查视频信息）
+	struct GetPreCacheItemListResponse
+	{
+		0 require int errCode;			         //业务错误码
+		1 optional vector<CacheItem> cacheList;	 //缓存数据
+	};
+	
+	//查询是否有预约下载(491)
+	struct CheckHasPreCacheItemRequest
+	{
+		0 require string cid;			//专辑id
+	};
+	
+	//查询是否有预约下载的回包
+	struct CheckHasPreCacheItemResponse
+	{
+		0 require int errCode;			         //业务错误码
+		1 optional int hasPreCacheItem;	 //0-没有预约；1-有预约
+		2 optional string preTips;      // 有预约对应的提示语
+	};
+	
+	//搜索获取排行榜 
+	struct SearchRankRequest 
+	{ 
+		0 optional string channdlId;			//预留字段，暂时忽略
+		1 optional string searchDatakey;        //由搜索配置，后台下发，前端透传的字段
+		2 optional AdRequestInfo adRequestInfo; 	//焦点图广告请求参数
+		3 optional AdSdkRequestInfo sdkRequestInfo;	//广平sdk请求广告需要使用的相关信息
+		4 optional bool isPageContextEmpty;//无用字段，主要是为了填6.2.0埋的一个坑,使jce字段对齐，避免JCE解析失败。
+  		5 optional bool isRefreshContextEmpty;//无用字段，主要是为了填6.2.0埋的一个坑,使jce字段对齐，避免JCE解析失败。
+  		6 optional vector<string> searchHistoryKeyWords; //上报搜索历史数据
+	}; 
+
+	//搜索排行榜返回结果 
+	struct SearchRankResponse
+	{ 
+		0 require int errCode;						//业务错误码
+    	1 optional vector<RankItem> itemList; 		//内容主体 
+    	2 optional string groupTitle; 				//名称 
+		3 optional string timeStamp;    			//时间戳
+		4 optional Poster adPoster;       			//冠名广告位 620版本后废弃
+		5 optional vector<KVItem> rankNavList; 		//导航列表
+		6 optional AdTitleInfo adTitleInfo;  		//标准化冠名广告，620版本后使用标准化冠名广告
+		7 optional vector<TempletLine>	data;		//搜索排行榜内容数据，在历史搜索下，导航列表上，每一个结点，都是一行数据
+		8 optional vector<IconTagText> hotWordInfo; //搜索运营热词信息
+		9 optional string rankNavSelectColor;   	//导航选中时的颜色
+	}; 
+
+ 	//搜索智能联想 
+	struct SearchSmartRequest 
+	{ 
+    	0 require string keyWord;		//用于搜索的key 
+    	1 optional string channelId;	//根据频道id来过滤
+		2 optional string searchDatakey;        //由搜索配置，后台下发，前端透传的字段
+	}; 
+
+	//动态联想返回结果 
+	struct SearchSmartResponse
+	{ 
+		0 require int errCode;
+    	1 optional vector<string> itemList; //内容主体
+		2 optional vector<SearchSmartItem> smartItemList; //内容主体 
+		3 optional string reportKey;  //点击上报		
+		4 optional string reportParams; 
+	}; 
+
+	//搜索结果页数据请求，支持筛选过滤 
+	struct SearchRequest 
+	{ 
+    	0 require string keyWord; 			//搜索关键字 
+    	1 optional string channelId;		//如果是频道跳过来的，则带频道id
+    	2 optional string filterValue;		//过滤条件字符串,首次为空 
+    	3 optional string pageContext;		//翻页上下文 
+    	4 optional string searchSession;	//搜索业务使用的session，原样带回
+		5 optional string expansion;		//扩展字段
+		6 optional bool isNeedCorrect;		//是否需要智能纠错
+		7 optional string searchDatakey;        //由搜索配置，后台下发，前端透传的字段
+		8 optional AdRequestInfo adRequestInfo; //焦点图广告请求参数
+		9 optional AdSdkRequestInfo sdkRequestInfo;//广平sdk请求广告需要使用的相关信息
+	}; 
+
+	//搜索结果页数据返回 
+	struct SearchResponse 
+	{ 
+    	0 require int errCode; 					//业务错误码，如果返回没有结果需要界面提示 
+    	1 optional vector<TempletLine> uiData;	//UI显示元素 
+    	2 optional VideoFilter filter; 			//过滤器 
+    	3 optional string pageContext;			//翻页上下文 
+    	4 optional string searchSession;		//搜索业务使用的session，原样带回
+    	5 optional bool isHaveNextPage;			//是否有下一页(只影响主UI数据)
+    	6 optional string reportParams;			//搜索返回结果的上报内容
+		7 optional string matchResult;			//当后台判断当前query可能存在错误输入的情况下，匹配至最近的query
+		8 optional vector<TempletLine> subUIData;	//UI显示元素
+		9 optional PromotionEventInfo promotionEventInfo;// 资源位信息 
+	}; 
+	
+
+	//单独定义一条协议来承载运营类的需求，不跟频道页混合在一起
+	struct OperationPageRequest
+	{
+		0 optional string type;			//业务自由使用
+		1 optional string dataKey;		//业务自由使用
+		2 optional string pageContext;
+		3 optional string payAID;		//透传后台以生成带有payAID的跳转详情页链接
+		4 optional int derection = 0;   //0-首次请求，1-请求下一页（上拉翻页），2-请求上一页（下拉翻页）
+	};
+	
+	struct OperationPageResponse
+	{
+		0 require int errCode;					//业务错误码
+		1 optional vector<TempletLine>	uiData;	//用来显示的数据	
+		2 optional string pageContext;			//翻页上下文
+		3 optional bool isHaveNextPage;			//是否还有下一页
+		4 optional string title;				//标题
+		5 optional VideoAttentItem attentItem;  //用于关注的数据结构
+		6 optional ShareItem shareItem;			//用于分享的数据结构
+		7 optional int actionType;				//用于标记页面title的action类型默认0是分享1是搜索
+		8 optional string subTitle;				//副标题标题
+		9 optional GameDownloadItemData apkInfo;//对应下载或打开的app信息
+		10 optional int pageUiType;             //0,默认, 1.高斯模糊图背景的标题栏 2 颜色 3 图片前端app自己取色
+		11 optional string titleBarImage;       //pageUiType==1时的标题栏的图片  2 pageUiType==2时取值 #875643    3 pageUiType==3 图片url
+		12 optional int targetPos;              //后台需要前端首次定位的位置，必须保证在第一页
+		13 optional string reportParams;		//点击事件用来上报的内容(点击)
+		14 optional int timeOut;                //刷新时间间隔  0表示不刷新 单位秒
+		15 optional int pullDownType;           //下拉刷新动作：0-刷新，1-翻页
+		16 optional string prePageContext;      //请求上一页的上下文
+		17 optional bool isHavePrePage = false;         //是否有上一页
+		18 optional ActionBarInfo moreAction; // 页面附加按钮样式和数据
+	};
+	
+	//单独定义一条协议下发运营页卡的导航内容
+	struct NavOperatePageRequest
+	{
+		0 optional string type;			//业务自由使用
+		1 optional string dataKey;		//业务自由使用
+	};
+	
+	struct NavOperatePageResponse
+	{
+		0 require int errCode;									//业务错误码
+		1 require vector<LiveTabModuleInfo> moduleList;			//
+		2 optional string title;				//标题
+		3 optional VideoAttentItem attentItem;  //用于关注的数据结构
+		4 optional ShareItem shareItem;			//用于分享的数据结构
+		5 optional int actionType;				//用于标记页面title的action类型默认0是分享1是搜索2是特殊跳转
+		6 optional string subTitle;				//副标题标题
+		7 optional GameDownloadItemData apkInfo;//对应下载或打开的app信息
+		8 optional ActionBarInfo moreAction;     //用在标题右侧点击更多跳转
+
+		9 optional bool showEditModelList = false;	//是否展示tab栏右侧的编辑按钮
+		10 optional string titleOnEdit;			//标题在编辑频道页面
+		11 optional string labelMyChannelOnEdit;	//"我的频道"在编辑频道页面
+		12 optional string labelOtherChannelOnEdit;	//"其他频道"在编辑频道页面
+		13 optional string labelNoMoreTips;			//"其他频道"为空时显示的文本
+	};
+
+	//请求我的评论列表
+	struct MyCommentListRequest
+	{
+		0 optional string pageContext;		//翻页上下文
+	};
+	
+	struct MyCommentListResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 optional vector<MyCommentItem> itemList;	//列表数据
+		2 optional string pageContext;				//翻页上下文
+		3 optional bool hasNextPage;				//是否有下一页
+	};
+	
+	//请求明星动态
+	struct StarNewsListRequest
+	{
+		0 require string starNewsDataKey;		//明星动态的数据key
+		1 optional string pageContext;			//翻页上下文
+	};
+	
+	struct StarNewsListResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 optional string pageContext;				//翻页上下文
+		2 optional vector<TempletLine>	uiData;		//这里主要是吐 ONAStarNews 的封装
+		3 optional bool hasNextPage;
+	};
+	
+	//请求饭团帖子数据
+	struct FanNewsListRequest
+	{
+		0 require string starFansDataKey;		//饭团帖子的数据key
+		1 optional string pageContext;			//翻页上下文
+	};
+	
+	struct FanNewsListResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 optional string pageContext;				//翻页上下文
+		2 optional vector<TempletLine>	uiData;		//这里主要是吐 ONAStarNews 的封装
+		3 optional bool hasNextPage;
+	};
+	
+	//明星主页数据请求
+	struct StarHomeRequest
+	{
+		0 require string actorId;		//明星的id，跟 actorInfo结构里面的对应
+	};
+	
+	struct StarHomeResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional ActorInfo actorInfo;						//明星的详细信息
+		2 optional vector<TempletLine>	uiData;				//用来显示的数据
+		3 optional string starNewsDataKey;					//明星动态的获取数据key，为空表示没有动态
+		4 optional map<string,CoverDataList> coverDataMap;	//专辑类数据集合（往期，推荐等）[这个字段的处理规则同详情页]
+		5 optional map<string,ActorList> actorDataMap;		//明星列表数据集合
+		6 optional string starFansDataKey;					//明星饭团帖子(新版本优先判断这个请求参数)
+	};
+	
+	//个性化推荐的数据请求
+	struct PersonalizeVideoListRequest
+	{
+		0 require int pageSize;			//请求的列表个数
+		1 require int msgtype;			//应后台要求添加的接口命令字。这里赋常量15即可。
+		2 optional vector<PersonalizeVideoItem> itemList;	//已曝光的数据列表
+	};
+	
+	struct PersonalizeVideoListResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional vector<PersonalizeVideoItem> itemList;	//个性化推荐数据列表
+		2 optional vector<long> updateTimePointList;		//更新时间点
+		3 optional map<string,string> wordingMap;			//视频妹提示语大合集
+	};
+	
+	//个性化推荐的上报
+	struct PersonalizeVideoReportRequest
+	{
+		0 require byte type;			//上报类型  1:曝光	  2:看过  3:没感觉  4:进入底层页
+		1 require string id;			//视频信息id
+		2 require string reportKey;		//上报id
+	};
+
+	struct PersonalizeVideoReportResponse
+	{
+		0 require int errCode;								//业务错误码
+	};
+
+	//发现tab数据请求
+	struct DiscoveryTabRequest
+	{
+		0 optional int flag;			//纯占位，无意义
+	};
+	
+	struct DiscoveryTabResponse
+	{
+		0 require int errCode;							//错误代码
+		1 optional vector<DiscoveryTabItem> itemList;	//发现tab的数据项
+	};
+	
+	// 投票点赞
+	struct PostVoteRequest
+	{
+		0 require string voteKey;					//投票key值，由后台下发
+	};
+	
+	// 投票点赞返回
+	struct PostVoteResponse
+	{
+		0 require int errCode;						//错误代码
+		1 optional VoteData voteData;				//投票后返回的数据
+	};
+	
+	// 投票查询
+	struct GetVoteRequest
+	{
+		0 require string voteKey;					//投票key值，由后台下发
+	};
+	
+	// 投票返回
+	struct GetVoteResponse
+	{
+		0 require int errCode;						//错误代码
+		1 optional VoteData voteData;				//投票后返回的数据
+	};
+	
+	// 视频打点信息请求
+	struct VideoTagRequest
+	{
+		0 require string vid;					//视频id
+		1 optional int pr;					//平台号
+	};
+	
+	// 视频打点信息返回
+	struct VideoTagResponse
+	{
+		0 require int errCode;						//错误代码
+		1 optional string tagJson;		//视频打点信息
+	};
+	
+	// 动态分组视图数据请求
+	struct DynamicDataRequest
+	{
+	//UserVote:我们15个投票榜
+	//ReferVid:依赖vid请求
+	//ReferKey:vid改变时以referKey请求数据
+		0 require string type;			//请求类型
+		1 require string dataKey;		//请求参数
+		2 optional string pageContext;	//翻页上下文
+		3 optional string vid;	        //当前vid
+		4 optional string referKey;	    //请求依赖的额外参数，如V+的帐号信息等
+	};
+	
+	// 动态分组视图数据返回
+	struct DynamicDataResponse
+	{
+		0 require int errCode;					//业务错误码
+		1 optional vector<TempletLine>	uiData;	//用来显示的数据	
+		2 optional string pageContext;			//翻页上下文
+		3 optional bool isHaveNextPage;			//是否还有下一页
+	};
+	
+	// 业务的投票列表请求
+	struct BusinessVoteListRequest
+	{
+		0 optional string pageContext;	//翻页上下文
+	};
+	
+	// 业务的投票列表返回
+	struct BusinessVoteListResponse
+	{
+		0 require int errCode;					//业务错误码
+		1 require vector<ActorInfo> voteList;	//投票列表
+		2 optional string voteIcon;				//业务图标
+		3 require int voteLimit;				//用户每天投票上限
+		4 require int votedCount;				//用户当天已投票次数  (当votedCount >= min（voteLimit，bottleCount） 时，用户当天就不能再进行投票了) 
+		5 require int bottleCount;          	//用户已收集瓶子数量
+		6 optional vector<string> lines;		//显示的文字（注意需要按顺序）
+		7 optional GameDownloadItemData apkInfo;				//对应下载或打开的app信息
+		8 optional map<string,CommonDialogInfo> dialogs;     //各种场景下需要弹的弹框，key 有bottle_use_out 加油瓶已用完;bottle_exceed_limit 加油瓶使用次数超过限制
+		9 optional ShareItem shareItem;		//用于页面分享		
+		10 optional string pageContext;			//翻页上下文
+		11 optional bool isHaveNextPage;		//是否还有下一页
+		12 optional Action sharePageAction;   //跳分享页面的action
+		
+	};
+	
+	//追剧数据请求，支持筛选过滤
+	struct FollowTVRequest
+	{
+		0 require string dataKey;				//请求标志
+		1 optional string filterValue;			//过滤条件字符串
+		2 optional string pageContext;			//翻页上下文
+	};
+	
+	//追剧数据结果返回
+	struct FollowTVResponse
+	{
+		0 require int errCode;						       //业务错误码
+		1 optional vector<FollowTVPoster> uiData;	   //用来显示的数据	
+		2 optional VideoFilter filter;				      //过滤器
+		3 optional string pageContext;				      //翻页上下文
+		4 optional bool hasNextPage;				      //是否还有下一页
+		5 optional ShareItem shareItem;
+		6 optional string pageTitle;                        // 页面的标题
+	};	
+	
+	//NAC请求服务器列表信息
+	struct NACRequest
+	{
+		0 optional string pageContext;			
+	};
+	
+	//NAC返回服务器列表信息
+	struct NACResponse
+	{
+		0 require int errCode;	
+		1 optional vector<ServerInfo> serverList;	   
+		2 optional vector<ServerInfo> serverListv6;  //默认接入服务ipv6列表
+		3 optional string cliIPv6;  //出口IPV6地址  
+		4 optional vector<ServerInfo> netSpeedList;	  //用于网络ip测速
+	};	
+	
+        //IP测速请求
+        struct NetSpeedDetectRequest
+ 	{
+        	0 require string dataKey; //请求参数
+ 	}; 
+ 
+	//测速信息
+        struct NetDetectInfo
+        {
+        	0 optional string speedData;     //测速数据
+         };
+
+        //IP测速Body返
+        struct NetSpeedDetectResponse
+ 	{
+	        0 require int errCode;     //网络错误码
+	        1 optional NetDetectInfo detectInfo; //测速信息 
+ 	}; 
+	//热点全屏数据请求
+	struct FullScreenVideoDetailRequest
+	{
+		0 require string vid;//视频id
+		1 require vector<int> dataSelector; //请求数据选择器 1:视频数据; 2:相关视频的关注集合; 3:专辑往期；4推荐列表；6短视频落地页视频列表
+		2 optional string cid;//专辑id
+		3 optional string lid;//栏目id
+		4 optional string pid;//program id
+	};
+   
+  //热点全屏数据返回
+	struct FullScreenVideoDetailResponse
+	{
+		0 require int errCode;
+		1 optional int videoItemType;   //表示视频类型：1、推荐/2、选集/3、往期/4、看点
+		2 optional vector<VideoItemData> videoData;//当前视频数据集合
+		3 optional vector<VideoAttentItem> attentData;//每个视频的关注集合
+		4 optional vector<CoverItemData> pastCoverData;//专辑往期数据
+		5 optional vector<CoverItemData> recomCoverData;//专辑推荐信息
+		6 optional vector<VideoItemData> recomVideodata;//单视频推荐信息
+		7 optional string cacheDataKey;  //缓存datakey
+	};
+	
+	//外部拉起信息上传
+	struct QQLiveActionRequest
+	{
+		0 optional string openOriUrl;  //翻译前，用于外部拉起的原生url
+		1 optional string actionUrl;   //翻译后（外部拉起） or 内部检测到autoReport字样的下发action
+		2 optional int source;		   //来源，默认0是内部跳转，1外部跳转
+	};
+	
+	struct QQLiveActionResponse
+	{
+		0 require int errCode;
+	};
+	
+	//个人中心动态配置入口的请求
+	struct DynamicItemRequest
+	{
+		0 require int dataVersion;
+		1 optional string imei;			
+		2 optional int carrier = -1;		//运营商 0：联通  1：电信  2：移动					
+		3 optional string context;          //doki入口用于轮流展示doki信息			
+	};
+	
+	//个人中心动态配置入口的返回
+	struct DynamicItemResponse
+	{
+		0 require int errCode;	
+		1 optional vector<DynamicItemInfo> itemList;
+		2 optional map<string,DynamicItemInfo> replaceItemList; //钱包入口key：wallet；V币商城入口key：market；Doki入口Key：doki；
+		3 optional string context;          //传回后台，用于doki信息标记
+	};
+	
+	//通用相关视频列表请求
+	struct CommonVideoListRequest
+	{
+		0 require int type;							//请求类型，业务自由分配
+		1 require string dataKey;					//数据key，业务自由分配
+		2 optional string pageContext;				//翻页上下文
+	};
+	
+	struct CommonVideoListResponse
+	{	
+		0 require int errCode;							//业务错误码
+		1 optional string pageContext;					//翻页上下文
+		2 optional vector<VideoItemData> videoList;		//视频列表数据
+		3 optional bool hasNextPage;					//是否还有下一页数据
+		4 optional bool hasPreviousPage;                //是否有上一页
+		5 optional string previousPageContext;          //请求上一页的上下文
+	};
+	
+	//通用专辑列表相关请求
+	struct CommonCoverListRequest
+	{
+		0 require int type;							//请求类型，业务自由分配
+		1 require string dataKey;					//数据key，业务自由分配
+		2 optional string pageContext;				//翻页上下文
+	};
+	
+	struct CommonCoverListResponse
+	{	
+		0 require int errCode;							//业务错误码
+		1 optional string pageContext;					//翻页上下文
+		2 optional vector<CoverItemData> coverList;		//视频列表数据
+		3 optional bool hasNextPage;					//是否还有下一页数据
+	};
+	
+	//推荐页卡不感兴趣请求
+	struct DislikeVideoRequest
+	{
+		0 require string dataKey;					//视频的key
+		1 optional vector<string> optionIds;		//选项的id
+	};
+	
+	struct DislikeVideoResponse
+	{	
+		0 require int errCode;							//业务错误码
+	};
+	
+	//频道页插件模块请求
+	struct ChannelModPluginDataRequest
+	{
+        0 require int scence;               //scence=1从频道页卡过来，2：从点播详情页卡过来，3：从直播详情页卡过来；
+        1 require int modId;                //modId，模块id
+        2 optional string channelItemId;    //频道编号(这里注意频道编号全局唯一)
+        3 optional string lid;              //栏目id
+        4 optional string cid;              //专辑id
+        5 optional string vid;              //视频id
+        6 optional string historyVid;       //本地的历史播放纪录，可能存在，也可能不存在
+        7 optional string expansion;        //扩展信息
+        8 optional string outWebId;         //外站来源编号
+        9 optional string pid;              //直播的pid
+        10 optional vector<string> cids;    //用于推荐去重的cid
+		11 optional string position;        //插件插入的位置信息
+		12 optional string rawdata;			//推荐加工前的原始数据
+		13 optional vector<string> adContextList; //用于去重已曝光的广告模块(key)list
+		14 optional AdRequestInfo adRequestInfo; //请求广告需要的平台相关信息
+		15 optional string dataKey;			//请求dataKey
+	};
+    
+    struct ChannelModPluginDataResponse
+    {
+        0 require int errCode;                    //业务错误码
+        1 optional vector<TempletLine>  data;     //UI显示元素，每一行是一个显示元素
+        2 optional map<string,VideoDataList> videoDataMap;			//视频数据集合
+        3 optional map<string,CoverDataList> coverDataMap;			//专辑类数据集合（往期，推荐等）
+    };
+	
+	//视频列表播放器全屏数据请求
+	struct VideoListVideoInfoRequest
+	{
+        0 require vector<VideoKeyItem> keyItems;    //请求详尽的播放视频的数据信息时传入的视频信息列表
+	};
+    
+    struct VideoListVideoInfoResponse
+    {
+        0 require int errCode;        //业务错误码
+        1 optional vector<VideoInfoPosterItem> itemDatas;	 //视频的播放列表信息
+	};
+	
+	//直播预定页的请求
+	struct LiveSubscribeRequest
+	{
+		0 optional string pageContext;		//翻页上下文
+	};
+	
+	struct LiveSubscribeResponse
+	{
+		0 require int errCode;								//业务的错误码
+		1 optional vector<LiveSubscribeInfo> subscribes;	 //预约直播的列表数据
+		2 optional string pageContext;						//翻页上下文
+		3 optional bool hasNextPage;						//是否有下一页
+	};
+		
+	//why me 直播结束后的推荐请求命令字
+	struct LiveRecommendRequest
+	{
+		0 require string pid;		//视频的pid
+		1 optional string pageContext;			// 请求的上下文
+	};
+	
+	//why me 直播结束请求返回数据
+	struct LiveRecommendResponse
+	{
+		0 require int errCode;				//业务的错误码
+		1 optional vector<LiveRlativeRecommendVideoItem> recommendInfos;		//返回的数据列表
+		2 optional string pageContext;		//翻页的上下文
+		3 optional bool hasNextPage;		//是否有下一页
+	};	
+	
+	//电影预告片购票信息请求
+    struct FilmTicketRequest
+    {   
+        0 require string cid;
+    };  
+
+    //电影预告片购票信息回包
+    struct FilmTicketResponse
+    {   
+        0 require bool isHaveTicket;    // 是否有购票信息
+        1 optional ActionBarInfo buyTicketItem; // 购票信息
+    };  
+
+	//直播互动播放器页面请求协议
+	struct LiveInteractRequest
+	{
+		0 require string pid;
+	};
+	//直播互动播放器页面回包
+	struct LiveInteractResponse
+	{
+		0 require int errCode;							//业务的错误码			
+		1 require Poster poster;							//海报图，以及下面的标题,以及播放量都在这里面
+		2 optional VideoItemData vodVideoData;				//如果是点播,用这个数据
+		3 optional LiveVideoItemData liveVideoData;			//如果是直播视频，填充这个
+		4 optional bool isLiveVideo;           		   	//是否是直播类型
+		5 optional long startTime;                		//直播开始时间
+		6 optional long endTime;                 		//直播结束时间
+		7 optional vector<ActorInfo> actors;			//明星信息,包括饭团信息
+		8 optional long likeNums;						//当前视频点赞数
+		9 optional string livePollKey;					//直播轮询的data key
+		10 optional string starImageUrl;				//明星或者组合的头像
+		11 optional string title;						//海报的标题
+		12 optional int liveStatus;						//如果是直播，则需要填写当前直播的状态 ｛1：直播前，2：直播中，3：直播结束｝
+		13 optional VideoAttentItem attentItem;					//关注
+	};
+
+	//详情页结束推荐视频列表请求
+	struct DetailVideoEndRecommendRequest
+	{
+		0 require string dataKey;					//数据key
+		1 optional string pageContext;				//翻页上下文
+	};
+	
+	//详情页结束推荐视频列表回包
+	struct DetailVideoEndRecommendResponse
+	{	
+		0 require int errCode;							//业务错误码
+		1 optional string pageContext;					//翻页上下文
+		2 optional vector<CoverItemData> coverList;		//视频列表数据
+		3 optional bool hasNextPage;					//是否还有下一页数据
+		4 optional int uiType;							//UI类型
+		5 optional int videoType;                       //推荐所属的视频类型，（1：长视频 2：花絮）
+		6 optional int hasPresent;        				//0 : 没有赠片  1:有赠片
+		7 optional PromotionAppDetail promotionAppDetail;  //推荐拉动的app信息
+	};
+	
+	struct InteractPraisePostRequest                  // 点赞写接口
+	{  
+		0 require  string      sId;		      // 直播pid或者点播vid 
+		1 require  int         iType;         // sId类型，0(默认) 直播pid   1 点播vid
+		2 optional int         iPraiseAdd;     // 点赞增量值  默认为1 ，最大值不超过10
+	}; 
+	
+	struct InteractPraisePostResponse                 // 点赞写接口返回
+	{  
+	    0 require  long        eCode;	      // 返回码
+		1 require  string      eMsg ;	      // 返回说明
+		2 require  string      sId;		      // 直播pid或者点播vid 
+		3 require  int         iType;         // sId类型，0(默认) 直播pid   1 点播vid
+		4 require  long        lPraiseNum;    // 点赞数
+	}; 
+	
+	struct InteractPraiseGetRequest                   // 点赞数批量获取接口
+	{  
+		0 require vector<IdData> vIds;        // 直播或者点播id列表
+		1 require bool          bGetRelation; // false(默认)不获取关联id（pid关联的vid，vid关联的pid）的点赞数   true 获取
+	}; 
+    
+	struct InteractPraiseGetResponse
+	{   
+    	0 require long          eCode;	      // 返回码
+		1 require string        eMsg;		  // 返回说明
+		2 require vector<IdPraise> vIdps;     // 直播或者点播点赞数列表
+	};
+
+	struct InteractUserPraiseGetRequest               // 获取发布者的点暂数
+	{  
+		0 require string        sUser;		  //  发布者的user_id
+		1 require int           iType  ;      //  1 QQ号  2 微信  3 VUID
+	}; 	
+	
+	struct InteractUserPraiseGetResponse
+	{  
+    	0 require long          eCode;	      // 返回码
+		1 require string        eMsg;         // 返回说明
+		2 require string        sUser;		  // 发布者的user_id
+		3 require int           iType  ;      // 1 QQ号  2 微信  3 VUID
+		4 require long          lPraiseNum;   // 点赞数
+	};
+	
+	//----------------------------------------------------------------------------------------------------------------------------------------
+	//后台路由请求第三方视图
+	struct ServerFilterData
+	{
+		0 optional map<string,string> filter;
+		1 optional int filterStategy;			//0-命中显示defaultData,不命中显示uiData2,1-命中后显示uiData2，不命中时显示defaultData
+		2 optional vector<map<string,string> >mulFilter; //多条件过滤，每一行是一个map，代表一组过滤条件的kv
+	};
+	
+	//后台路由请求第三方视图
+	struct ServerTempletItem
+	{
+		0  optional vector<TempletLine>  defaultData;     //UI显示元素，每一行是一个显示元素;
+	    1  optional string route;						//模版替换的插件id，插件路由信息和命令字用插件id配置，千万注意，这个字段不是路由！
+	    2  optional int hideView;								//失败后是否用默认数据，1-不用，0-用
+	    3  optional ChannelModPluginDataRequest pluginRequest;	//插件的请求数据包
+	    4  optional ServerFilterData filterData;	//过滤控制信息
+	    5  optional vector<TempletLine>  uiData2;	//UI显示元素，每一行是一个显示元素，用于过滤时模块A-B选择;
+		6  optional string whiteListRuleId;         //插件模块适用的白名单规则
+		7  optional vector< vector<TempletLine> > mulData; //多条件过滤对应的数据，mulData的大小比mulFilter多1，代表所有条件都不满足时的数据
+	};
+	//-----------------------------------------------------------------------------------------------------------------------------------------
+	
+	struct AppUpdateRequest
+	{
+		0 optional int iType; //升级类型，自动=1、手动=2
+		1 optional int iOs; //操作系统，windows=1, android=2, macosx=3, io=4
+		2 optional string strOsVersion; //操作系统版本号
+		3 optional int iPlatform; //平台类型，iPhone=1、iPad=2, aPhone=3、aPad=4, Windows=5,aTV=6
+		4 optional string strCpu; //cpu类型
+		5 optional int iAppPlatform; //应用平台类型，ipad_html5=0, pc_flash=1, aphone_app=2, ipad_app=3, iphone_app=4, apad_app=5, pc_qqlive=6, iphone_news=7, iphone_shootvideo=8, p2p_android=9, p2p_ios=10,aTV=11，aTv_p2p=12，pc_qqplayer=13，aphone_qqplayer=14，h5_Hollywood=15，js_bridge=16 (预留)，movieTicket=17,liveBroadcast_IOS=18(直播app)
+		6 optional string strAppVersionName; //应用版本号
+		7 optional int iAppVersionCode; //版本代码
+		8 optional int iUpdaterVersion; //升级模块版本号
+		9 optional string strMemorySize; //内存大小，单位为m
+		10 optional string strDeviceId; //设备唯一id
+		11 optional string strQq; //qq
+		12 optional string strDeviceType; //设备型号
+		13 optional int iCgiVersion; //cgi版本号
+		14 optional string strMarketId; //市场渠道号
+		15 optional string strGuid; //guid
+		16 optional int iAppVerionBuild; //编译号，填写版本号A.B.C.XXXX里面的XXXX
+		17 optional long lUnixTime; //客户端当前时间
+		18 optional string strAppId; //appid
+		19 optional string strIp; //客户端ip
+		20 optional int iH5Version; //h5离线包版本号
+		21 optional int iIsJailBreakDevice; //是否越狱，1为是，0为否
+		22 optional int iDebug; //是否调试模式，1为是，0为否
+		23 optional int iInnerReq; //是否内部请求，如果是内部请求需要指定调用方ip
+		24 optional string strOriIp; //指定的调用方ip
+	};
+	
+	struct AppUpdateResponse
+	{
+		0 require int errCode;//同iRetCode，兼容前端错误上报。
+		1 require int iRetCode;
+		2 require string strErrMsg;
+		3 optional int iUpdateType; //升级类型
+		4 optional int iDownloadPolicy; //下载策略
+		5 optional string strPackageUri; //下载URI
+		6 optional string strAppVersionName; //版本字符串，严格遵守A.B.C.XXXX的格式
+		7 optional int iVersionCode; //版本代码（整数）
+		8 optional string strPackageHash; //文件校验值，当前使用MD5算法
+		9 optional int iNotificationInterval; //升级提示间隔，单位小时
+		10 optional string strAppVersionDesc; //版本描述（新版本特性描述）
+		11 optional int iDownloadSpeedLimit; //下载限速，单位K，为0表示不限速
+		12 optional int iInExperience; //体验升级参数，1表示体验升级，0表示不是体验升级
+		13 optional long llUnixTime; //服务器当前时间
+		14 optional int iIsShow; //是否展示升级提示，1表示展示，0表示不展示
+		15 optional int iIsUseYingYongBao; //是否使用应用宝
+		16 optional int iIsDownloadYingYongBao; //未安装应用宝，是否下载安装应用宝
+		17 optional int iIsActivateYingYongBao; //已经下载应用宝，是否激活应用宝
+		18 optional int iIsShowRedDot; //是否显示小红点，1表示是，0表示否
+		19 optional int iHasNewVersion;//是否发现新版本，1表示是，0表示否
+		20 optional int iUpdateCount;
+		21 optional string strGrayUpdateUrl; //ios灰度升级url地址
+		22 optional string strJailbreakUpdateUrl; //ios越狱渠道升级url地址
+	};
+	
+	//视频特殊清晰度协议(请求参数中应包含一套直播或者点播信息,不会同时包含，目前可先不支持点播)
+	struct VideoDefinitionActionRequest
+	{
+		0 optional string pid;				//直播节目id（仅在直播场景使用）
+		1 optional string lid;				//点播栏目id（仅在点播场景使用）
+		2 optional string cid;				//点播专辑id（仅在点播场景使用）
+		3 optional string vid;				//点播视频id（仅在点播场景使用）
+		
+	};
+	
+	//视频特殊清晰度协议
+	struct VideoDefinitionActionResponse
+	{	
+		0 require int errCode;										//业务错误码
+		1 optional map<string,DefinitionAction> definitionMap;		//特殊逻辑的清晰度映射文件，其中直播已streamid作为key值，点播已清晰度枚举名称作为key值("msd":流畅，"sd":标清,"hd":高清,"shd":超清,"bd":蓝光
+	};
+
+	//分享重构请求
+	struct ShareItemDetailRequest
+	{
+		0 require int scene;				//场景枚举: 1:点播小窗详情页(lid,cid,vid)，2:点播全屏详情页(lid,cid,vid),3:直播小窗详情页(pid,streamid,livestate)，4：直播全屏详情页(pid,streamid,livestate) ，5：我的影院分享(cid,vid) ，9: feed流播放器(cid,vid) ，10: 普通评论feed(dataKey) ，11: 小视频发表(dataKey) ，12: 明星评论feed(dataKey) ，16: 视频话题详情页播放器上的分享(dataKey) ，17: 话题详情页分享(dataKey) ，18: 视频话题详情页(dataKey) ，19: 明星个人页(dataKey) ，20: 用户个人页(dataKey)
+		1 require string dataKey;			//lid=xxx&cid=xxx&vid=xxx&pid=xxx&streamid=xxx&livestate=xxx     其中livestate：1直播前，2直播中，3直播后
+	};
+	
+	//分享重构返回
+	struct ShareItemDetailResponse
+	{	
+		0 require int errCode;				//业务错误码,只要错误码不为0就不使用这个shareItem
+		1 optional ShareItem shareItem;		//分享的结构
+	};
+	
+	//上传频道个性化定制的请求
+	struct UploadCustomizeChannelListRequest
+	{
+		0 optional string type;					//类型，业务定制
+		1 optional string dataKey;				//key，业务定制
+		2 optional vector<SPChannelItem> channelList;	//列表
+	};
+
+	//上传频道个性化定制的返回
+	struct UploadCustomizeChannelListResponse
+	{
+		0 require int errCode;			//错误码 0:成功
+	};
+
+	//上传联通伪码的请求
+	struct UploadUnicomPseudoCodeRequest
+	{
+		0 require string deviceInfo;	//aPhone为imsi，iPhone为设备id
+		1 require string pseudoCode;	//联通伪码
+		2 optional int carrier;		//运营商 0：联通  1：电信
+		3 optional int delUserMob = 0;	//删除本条伪码。1-删除；0-不删除
+};
+
+	//上传联通伪码的的返回
+	struct UploadUnicomPseudoCodeResponse
+	{
+		0 require int errCode;			//错误码 0:成功
+		1 optional int carrier;		//运营商 0：联通  1：电信
+	};
+
+	//获取联通伪码的请求
+	struct GetUnicomPseudoCodeRequest
+	{
+		0 require string deviceInfo;	//aPhone为imsi，iPhone为设备id
+		1 optional int carrier;		//运营商 0：联通  1：电信
+	};
+
+	//获取联通伪码的的返回
+	struct GetUnicomPseudoCodeResponse
+	{
+		0 require int errCode;			//错误码 0:成功
+		1 optional string pseudoCode;	//联通伪码
+		2 optional int carrier;		//运营商 0：联通  1：电信
+	};
+	
+	//获取运营商用户订购关系的请求
+	struct GetCarrierUserOrderRequest
+	{
+		0 require int carrier;				//运营商 0：联通  1：电信  2：移动
+		1 optional string userPseudoCode;	//手机伪码
+		2 optional string imsi;				//Android的imsi，iPhone的idfa
+	};
+
+	//获取运营商用户订购关系的返回
+	struct GetCarrierUserOrderResponse
+	{
+		0 require int errCode;			//错误码 0:成功
+		1 require int state = 3;		//订购状态：0:已订购  1:已退订  2:过期失效  3:无效
+		2 optional long serviceTime;	//服务器时间戳，单位为秒
+		3 optional long orderTime;		//订购时间，时间戳，单位为秒
+		4 optional long cancelTime;		//退订时间，时间戳，单位为秒
+		5 optional long endTime;		//失效时间，时间戳，单位为秒
+		6 optional int subType = -1;	//业务类型：-1：无 0：普通免流 1：小王卡 2：大王卡
+		7 optional long flowTime;		//用户使用流量的时间，时间戳，单位为秒
+		8 optional long flowByte;		//用户使用的流量
+		9 optional int carrier;			//运营商 0：联通  1：电信  2：移动
+		10 optional int hollywoodStatus; //标志是否可以领取7天好莱坞会员 0:不能  1:可以
+		11 optional string userPhone;		//用户的明文手机号
+		12 optional int flowRunOut;			//流量用完标识   1:流量已用完
+	};
+
+       
+
+	//检查和获取IP所属运营商请求
+	struct GetCarrierIPRequest
+	{
+		0 optional int unused;
+	};
+
+	//检查和获取IP所属运营商返回	
+	struct GetCarrierIPResponse
+	{
+		0 require int errCode;			//错误码 0:成功
+		1 optional int carrier = -1;	//运营商 -1:未知  0：联通  1：电信  2：移动
+		2 optional string ip;			//客户端IP
+	};
+
+	//获取请求运营商接口的签名请求
+	struct GetCarrierSignRequest
+	{
+		0 optional int carrier = -1;	//运营商 -1:未知  0：联通  1：电信  2：移动
+		1 optional string originStr;    //需要签名的字符串（初始字符串）
+	};
+
+	//获取请求运营商接口的签名返回	
+	struct GetCarrierSignResponse
+	{
+		0 require int errCode;			//错误码 0:成功
+		1 optional string sign;			//签名后的字符串
+	};
+	// 请求插入新的onaview请求
+	struct GetNewLineRequest
+	{
+		0 require string dataKey;	                
+	};
+	
+	// 请求插入新的onaview响应
+	struct GetNewLineResponse
+	{
+		0 require int 						errCode;	         //业务错误码
+		1 require vector<TempletLine>		data;			     //插入数据
+	};
+	
+	//拉取剧照
+	struct StagePhotoRequest
+	{
+		0 require string cid;
+	};
+
+	struct StagePhotoResponse
+	{
+		0 require int errCode;
+		1 require vector<VideoImage> stagePhotos;
+	};
+	//企鹅直播举报协议
+	struct LiveReportReasonRequest
+	{
+		0 require string strPid;			// 节目pid
+		1 optional string strVideoId;		// 点播vid 
+		2 optional long	ddwAnchorUin;		// 主播Id
+		3 optional string strNickName;		// 主播昵称
+		4 optional string strTitle;			// 直播标题
+		5 optional long ddwTipOffTime;		// 举报时间
+		6 optional vector<string> vecTipOffReason;		// 举报原因
+		7 optional string streamId;				//直播的流id
+		8 optional int  dwAnchorType;       //主播账号类型，1：qq 2：vuserid，标志ddwAnchorUin字段存储的数据类型
+	};
+	
+	struct LiveReportReasonResponse
+	{
+		0 require int errCode; 		// 回包错误码
+		1 require string strPid;	//被举报的节目id
+	};
+	
+	//同步后台用户所选择的学校
+  struct SelectedSchoolRequest
+  {
+    0 require string selectedSchoolId; //选择的学校
+  };
+
+  struct SelectedSchoolResponse
+  {
+     0 require int errCode;   //业务错误码
+  };
+  
+  	//首页底部导航
+	struct HomeTabListRequest
+	{
+		0 optional int version;	                     //本地版本号
+	};
+	
+	struct HomeTabListResponse
+	{
+		0 require   int 				          errCode;	         //业务错误码
+		1 optional  vector<HomeTabData>		homeTabList;	         //底部导航
+		2 optional  int  version;                                    // 后台数据版本号
+	};
+	
+	//详情页简介页数据请求
+	struct VideoIntroDetailRequest
+	{
+		0 optional string lid;			//栏目id
+		1 optional string cid;			//专辑id
+		2 optional string vid;			//视频id
+	};
+
+		//详情页简介页数据回包
+	struct VideoIntroDetailResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 optional vector<TempletLine>	uiData;		//用来显示的数据
+	};
+	//Feed流CID模版剧集列表协议
+	struct FeedDetailVideoListRequest
+	{
+		0 require string cid;				//剧集cid
+		1 optional string recommendVid;		//运营推荐vid
+		2 optional string historyVid;		//用户观看历史vid
+		3 optional string lid;				//lid,保留字段，暂不支持
+		4 optional string pageContext;		//翻页上下文
+		5 optional bool isLoadAllData = false;		//false，代表分页请求数据；为true代表全量拉取操作
+	};
+
+	struct FeedDetailVideoListResponse
+	{
+		0 require int errCode;							
+		1 optional string pageContext;					//翻页上下文
+		2 optional vector<VideoItemData> videoList;		//视频列表数据
+		3 optional bool hasNextPage;					//是否还有下一页数据
+		4 optional int extraInfoFlag;					//位标记，(从右到左) 第1位:是否包含推荐算法数据 默认0没有 第2位:vid优先规则 置位表示历史优先，未置位表示运营vid优先
+		5 optional int uiType;							//剧集列表展示风格,同VideoDataList定义
+		6 optional string moduleTitle;					//模块标题，给播放器用，同VideoDataList定义
+	};
+	// 请求当前时间台词
+	struct GetCaptionRequest
+	{	
+		0 require string captionKey;	// 台词key
+		1 require long time;            // 当前播放时间刻，单位毫秒
+		2 require long totalTime;       // 当前播放总时长，单位毫秒
+		3 require string cid;			// 当前视频cid
+		4 require string vid;			// 当前视频vid
+	};
+	
+	// 当前时间台词回包
+	struct GetCaptionResponse
+	{
+		0 require int errCode;	         //业务错误码
+		1 optional vector<CaptionInfo> captionList;			     //台词列表
+		2 optional string title;			     //当前视频标题
+		3 optional int captionTopHeightPercent;			//for台词分享需求，处理多张视频截图拼接时需了解台词位置，该值表示台词顶部距离视频画面顶部的高度百分比，取值[0,100],高度以整个视频台词占内容最多的为基准
+	};
+	
+	// 台词更正请求
+	struct CaptionCorrectRequest
+	{	
+		0 require string captionKey;					// 台词key
+		1 require vector<CaptionInfo> captionList;	// 更改后台词列表
+	};
+	
+	// 台词更正回包
+	struct CaptionCorrectResponse
+	{
+		0 require int errCode;	         //业务错误码
+	};
+	// 频道请求插入数据
+	struct ChannelGetNewLineRequest
+	{	
+		0 require vector<string> dataKeyList;	// 模块请求信息列表               
+	};
+	
+	// 频道请求插入新的onaview响应
+	struct ChannelGetNewLineResponse
+	{
+		0 require int errCode;	         //业务错误码
+		1 require vector<TempletLine> data;			     //插入数据
+	};
+	// 游戏预约请求
+	struct GameSubscibeRequest
+	{	
+		0 optional string pageContext;           
+	};
+	
+	// 游戏预约响应
+	struct GameSubscibeResponse
+	{
+		0 require int errCode;	         //业务错误码
+		1 require vector<GameDownloadItemData> data;//预约的游戏信息
+	};
+	
+	//实时任务的通用请求
+	struct SyncTaskRequest
+	{
+		0 require  int iTaskId;		//实时任务ID，不同请求不同ID
+		1 optional string strExt;   //实时任务扩展信息
+		2 optional int iExt; 	    //实时任务扩展信息
+		3 optional int taskType;    // 0 离线任务  1 实时任务
+	};
+	
+	struct SyncTaskResponse
+	{
+		0 require int iRetCode;     //错误码
+		1 optional string strMsg;  //错误信息
+		2 optional string strExt;  //预留字段
+	};
+	//通用jce转http服务。目前用在广告请求
+	struct jceHttpRequest
+	{
+        0 require  string strRequestID;  //请求唯一ID
+        1 require  string strRequest;    //请求request
+        2 optional string strHttpHead;   //请求需要携带的http头信息，如Cookie、Referer等
+    };
+
+    struct jceHttpResponse
+    {
+        0 require  string strRequestID;  //请求唯一ID
+        1 require  string strResponse;   //回包的response
+        2 optional string strHttpHead;   //回包中的http头信息，如Set-Cookie
+        3 optional int    iErrCode;      //错误码，为0表示成功
+    };
+
+    // 含有未读计数页面曝光后，通知后台已读请求
+    struct HasReadMsgRequest {
+    	0 require string dataKey;   //若是明星主页下的某个tab，需填tab中的dataKey
+    	1 optional string tabId;   //若是明星主页下的某个tab，需填tab id
+    };
+
+    struct HasReadMsgResponse
+    {
+        0 require int errCode;  //业务错误码
+    };
+    
+    struct GetRelatedQueryRequest
+    {
+        0 require string query;		//原始搜索的query
+        1 require int num;           //需要相关搜索词的个数
+        2 require string mdsumVideo;//视频的md5值
+        3 optional string id;		 //视频id,可以不填
+        4 optional int dataType;	 //1-单视频 2-专辑 3-栏目, ,可以不填
+        5 optional string appid;	//暂时先不用
+        6 optional string appkey;	//暂时先不用
+    };
+
+    struct GetRelatedQueryResponse //ipad iphone aphone使用，iphone aphone 复用ONATagDataGroup, ipad使用 ONASearchRecommdHotKeysPoster
+    {
+		0 require int errCode;	//返回码
+		1 require string errMsg;//返回信息
+		2 require vector<TempletLine> data;
+    };
+
+	//单个综艺周请求数据
+	struct TVShowWeeklyListRequest {
+    	0 require  string datakey;
+  	};
+
+ 	//单个综艺周数据返回数据
+ 	struct TVShowWeeklyListResponse {
+    		0 require string dataKey;						//当前选中的综艺周id
+ 		1 optional  int   errCode;            			// 返回码
+		2 optional vector<AttentPoster> posterList;	    //当前选中的综艺周海报列表
+		3 optional string reportParams;					//上报参数
+		4 optional string reportKey;					//上报参数
+  	};
+	
+	//单业务搜索结果页数据请求
+	struct CommonSearchRequest 
+	{
+		0 require string searchKey;
+		1 optional string type;  // 0:doki，2,游戏社区
+		2 optional string pageContext;		//翻页上下文 
+	};
+
+	//单业务搜索结果页数据返回 
+	struct CommonSearchResponse 
+	{ 
+    	0 require int errCode; 					//业务错误码，如果返回没有结果需要界面提示 
+    	1 optional vector<TempletLine> uiData;	//UI显示元素 
+    	2 optional string pageContext;			//翻页上下文 
+    	3 optional bool hasNextPage;			//是否有下一页(只影响主UI数据)
+    	4 optional string reportParams;			//搜索返回结果的上报内容
+	}; 
+	
+	//搜索智能联想 
+	struct CommonSearchSmartBoxRequest 
+	{ 
+    	0 require string keyWord;		//用于搜索的key 
+    	1 optional string type;	//0:doki，  2：游戏社区， 20：鹅次元版区
+	}; 
+
+	//动态联想返回结果 
+	struct CommonSearchSmartBoxResponse
+	{ 
+		0 require int errCode;
+    	1 optional vector<string> itemList; //内容主体
+		2 optional string reportKey;  //点击上报		
+		3 optional string reportParams; 
+	}; 
+	
+	// 聚合doki列表请求（590用于发表选择doki，已关注和热门doki）
+	struct DokiCombineListRequest
+	{
+		0 optional string pageContext;			//翻页上下文
+		1 optional int type;					//请求类型，0--请求我关注的doki、推荐doki。 1--请求dataKey相关的doki、我关注的doki、推荐doki 2,游戏社区
+		2 optional string dataKey;			//配合类型为1时请求相关doki
+	};
+	// 聚合doki列表请求回包
+	struct DokiCombineListResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 require vector<TempletLine> uiData;		//海报数据列表
+		2 optional string pageContext;				//翻页上下文
+		3 optional bool hasNextPage;				//是否还有下一页
+	};
+
+	//视频详情页获取主协议之外的ONAView数据请求
+	struct DetailsFlowDataRequest
+	{
+		0 require string dataKey;							
+		1 optional string pageContext;
+		2 optional string reportContext;     	 // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+		3 optional RecommendReqExtInfo recmdInfo;  //个性化基本请求信息  590新增
+		4 optional string vid;						//非doki支持后援会 620新增
+	};
+	
+	//视频详情页获取主协议之外的ONAView数据请求
+	struct DetailsFlowDataResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional vector<TempletLine>	uiData;				//帖子数据
+		2 optional string pageContext;						//下一页上下文
+		3 optional bool hasNextPage;						//是否有下一页数据
+		4 optional string reportContext;     				//后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+		5 optional RecommendRespExtInfo recmdInfo; 		    //个性化基本回包信息  590新增
+		6 optional CoralSummaryInfo coralSummaryInfo;       //底层页的评论总数信息，类似评论的汇总信息，显示在底层页的播放器下面，目前带一个评论总数和头像
+	};
+	//获取检测app列表的配置
+	struct GetQueryAppListRequest
+	{
+		0 require string dataKey;							
+	};
+	
+	
+	struct GetQueryAppListResponse
+	{
+		0 require int errCode;							
+		1 optional vector<string>	data;
+	};
+	struct ChannelInsertFeedbackRequest
+	{
+		0 require ChannelInsertInfo info;   //频道插入信息
+		1 optional int type;                //反馈请求场景  0 导航管理器二级页场景 1 频道页面标题按钮场景
+	};
+
+	struct ChannelInsertFeedbackResponse
+	{
+		0 require int errCode;			    //业务错误码
+	};
+	
+	// 获取apk拦截安装对抗策略配置请求
+	struct GetApkInstallConfigRequest
+	{
+		0 optional string mobileBrand; // 手机品牌
+		1 optional string sysRomVer;   // 系统rom版本
+		2 optional string installApkVer; // 安装Apk版本
+	};
+	
+	// 获取apk拦截安装对抗策略配置回包
+	struct GetApkInstallConfigResponse
+	{
+		0 require int errCode; // 命中策略返回0； 未命中策略返回1
+		1 optional int strategyCtlBit;   // 按位使用，0x1表示命中名字伪装； 0x2表示命中vpn拦截
+		2 optional string fakePackageName; // 
+	};
+
+	//二级浮层运营页面请求
+	struct SubFloatingONAPageRequest
+    {
+        0 require string datakey;
+        1 optional string pageContext;			//翻页上下文
+    };
+
+	//二级浮层运营页面回包
+	struct SubFloatingONAPageResponse
+    {
+        0 require int errCode;                  //业务错误码
+        1 require vector<TempletLine> uiData;   //动态数据列表
+        2 optional string pageContext;			//翻页上下文
+		3 optional bool isHaveNextPage;			//是否还有下一页
+    };
+	//沉浸式列表页面请求
+	struct ImmersiveListRequest
+    {
+        0 require string vid;					// 当前视频vid
+        1 optional string pageContext;			//翻页上下文
+	2 optional string dataKey;			//指定cid等额外数据
+		3 optional string adContext;		//广告上下文
+		4 optional vector<string> adContextList; //用于去重已曝光的广告模块(key)list
+		5 optional string reportData;                   //用作上报透传数据reportKey=XXX&ftid=XXX
+    };
+
+	//沉浸式列表页面回包
+	struct ImmersiveListResponse
+    {
+        0 require int errCode;                  //业务错误码
+        1 require vector<TempletLine> uiData;   //数据列表
+        2 require string pageContext;			//翻页上下文
+		3 require bool hasNextPage;			//是否还有下一页
+		4 optional string adContext;			//广告上下文
+		5 optional vector<string> adContextList; //当前页下发的广告模块(key)list
+    };
+	struct UserRelationshipItem
+	{
+		0 optional vector<ActorInfo> actorList;  //参与人数列表
+		1 optional string extraInfo;     //其他描述信息
+	};
+	
+	//请求关系链人数信息
+	struct UserRelationshipRequest
+	{
+		0 require vector<string> dataKeyList;
+	};
+ 
+	//返回关系链人数信息
+	struct UserRelationshipResponse
+	{
+		0 require int errCode;
+		1 optional map<string,UserRelationshipItem> relationDict; //对应话题的参与人数信息
+	};
+	//V+个人页竖排视频请求协议
+	struct RssVerticalVideoONAViewsRequest
+	{
+		0 require string dataKey;        // user id 
+		1 optional string pageContext;   //翻页上下文
+	};
+
+	//V+个人页竖排视频ONAViews应答协议
+	struct RssVerticalVideoONAViewsResponse
+	{
+		0 require int errCode;
+		1 optional vector<TempletLine> uiData;  //内容数据，每一个结点，都是一行数据
+		2 optional string pageContext;   //翻页上下文
+		3 optional bool hasNextPage;   //是否有下一页
+	};
+	
+	//云端AB配置拉取
+	struct GetCloudBucketConfigRequest {
+        0 require string bucketID;                   //用户基础分桶id
+		1 optional string version;                   //用户已经拉取过的version
+    };
+
+    struct GetCloudBucketConfigResponse {
+        0 require int errCode;                  //错误码
+        1 optional string errMsg;                //错误信息
+        2 optional string version;                   //版本号
+        3 optional map<string,int> configSetting;    //配置下发个性化Setting
+        4 optional map<string,string> configData;    //bucket配置
+    };
+	
+	//获取用户火锅的关注数据
+	struct GetYooFollowListRequest
+	{
+		0 optional long dataVersion;		//本地数据版本号，默认为空
+	};
+	
+	//用户关注火锅的结果返回
+	struct GetYooFollowListResponse
+	{
+		0 require int errCode;					//错误码
+		1 optional long dataVersion;				//当前数据的版本信息
+		2 optional int  total;					//关注的总数量，非yooFollowList中包含的数量
+		3 optional vector<YooFollowCard> yooFollowList;		//关注用户列表
+		4 optional string reportKey;				//在火锅关注频道的上报key
+		5 optional string reportParams; 			//在火锅关注频道的上报params
+	};
+
+	//Json业务请求协议
+	struct JsonBusinessRequest
+	{
+		0 require string requestJson;	//请求的json字符串
+	};
+
+	//频道列表结果返回
+	struct JsonBusinessResponse
+	{
+		0 require int errCode;				//业务错误码
+		1 optional string responseJson;		//返回的json字符串
+	};
+
+
+	//详情页banner位置的更新请求  6.3.5
+	struct DetailRecommendBannerRequest
+	{
+		0 optional string lid;			//栏目id
+		1 optional string cid;			//专辑id
+		2 optional string vid;			//视频id
+	};
+	//详情页banner位置更新的回包  6.3.5
+	struct DetailRecommendBannerResponse
+	{
+		0 optional int errCode;
+		1 optional string lid;			           //栏目id
+		2 optional string cid;			           //专辑id
+		3 optional string vid;			           //视频id
+		4 optional ONARecommendBanner bammerView;  //banner位置的ONA视图
+	};
+	
+	//预下载apk列表名单
+	struct PreDownloadApkListRequest
+	{
+		0 optional string pageContext;		
+	};
+	
+	struct PreDownloadApkListResponse
+	{
+		0 require int errCode;
+	    1 optional vector<AppInfo> list;   //数据列表
+		2 optional string pageContext;  
+        3 optional bool hasNextPage;   //是否有下一页        
+	};
+	
+	//获取语音搜索热门推荐词
+	struct GetVoiceSearchRecommendWordsRequest
+	{
+		0 require string channelId;
+        1 optional string searchDataKey;
+        2 optional bool debugMod=false;
+	};
+
+	//语音搜索热门推荐词返回
+	struct GetVoiceSearchRecommendWordsResponse
+	{
+		0 require int errCode;				//业务错误码
+		1 optional string errMsg;             //错误信息
+		2 optional vector<string> recommendWords;		//推荐搜索热词
+		3 optional string reportKey;				//推荐搜索热词上报key
+		4 optional string reportParams; 			//推荐搜索热词上报params
+		5 optional string debugLog;
+	};
+	//扫描app列表名单
+	struct LoadThirdApkListRequest
+	{
+		0 optional string pageContext;		
+	};
+	
+	struct LoadThirdApkListResponse
+	{
+		0 require int errCode;
+	    1 optional vector<AppInfo> list;   //数据列表
+		2 optional string pageContext;  
+        3 optional bool hasNextPage;   //是否有下一页        
+	};
+
+	// 获取Pick数据请求
+    struct GetPickInfoRequest
+    {
+        0 require string dataKey;       //pick信息
+    };
+
+    // 获取Pick数据返回
+    struct GetPickInfoResponse
+    {
+        0 require int errCode;                      // 错误码
+        1 optional int leftPickCount;               // 剩余票数
+        2 optional string pickIconUrl;				// Pick按钮的背景Icon
+        3 optional Action action;					// 用来做强制升级，平时下发url为空
+    };
+
+	// 获取pick任务列表请求
+	struct GetPickTaskInfoRequest
+	{
+		0 require string dataKey;       //上下文
+	};
+
+    // 获取pick任务列表返回
+	struct GetPickTaskInfoResponse
+	{
+	    0 require int errCode;                      // 错误码
+  	    1 optional vector<PickTaskItem> taskList;   // 任务列表
+  	    2 optional string reportKey;				// 上报参数
+        3 optional string reportParams; 			// 上报参数
+	};
+
+	// 执行Pick加票请求
+	struct DoPickTaskRequest
+	{
+	    0 require string dataKey;       // 上下文
+	    1 optional string vid;          // 视频vid
+	};
+
+	// 执行Pick加票返回
+	struct DoPickTaskResponse
+	{
+	    0 require int errCode;      // 错误码
+	    1 require string tip;       // 提示语
+	    2 optional int addCount;    // 增加票数
+	};
+
+    // 提交Pick请求
+    struct SubmitPickRequest
+    {
+        0 require string dataKey;           // 上下文
+        1 require string vid;               // 选手的作品vid
+        2 require int pickedNum;            // 提交的pick数
+		3 optional string accessToken;      // 防水墙参数, ###拼接
+		4 optional string uid;            	// 用户id，这里取的是actorId
+		5 optional string captchaContext;   // 透传字段
+    };
+
+    // 提交Pick返回
+    struct SubmitPickResponse
+    {
+        0 require int errCode;              // 错误码
+        1 require int leftPickCount;        // 剩余的pick数
+        2 optional string errMsg;			// 错误提示，前端Toast提示
+        3 optional string captchaContext;	// 透传字段
+    };
+
+	//播放器上拉动第三方App详情请求
+	struct GetPromotionAppDetailRequest
+	{
+		0 require string promotionAppKey;  //第三方app请求使用的key
+        1 optional string vid;
+        2 optional string cid;
+        3 optional string lid;
+	};
+	//播放器上拉动第三方App详情回包
+	struct GetPromotionAppDetailResponse
+	{
+		0 require int errCode;				      //业务错误码
+		1 optional PromotionAppDetail appDetail;  //第三方拉动的App详情
+	};
+	//详情页结束推荐视频列表请求V2
+	struct DetailVideoEndRecommendV2Request
+	{
+		0 require string dataKey;					//数据key
+		1 optional string pageContext;				//翻页上下文
+	};
+	
+	//详情页结束推荐视频列表回包V2
+	struct DetailVideoEndRecommendV2Response
+	{	
+		0 require int errCode;							//业务错误码
+		1 optional string pageContext;					//翻页上下文
+		2 optional vector<CoverItemData> coverList;		//视频列表数据
+		3 optional bool hasNextPage;					//是否还有下一页数据
+		4 optional int uiType;							//UI类型
+		5 optional int videoType;                       //推荐所属的视频类型，（1：长视频 2：花絮）
+		6 optional int hasPresent;        				//0 : 没有赠片  1:有赠片
+		7 optional PromotionAppDetail promotionAppDetail;  //推荐拉动的app信息
+	};
+	// 获取视频海报图分享的配置
+	struct GetPosterShareConfigRequest
+	{
+	    0 optional string cid;    			// cid
+	   	1 optional string vid;          	// vid
+	};
+
+	// 获取视频海报图分享的配置回包
+	struct GetPosterShareConfigResponse
+	{
+	    0 require int errCode;                   // 错误码
+	    1 optional bool hasConfig=false;         // 是不是有配置
+		2 optional string posterImgUrl;          // 海报图的url
+		3 optional vector<string> captionList;   // 台词列表
+		4 optional string shareUrl;              // 二维码识别出来的url
+	};
+
+	// 个人中心信息编辑提交审核请求
+	struct UserProfileUploadRequest
+	{
+	    0 optional string avatarUrl;    			// 用户图像地址
+	   	1 optional string nickName;          		// 用户昵称
+	   	2 optional string introduction;      		// 用户简介信息
+	};
+
+	// 个人中心信息编辑提交审核返回包
+	struct UserProfileUploadResponse
+	{
+	    0 require int errCode;      // 错误码
+	    1 optional string errTips;  // 错误提示语，用于弹toast
+	    2 optional int status;      // 页面编辑状态更新 0-可编辑 1-审核中，不可编辑 2-次数达到上限，不可编辑
+	    3 optional string statusTips;  // 页面编辑状态提示文案更新
+	};
+
+	// 用户个人资料页 数据请求
+	struct UserProfilePageRequest
+	{
+		0 optional string dataKey;  // 空闲字段
+	};
+
+	// 用户个人资料页 数据回包
+	struct UserProfilePageResponse 
+	{
+		0 require int errCode;            // 错误码
+		1 optional int status;            // 编辑状态 0-可编辑 1-审核中，不可编辑 2-次数达到上限，不可编辑
+		2 optional string topTips;        // 顶部文案
+		3 optional string avatarUrl;	  // 头像
+		4 optional string nikeName;		  // 昵称
+		5 optional string introduction;	  // 简介
+	};
+	
+	//图片大图预览-结束推荐页面请求
+	struct RelatedRecommendImgPageRequest
+	{
+		0 require string dataKey;		//请求页面的dataKey
+		1 require string pageContext;   //翻页上下文
+	};
+	
+	//图片大图预览-结束推荐页面的回包
+	struct RelatedRecommendImgPageResponse
+	{
+		0 require int errCode;         //错误码
+		1 optional vector<TempletLine> uiData;  //UI显示元素，各种ONAView
+		2 optional string pageContext;	//翻页上下文
+		3 optional bool hasNextPage;		//是否有下一页数据
+		4 optional string title;		//页面标题
+	};
+};

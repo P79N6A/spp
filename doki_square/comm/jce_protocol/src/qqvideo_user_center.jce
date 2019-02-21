@@ -1,0 +1,81 @@
+#include "qqvideo_common.jce"
+
+module jce{
+
+    //个人中心第三方和限时推广条目
+    struct UserCenterThirdItem
+    {
+        0 require  string title;     //主标题
+        1 optional string iconUrl;   //主icon
+        2 optional Action action;    //点击跳转
+        3 optional string redHotId;   //小红点的id
+        4 optional long redHotVersion;  //小红点的version
+        5 optional bool redHotStatus;   //小红点显示的状态   true 表示显示，false 表示不显示
+        6 optional string itemId;   //id作为item的唯一标示，方便区分，做差异化处理；钱包列取值为“wallet”，其他列可以为空
+        7 optional string reportKey; //上报透传reportkey字段
+        8 optional string reportParams; //上报透传reportParams字段
+    };
+
+    //个人中心第三方和限时推广模块
+    struct UserCenterThirdSection
+    {
+        0 require string sectionKey;   //模块Key
+        1 optional ActionBarInfo barInfo;
+        2 optional vector<UserCenterThirdItem> items;   //具体条目
+    };
+
+
+    //个人中心兴趣中心条目
+    struct UserCenterInterestItem
+    {
+        0 require  string title;     //主标题
+        1 optional string subTitle;  //副标题
+        2 optional string iconUrl;   //主icon
+        3 optional Action action;    //点击跳转
+        4 optional string redHotId;   //小红点的id
+        5 optional long redHotVersion;  //小红点的version
+        6 optional bool redHotStatus;   //小红点显示的状态   true 表示显示，false 表示不显示
+        7 optional string itemId;     //id作为item的唯一标示，方便区分，做差异化处理；钱包列取值为“wallet”，其他列可以为空
+        8 optional string bgColor;  // 背景颜色
+        9 optional string reportKey; //上报透传reportkey字段
+        10 optional string reportParams; //上报透传reportParams字段
+    };
+
+    //个人中心兴趣中心模块
+    struct UserCenterInterestSection
+    {
+        0 require string sectionKey;   //模块Key
+        1 optional ActionBarInfo barInfo;
+        2 optional vector<UserCenterInterestItem> items;   //具体条目
+    };
+
+
+    // V 币信息
+    struct VCoinInfo
+    {
+        0 optional string title;     //点击入口的标题
+        1 optional string iconUrl;   //点击入口左边的icon
+        2 optional Action action;   //跳转
+        3 optional map<string, string> signInTextMap;   //签到Key：signIn;待领取Key：unreceived;未完成任务：unfinished;动画顶部文案：addV；动画底部文案：nextSignInfo：再签2天领50V币
+    };
+
+
+    //个人中心的运营请求
+    struct UserCenterOperationRequest
+    {
+        0 optional string imei;   
+        1 optional int carrier = -1;  //运营商 0：联通  1：电信  2：移动      
+        2 optional int requestType; // 0:正常加载 1:预加载
+    };
+
+    //个人中心的运营请求回包
+    struct UserCenterOperationResponse
+    {
+        0 require int errCode; 
+        1 optional vector< UserCenterThirdSection >  thirdSections; 
+        2 optional vector< UserCenterInterestSection > interestSections;
+        3 optional VCoinInfo vCoinInfo;
+        4 optional vector< UserCenterInterestSection > otherSections;   //其他
+    };
+    
+};

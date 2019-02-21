@@ -1,0 +1,221 @@
+#include "qqvideo_common.jce"
+
+module jce
+{
+	//新导航栏协议
+	struct DokiMainNavRequest
+	{
+		0 optional int type;	                // 底部HomeTab带过来的透传值
+		1 optional string dataKey;              //用于相同type下不同的A/B分桶，底部HomeTab带过来的透传值
+	};
+
+	struct DokiMainNavResponse
+	{
+		0 require int 						errCode;	         //业务错误码
+		1 optional vector<ChannelListItem>	channelList;		 //频道数据列表
+		2 optional vector<DokiBaseLiteInfo> actorList;			 //关注的明星列表
+		3 optional int defaultSelectedType;                      //默认选中的NavItem的类型，0-频道，1-明星
+		4 optional string defaultSelectedId;					 //默认选中的NavItem的id
+		5 optional string navBucketId;                           //导航推荐分桶id，透传到核心上报
+	};
+
+	//卡片基本信息
+	struct DokiCardBaseInfo
+	{
+		0 optional vector<CircleMsgImageUrl> images;	//图片，一般卡片只取第一张，明星说类型会有多张
+		1 optional DokiBaseLiteInfo userInfo; 			//发帖者信息，可能是明星，明星需要带外圈颜色和右下角label
+		2 optional string title; 						//内容
+		3 optional string subTitle;						//第二行内容
+		4 optional vector<MarkLabel> marklabels;		//角标，例如图片张数或播放时长等
+		5 optional Action cardAction;					//卡片的整体点击action
+		6 optional long likeCount;						//点赞数
+		7 optional string feedId;						//对应feedid
+		8 optional string feedDataKey;					//点赞等操作需要的datakey
+		9 optional long pubTime;						//发表时间戳
+	};
+
+	//普通帖子类型的卡片，一行两列展示
+	struct ONADokiCommonFeedCard
+	{
+		0 optional DokiCardBaseInfo cardInfo;			//卡片基本信息
+		1 optional string reportKey;					//上报key
+		2 optional string reportParams;					//上报参数
+		3 optional string reportEventId;                //上报事件ID
+	};
+
+	//明星说类型卡片，一行两列展示
+	struct ONADokiStarFeedCard
+	{
+		0 optional DokiCardBaseInfo cardInfo;	//基本卡片信息
+		1 optional FeedSource source;			//来源
+		2 optional ApolloVoiceData voiceData;	//语音信息
+		3 optional TextAction moreAction;	//查看更多信息
+		4 optional string reportKey;			//上报key
+		5 optional string reportParams;			//上报参数
+		6 optional string reportEventId;                //上报事件ID
+	};
+
+	//明星驾到（直播）类型卡片，一行两列展示
+	struct ONADokiStarLiveCard
+	{
+		0 optional vector<CircleMsgImageUrl> images;	//图片列表
+		1 optional string topDescText;					//顶部描述信息
+		2 optional string bottomLeftDescText; 			//底部左侧描述信息
+		3 optional TextAction bottomRightAction;        //底部右侧操作按钮,直播前：预约 直播中：立即参与 直播后：查看更多
+		4 optional string content;						//内容文案
+		5 optional ApolloVoiceData voiceData;			//语音信息
+		6 optional vector<DokiBaseLiteInfo> actors;		//明星列表
+		7 optional string lottieUrl;					//直播中特效lottie url
+		8 optional int liveStatus;						//直播状态
+		9 optional VideoAttentItem attentItem;			//预约信息
+		10 optional Action cardAction;					//整体点击action
+		11 optional string reportKey;					//上报key
+		12 optional string reportParams;				//上报参数
+		13 optional string reportEventId;               //上报事件ID
+		14 optional string pid;                			//对应直播pid
+	};
+
+	//娱乐资讯类型卡片，一行一列展示
+	struct ONADokiEntertamentNewsCard
+	{
+		0 optional DokiCardBaseInfo cardInfo;			//卡片基本信息
+		1 optional string reportKey;					//上报key
+		2 optional string reportParams;					//上报参数
+		3 optional string reportEventId;                //上报事件ID
+	};
+
+	//饭拍和饭制样式卡片，一行两列展示
+	struct ONADokiFansVideoCard
+	{
+		0 optional DokiCardBaseInfo cardInfo;			//卡片基本信息
+		1 optional string reportKey;					//上报key
+		2 optional string reportParams;					//上报参数
+		3 optional string reportEventId;                //上报事件ID
+		4 optional int uiType; 							//0-饭拍，竖视频；1-饭制，横视频
+	};
+
+	//明星说聚合入口卡片，一行两列展示
+	struct ONADokiStarGroupCard
+	{
+		0 optional string title;							//主标题
+		1 optional string subTitle;						//副标题
+		2 optional Action cardAction;					//整体点击action
+		3 optional vector<DokiBaseLiteInfo> dokiList;	//明星列表
+		4 optional string reportKey;					//上报key
+		5 optional string reportParams;					//上报参数
+		6 optional string reportEventId;                //上报事件ID
+	};
+
+	//美图、饭拍、饭制等的多张图聚合卡片，，一行两列展示
+	struct ONADokiGalleryGroupCard
+	{
+		0 optional string title;							//主标题
+		1 optional string subTitle;						//副标题
+		2 optional Action cardAction;					//整体点击action
+		3 optional vector<CircleMsgImageUrl> imageList;	//图片列表
+		4 optional int uiType; 							//0-普通长图，1-正方形小图（表情）
+		5 optional string reportKey;					//上报key
+		6 optional string reportParams;					//上报参数
+		7 optional string reportEventId;                //上报事件ID
+	};
+
+	//十佳贴卡片，一行两列展示
+	struct ONADokiTopTenGroupCard
+	{
+		0 optional DokiCardBaseInfo cardInfo;			//卡片基本信息
+		1 optional string reportKey;					//上报key
+		2 optional string reportParams;					//上报参数
+		3 optional string reportEventId;                //上报事件ID
+	};
+
+	//查看更多的bar，整行显示
+	struct ONADokiMoreInfoBar
+	{
+		0 optional string text;  						//文字
+		1 optional string textColor;   					//文字颜色  
+		2 optional Action action;						//点击的action
+		3 optional string reportKey;
+		4 optional string reportParams;
+		5 optional string reportEventId;                //上报事件ID
+	};
+
+	//显示一张封面图的卡片，如聚合视频、大ip类型，一行两列展示
+	struct ONADokiCoverCard
+	{
+		0 optional DokiCardBaseInfo cardInfo;			//卡片基本信息
+		1 optional string reportKey;					//上报key
+		2 optional string reportParams;					//上报参数
+		3 optional string reportEventId;                //上报事件ID
+	};
+
+	//卡片二级页request
+	struct DokiGroupDataPageRequest
+	{
+		0 require string dataKey;						//请求datakey
+		1 optional string pageContext;					//翻页参数
+	};
+
+	//卡片二级页response
+	struct DokiGroupDataPageResponse
+	{
+		0 require int errorCode;						//错误码
+		1 optional vector<TempletLine> uiData;			//ona数据
+		2 optional string pageContext;					//翻页参数
+		3 optional bool hasNextPage;					//是否有下一页
+		4 optional string title;                        //二级页标题
+	};
+	
+	//Doki通用通知后台事件
+	struct DokiCommonReportRequest
+	{
+		0 require string eventId;                 //业务约定的事件Id,"dokiPageShow"-Doki页面曝光通知
+		1 optional map<string, string> kValue;	//需要通知后台的params
+	};
+	
+	struct DokiCommonReportResponse
+	{
+		0 require int errCode;               //业务错误码
+	};
+
+	//横屏无限刷,视频feed数据结构
+	struct ONAHorizonBulletinBoardFeed
+	{
+		0 require string feedId;						//帖子id
+		1 optional string dataKey;      				//后台用于标记feed的来源,和请求沉浸式无限刷的数据信息
+		2 optional string feedTitle;					//主贴的标题
+		3 optional string content;						//内容
+		4 optional ActorInfo user;						//创建者的user
+		5 optional int commentCount;    				//feed评论的总数量，仅仅做文案显示，不做其他逻辑运算
+		6 optional int likeCount;       				//feed赞的总数量，仅仅做文案显示，不做其他逻辑运算
+		7 optional ONABulletinBoardV2 bulletinBoardV2;  //横频视频数据源,数据上报的reportKey和 reportParams，曝光取自poster，视频播放取自action
+		8 optional Action feedAction;                   //点击跳转action，取帖子详情页action
+		9 optional string shareUrl;                     //分享URL
+	};
+
+	//视频、专辑封面卡片样式
+	struct ONADokiVideoCoverCard
+	{
+		0 optional DokiCardBaseInfo cardInfo;			//卡片基本信息
+		1 optional string reportKey;					//上报key
+		2 optional string reportParams;					//上报参数
+		3 optional string reportEventId;                //上报事件ID
+	};
+
+	//竖屏沉浸式二级页request
+	struct DokiVerticalBrushFeedsRequest
+	{
+		0 require string dataKey;						//请求datakey
+		1 optional string pageContext;					//翻页参数
+		2 optional string reportData;                   //用作上报透传数据reportKey=XXX&ftid=XXX
+	};
+
+	//竖屏沉浸式二级页response
+	struct DokiVerticalBrushFeedsResponse
+	{
+		0 require int errorCode;						//错误码
+		1 optional vector<TempletLine> uiData;			//ona数据
+		2 optional string pageContext;					//翻页参数
+		3 optional bool hasNextPage;					//是否有下一页
+	};
+
+};

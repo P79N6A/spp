@@ -1,0 +1,618 @@
+
+module RecCommonStruct
+{
+    // 推荐实体类型
+    enum RecItemType
+    {
+        ITEM_NONE               = 0,
+        ITEM_VIDEO              = 1,                    // 单视频
+        ITEM_COVER              = 2,                    // 专辑
+        ITEM_COLUMN             = 3,                    // 栏目
+        ITEM_LIVE               = 4,                    // 直播
+        ITEM_ARTICLE            = 5,                    // 文章
+        ITEM_PLAYLIST           = 6,                    // 影集
+
+        ITEM_CMS                = 9,                    // CMS占位数据，itemId仅用来做唯一标识，具体信息见RecItem.info.id
+        ITEM_DB_VIDEO           = 10,                   // CMS干预推荐数据双ID视频
+        ITEM_DB_COVER           = 11,                   // CMS干预推荐数据双ID专辑
+
+        ITEM_CMS_VID            = 12,                   // CMS干预推荐数据VID视频
+        ITEM_CMS_CID            = 13,                   // CMS干预推荐数据CID专辑
+        ITEM_THUNDERMONKEY      = 14,                   // 雷猴推荐数据
+    };
+
+    // 场景
+    enum RecSceneType
+    {
+        SCENE_NONE              = 0,
+        SCENE_CHANNEL           = 1,                    // 为你推荐-精选频道插件
+        SCENE_SECOND            = 2,                    // 为你推荐-二级详情页
+        SCENE_THIRD             = 3,                    // 为你推荐-三级详情页(tag下全部视频)
+        SCENE_GET_VID_BY_VID    = 4,                    // 根据vid拉取相关视频(目前用于H5推荐场景)
+        SCENE_GET_VID_BY_TAG    = 5,                    // 根据标签拉取相关视频(目前用于H5推荐场景,这里的标签指的是是媒资先锋标签)
+        SCENE_FANS              = 6,                    // 粉丝团
+        SCENE_SEARCH            = 7,                    // 支持搜索侧获取全网热播数据。用户搜索无结果时，推送此数据
+        SCENE_COMMON_CHANNEL    = 8,                    // 普通频道页
+        SCENE_CHANNEL_INSERT    = 9,                    // 频道页(插入推荐)
+        SCENE_VIDEO_RENEW       = 10,                   // 正负反馈-负反馈更新(目前仅支持个性化页卡二级页，移除Poster后的更新)
+        SCENE_CHANNEL_TAG_SECOND = 11,                  // 频道页-标签二级页
+        SCENE_FANS_PIAZZA       = 12,                   // 饭团广场
+        SCENE_RELATED_DETAIL    = 13,                   // 详情页相关推荐：例如 微信公众号播放结束后推荐、V站资料详情页相关推荐
+
+        SCENE_INTEREST_TAG_EXPLORE = 14,                //兴趣标签探索
+        SCENE_CHANGE               = 15,                //换一换场景
+
+        // 新详情页
+        SCENE_DETAIL_PLUGIN     = 100,                  // 新详情页-插件
+        SCENE_DETAIL_MOREDATA   = 101,                  // 新详情页-More浮层
+        SCENE_DETAIL_SECOND     = 102,                  // 新详情页-二级页(同系列)
+    };
+
+    // Tag类型
+    enum TagType
+    {
+        TAG_NONE                = 0,
+        TAG_INTEREST_COMMON     = 1,                    // 用户兴趣-普通
+        //  推荐理由: 如果你喜欢有关{name}的片子，来看看此片吧，希望你会喜欢
+        TAG_INTEREST_MOVIE      = 2,                    // 用户兴趣-剧集
+        //  推荐理由: 如果你喜欢有关{name}的片子，来看看此片吧，希望你会喜欢
+        TAG_INTEREST_STAR       = 3,                    // 用户兴趣-明星
+        //  推荐理由: 如果你是{name}的粉丝，这部片子你可不要错过哦
+        TAG_INTEREST_GEN        = 4,                    // 用户兴趣-组合(比如“XX相关的视频”，无明星ID)
+        //  推荐理由: 如果你喜欢有关{name}的片子，来看看此片吧，希望你会喜欢
+        TAG_INTEREST_LONGCAT    = 5,                    // 兴趣分类-长视频
+        //  推荐理由: 如果你喜欢有关{name}的片子，来看看此片吧，希望你会喜欢
+        TAG_INTEREST_SHORTCAT   = 6,                    // 兴趣分类-短视频
+        //  推荐理由: 如果你喜欢有关{name}的片子，来看看此片吧，希望你会喜欢
+        TAG_GROUP_HOT           = 100,                  // 分群热播  长视频tagId=hot#group-long  短视频tagId=hot#group-short
+        //  推荐理由: 你的同龄人都在看的片子
+        TAG_SCORE               = 101,                  // 高分推荐  tagId=hot#score-movie
+        //  推荐理由: 豆瓣影评人推荐了这部高分的电影
+        TAG_CF                  = 102,                  // 协同过滤  长视频tagId=cf_long    短视频tagId=cf_short
+        //  推荐理由(用户CF): 和你一样看过《{name}》的人，也看过这部片子
+        TAG_UPTIME              = 103,                  // 最新上架推荐 (特殊：优先级3) tagId=uptime
+        //  推荐理由: 腾讯视频最新上架的片子
+        TAG_UPDATE              = 104,                  // 更新推荐 (特殊：优先级2)    tagId=rec_update
+        //  推荐理由: 你看过的这部片子，有更新哦。
+        TAG_FASTRISE            = 105,                  // 最快上升 (特殊: 优先级3)    tagId=hot#raise-all
+        //  推荐理由：腾讯视频热度蹿升最快的片子
+        TAG_RELATION_CHAIN      = 106,                  // 关系链  暂未使用
+        TAG_REGION              = 107,                  // 地域    暂未使用
+        TAG_HOT                 = 108,                  // 全网热播     长视频tagId=hot#all-long    短视频tagId=hot#all-short
+        //  推荐理由：你身边的人都在看的片子
+        TAG_REC                 = 109,                  // 视频推荐-短视频 (特殊: 优先级1)    tagId=rec_short
+        TAG_FIRSTCAT            = 110,                  // 一级分类新热推荐
+        TAG_HOTTOPIC            = 111,                  // 热门话题
+        TAG_FANS                = 112,                  // 粉丝团
+        TAG_REALTIME            = 113,                  // 实时播放关联推荐
+        TAG_EDITOR_REC          = 118,                  // 小编推荐
+        TAG_FANS_PIAZZA         = 119,                  // 粉丝团广场
+        TAG_MAIN_GENRE          = 120,                  // 视频主要类型 tagId 填主要类型ID
+
+        // 详情页
+        TAG_PERSONAL_DETAIL     = 201,                  // 为你推荐(详情页)，对应tagId=detail_personal
+
+        // 频道页
+        TAG_CHANNEL_NEWS        = 301,                  // 频道页-新闻，对应tagId=channel_news
+        TAG_CHANNEL_FUNNY       = 302,                  // 频道页-搞笑，对应tagId=channel_funny
+        TAG_VPLUS_TAB           = 303,                  // V+ TAB，对应tagId=channel_vplus
+        TAG_CHANNEL_GAME        = 304,                  // 频道页-游戏，对应tagId=channel_game
+        TAG_CHANNEL_ENTERTAIN   = 305,                  // 频道页-娱乐，对应tagId=channel_entertain
+        TAG_CHANNEL_CAR         = 306,                  // 频道页-汽车，对应tagId=channel_car
+        TAG_CHANNEL_MUSIC       = 307,                  // 频道页-音乐，对应tagId=channel_music
+        TAG_CHANNEL_LIFE        = 308,                  // 频道页-生活，对应tagId=channel_life
+        TAG_CHANNEL_TECHNOLOGY  = 309,                  // 频道页-科技，对应tagId=channel_technology
+        TAG_CHANNEL_MOTHER      = 310,                  // 频道页-母婴，对应tagId=channel_mother
+        TAG_CHANNEL_FASION      = 311,                  // 频道页-时尚，对应tagId=channel_fasion
+        TAG_CHANNEL_TRAVEL      = 312,                  // 频道页-旅游，对应tagId=channel_travel
+        TAG_CHANNEL_EDUCATION   = 313,                  // 频道页-教育，对应tagId=channel_education
+        TAG_CHANNEL_FINANCE     = 314,                  // 频道页-财经，对应tagId=channel_finance
+        TAG_WXVPLUS_TAB         = 315,                  // 微信V+ TAB， 对应tagId=channel_wxvplus
+        TAG_CHANNEL_APP_FEED    = 316,                  // app短视频feed流频道页通用,tagId=channel_labelnavigation
+        TAG_CHANNEL_TVWATCH     = 317,                  // 影视快看,tagId=channel_tvwatch
+
+        // 特殊标签
+        TAG_DL                  = 401,                  // 豆列
+        TAG_AREA                = 402,                  // 地域(与107不同，基于用户地域兴趣的推荐: 比如电影.韩国)
+        TAG_YJ                  = 403,                  // 影集(看单，http://media.cm.com/cgi-bin/kandan)
+        TAG_SHORTRPCAT          = 404,                  // 剧集周边
+        TAG_LONGRPCAT           = 405,                  // 优选推荐
+        TAG_DM                  = 406,                  // 看点推荐
+        TAG_TAGREC              = 407,                  // 标签推荐聚合模块
+        TAG_CMSREC              = 408,                  // CMS推荐 HOT模块
+        TAG_HOTCIDREC           = 409,                  // 热门电视剧推荐
+        TAG_CMSREC_S            = 410,                  // CMS推荐,S模块
+        TAG_INTEREST_FOLLOW     = 411,                  // 个人追剧模块 tagid=interest_follow
+        TAG_CONTENTLEVEL_CS     = 412,                  //长视频保量推荐 tagid=contentlevel#cs
+        TAG_TOPIC               = 413,                  // 话题投放
+        TAG_YJCMSREC            = 414,                  // 影集CMS推荐
+        TAG_OUTSIDEREC          = 415,                  // 人工投放模块
+        TAG_JMSTREC             = 416,                  // 追剧明星聚合模块
+        TAG_USER_CF             = 417,                  //用户cf算法
+        TAG_PRODUCER            = 418,                  //出品方推荐算法
+        TAG_USER_APPEAL         = 419,                  //用户看点推荐
+        TAG_REASON              = 420,                  //一句话推荐
+        TAG_PRIZE               = 421,                  //获奖推荐
+        TAG_CID_RELATEDREC      = 422,                  //专辑相关推荐
+        TAG_COMPOSITE_CF        = 423,                  //cf聚合算法
+        TAG_COMPOSITE_SIMPLE    = 424,                  //视频聚合算法
+        TAG_COMPOSITE_HERO      = 425,                  //英雄聚合算法
+    TAG_WZ                  = 426,                  //王者荣耀算法
+
+        // 其他非推荐类标签
+        TAG_CONTINUE_WATCH      = 1001,                 // 继续观看，对应tagId=continue_watch
+        TAG_OPER_ALBUM          = 1002,                 // 运营看单(媒资影集)，对应tagId=oper_album
+        TAG_SAME_SERIES         = 1003,                 // 同系列，对应tagId=same_series
+        TAG_STAR_MV             = 1004,                 // 明星MV，对应tagId=star_mv
+        TAG_VPLUS_UGC           = 1005,                 // V+用户上传，对应tagId=vplus_ugc
+
+        // 混合标签
+        TAG_HOT_LONGCAT         = 2001,                 // 全网热播-长视频(详情页)，对应tagId=detail_hot_long
+        TAG_HOT_SHORTCAT        = 2002,                 // 全网热播-短视频(详情页)，对应tagId=detail_hot_short
+        TAG_VIDEO_CLIPS         = 2003,                 // 视频片花(详情页),对应tagId=detail_video_clips
+    };
+
+    // 上报用的推荐类型
+    enum ReasonType
+    {
+        REASON_NONE             = 0,                    // 非推荐算法
+        REASON_FIRST_CATE       = 101,
+        REASON_SECOND_CATE      = 102,
+        REASON_TAG              = 103,
+        REASON_LBS              = 104,
+        REASON_TITLE            = 105,
+        REASON_USER_GROUP       = 106,
+    };
+
+    //刷新类型
+    enum RecLoadType
+    {
+        LOAD_TYPE_MANUAL        = 0,        //手动刷新
+    LOAD_TYPE_TIMEOUT       = 1,        //页面超时刷新
+    LOAD_TYPE_PRELOAD       = 2,        //预加载
+    LOAD_TYPE_NEXTPAGE      = 3,        //翻页加载下一页
+    };
+
+
+
+    // 外显推荐理由类型
+    enum RecIdType
+    {
+        RECID_NONE              = 0,
+        RECID_STAR              = 1,                    // id=明星ID，data=明星的名字
+        RECID_ITEM_ID           = 2,                    // id=vid/cid，data=标题
+        RECID_TAG_ID            = 3,                    // id=tagId，data=tagName
+        RECID_KANDAN_ID         = 4,                    // id=看单(影集)ID，data=看单名
+    };
+
+    // 单个推荐理由详细 (因为TagInfo的int type原因，独立拆分出来)
+    struct OneRecReasonDetail
+    {
+        0   optional    RecIdType type;                 // 推荐ID类型
+        1   optional    string id;                      // ID定义
+        2   optional    string name;                    // ID对应的外显名称
+    };
+
+    // Tag的其他信息
+    struct TagInfo
+    {
+        0   optional    int type;                       // 1-明星
+        1   optional    string id;                      // type=1时填资料库中明星ID
+        2   optional    string data;                    // 附加信息：type=1不填
+        3   optional    string extinfo;                 // 文案信息
+    };
+
+    // SpecTag的描述信息
+    struct SpecTagReqInfo
+    {
+        0   require     string      tagId;              // 推荐标签ID
+        1   optional    TagType     tagType;            // 推荐标签类型
+        2   optional    int         reqNum;             // 该tag的数据条数
+    };
+
+    // Item的其他信息 (目前仅 ITEM_CMS 类数据有效)
+    struct ItemInfo
+    {
+        0   optional    string ctype;                   // 透传CMS的ctype: H5/专题/影集/节目
+        1   optional    string id;                      // 对应类型的标识信息，如url，专题ID，影集/节目ID等
+        2   optional    string data;                    // 附加信息
+        3   optional    map<string, string> cms_data;   // 透传CMS数据的相关信息
+    };
+
+    // 用于分析推荐原因的字段
+    struct DebugInfo
+    {
+        0   optional    string info;                    // 推荐理由的字符串描述
+    };
+
+    // 用于上报BucketId、算法Id以及其他一些用于统计推荐质量，进行分析的数据
+    struct ReportInfo
+    {
+        0   require     string bucketId;                // 桶ID
+        1   require     string algId;                   // 算法ID
+        2   optional    ReasonType reasonType;          // 推荐类型，上报用
+        3   optional    string reason;                  // 上报用的显示字符串
+    };
+
+    // 推荐理由 (外显用)
+    struct RecReasonInfo
+    {
+        0   optional    string reason;                  // 外显用推荐理由字符串 (由为你推荐服务填充)
+        1   optional    vector<OneRecReasonDetail> detail; // 具体推荐id信息 (需要跳转高亮业务关注)
+    };
+
+    // 推荐标签
+    struct RecTag
+    {
+        0   require     string      tagId;              // 推荐标签ID
+        1   optional    TagType     tagType;            // 推荐标签类型
+        2   optional    string      recTitle;           // 推荐标签外显文案
+        3   optional    TagInfo     info;               // Tag的其他信息，目前只有明星Tag才有此字段
+        // 4    optional    double      recPriority;        // Tag顺序按推荐返回vector顺序排列
+        5   optional    DebugInfo   recDebugInfo;       // 用于客户端展示的调试信息
+        6   optional    ReportInfo  recReportInfo;      // 数据上报
+        7   optional    string      recSubTitle;        // 推荐的副标题 (不带则不显示副标题)
+        8   optional    bool        hasMore = true;     // Tag是否还有更多数据
+
+        10  optional    int         insertAt;           // (仅recSpecialTagList用，目前由上层填写) 插入位置，从1开始编号(0为附加在尾部)
+        11  optional    bool        hasSecondPage;      // Tag是否有二级页数据
+    };
+
+    // 推荐实体
+    struct RecItem
+    {
+        0   require     string      itemId;             // 推荐实体ID
+        1   require     RecItemType itemType;           // 推荐实体类型
+        2   optional    string      tagId;              // 推荐标签
+        3   optional    double      recPriority;        // 推荐权重，双方约定用于在去重保留和运营数据混排时的优先级
+        4   optional    DebugInfo   recDebugInfo;       // 用于客户端展示的调试信息
+        5   optional    ReportInfo  recReportInfo;      // 数据上报
+        6   optional    string      recSubTitle;        // (覆盖用) 用推荐理由覆盖视频原副标题
+        7   optional    vector<RecTag> recTagList;      // (仅频道页用) 视频对应的推荐标签列表
+        8   optional    string      recTitle;           // (覆盖用) 覆盖视频原标题
+        9   optional    string      imageUrl;           // (覆盖用) 覆盖视频原图片地址(请尽可能用接近498的规格)
+        10  optional    RecReasonInfo recReason;        // 外显用推荐理由
+        11  optional    TagType     tagType;            // 推荐标签类型
+        12  optional    ItemInfo    info;               // (仅itemType=ITEM_CMS时有效) CMS数据的附加信息，此时忽略itemId的内容
+    };
+
+    // 推荐上下文，推荐引擎根据此上下文控制推荐算法
+    struct RecContext
+    {
+        0   optional    RecSceneType    recScene;       // 推荐场景：精选频道页，二级详情页，三级详情页(tag全部视频)
+        1   optional    vector<RecItem> recItemList;    // 推荐实体列表，后续根据视频获取推荐内容
+
+        9   optional    string      bucketId;           // 用于携带客户端 BucketConfig.extrData.extra,recom_bucket="XXX" 的内容
+        10  optional    vector<string>  vecFilterIds;   // 过滤Id列表，当用户负反馈后短时间内的过滤id列表(vid/cid/...)
+        11  optional    string      lastedTagId;        // 上次请求的最后一个标签ID
+        12  optional    TagType     lastedTagType;      // 上次请求的最后一个标签类型
+        13  optional    vector<SpecTagReqInfo>  vecSpecTagReqInfo;  // 需要请求的特殊模块信息，如S级推荐模块
+        14  optional    vector<RecTag> vecRealTimeInterestInfo;//用户实时兴趣反馈
+        15  optional    string      extendInfo;         //扩展信息
+        16  optional    RecLoadType loadType;           //加载类型
+    };
+
+    // 详情页推荐上下文
+    struct RecDetailContext
+    {
+        0   optional    RecSceneType    recScene;       // 推荐场景：为你推荐、全网热播(长/短)；运营看单、同系列
+
+        // ---------------------- 简版jce协议以下字段均不填 ----------------------
+        2   optional    string      itemId;             // 详情页当前ID (cid > vid)
+        3   optional    RecItemType itemType;           // 当前ID的实体类型
+
+        9   optional    string      bucketId;           // 用于携带客户端 BucketConfig.extrData.extra,recom_bucket="XXX" 的内容
+
+        // 视频vid资料
+        11  optional    int         vid_type;           // 媒资type：视频大分类
+        12  optional    string      title;              // 媒资title：视频标题
+        13  optional    string      sync_cover;         // 媒资sync_cover：继承的专辑ID (仅长视频有此字段)
+        14  optional    vector<string> vecCoverList;    // 媒资cover_list：所属专辑的列表 (碎视频可能属于多个专辑)
+        15  optional    long        vplus_uin;          // VVideo库video_uin：上传者uin (仅UGC视频)
+        16  optional    vector<string> vecPioneerTag;   // 媒资pioneer_tag：先锋标签
+        17  optional    vector<string> vecVidTag;       // 媒资tag：vid标签
+        18  optional    int         vid_secondClass;    // 媒资type：视频二级分类
+        19  optional    int         vid_thirdClass;     // 媒资type：视频三级分类
+
+        // 专辑cid资料
+        31  optional    int         cid_type;           // 媒资type：专辑大分类
+        32  optional    string      column_id;          // 媒资column_id：栏目ID
+        33  optional    string      cid_title;          // 媒资title：专辑标题
+        34  optional    vector<string> vecCidTag;       // 媒资tag：cid标签
+        35  optional    vector<string> vecMainGenre;    // 媒资main_genre：主要类型
+        36  optional    vector<string> vecSubGenre;     // 媒资sub_genre：次要类型
+        37  optional    vector<string> vecLeadingActor; // 媒资leading_actor：主演/嘉宾
+        38  optional    vector<string> vecDirector;     // 媒资director：导演
+        39  optional    vector<string> vecCartoonGenre; // 媒资cartoon_genre：动漫类型
+        40  optional    vector<string> vecCartoonAspect;    // 媒资cartoon_aspect：动漫看点
+        41  optional    vector<string> vecProducer;     // 媒资producer：出品方
+        42  optional    vector<string> vecAreaName;     // 媒资area_name：地区名称
+        43  optional    vector<string> vecOriginalAuthor;   // 媒资original_author：原作者
+        44  optional    vector<string> vecVideoIds;     // 媒资video_ids：专辑列表
+        45  optional    int         cid_secondClass;    // 媒资type：专辑二级分类
+        46  optional    int         cid_thirdClass;     // 媒资type: 专辑三级分类
+
+        // vid/cid公共资料
+        61  optional    string      playlist_id;        // 媒资c_plid：看单ID
+        62  optional    string      series_id;          // 媒资series_id：系列ID
+        63  optional    vector<string> vecSingerId;     // 媒资singer_id：歌手ID
+
+        // 内部功能字段
+        101 optional    vector<string> vecBlackList;    // (由为你推荐填写) 推荐不出的黑名单列表，目前包含干预系统中插入(去重)与删除的id
+    };
+
+    // 频道页推荐上下文
+    struct RecChannelContext
+    {
+        0   optional    RecSceneType    recScene;       // 推荐场景：普通频道页 (对应推荐内容由tagType区分)
+        1   optional    vector<RecItem> recItemList;    // 推荐实体列表，后续根据视频获取推荐内容
+
+        9   optional    string      bucketId;           // 用于携带客户端 BucketConfig.extrData.extra,recom_bucket="XXX" 的内容
+    10  optional    RecLoadType loadType;           //加载类型
+    };
+
+    struct DetailPlayVideoInfo
+    {
+        0   optional    string      vid;                // 单视频ID
+        1   optional    string      cid;                // 专辑ID
+        // 2    optional    string      lid;                // 栏目ID
+        // 3    optional    string      pid;                // 直播ID
+        4   optional    string      historyVid;         // 没有则不填。本地的历史播放纪录vid，会覆盖vid内容
+        5   optional    bool        needReverse = true;
+    };
+
+    struct AlgorithmExpConf
+    {
+        0 optional string algId;                    // 算法ID(画像与索引可以不填)
+        1 optional map<string, string> paraMap;    // 算法参数
+    };
+
+    enum ExpLayerType {
+        EXP_LAYER_NONE          = 0,
+        EXP_LAYER_PROFILE       = 1,            // profile
+        EXP_LAYER_SYSTEM        = 2,            // nrbe
+        EXP_LAYER_INDEX_SCORING = 3,            // index
+        EXP_LAYER_PCTR          = 4,            // rank
+        EXP_LAYER_RERANKING     = 5,            // selector
+    };
+
+    struct ExpLayerConf
+    {
+        0 optional string layerId;                      // 分层ID
+        1 optional string expId;                        // 策略id
+        2 optional string layerConf;                    // 分层的配置数据,json格式
+        3 optional ExpLayerType layerType;              // 分层类型
+        4 optional vector<AlgorithmExpConf> algVec;    // 算法列表
+        5 optional map<string, string> paraMap;        // 算法层公用参数
+    };
+
+    struct ExpFlowInfo
+    {
+        0 optional string expId;    // 主实验ID
+        1 optional int expMode;     // 实验模式1单层2联动
+        2 optional int expType;     // 实验类型1基线实验2白名单实验
+        3 optional vector<ExpLayerConf> expLayerConfList;   // 分层实验配置数据
+        4 optional int userType;    // 用户类型1普通用户2白名单用户
+        5 optional int flowId;      // 流量ID
+    };
+};
+
+module RecCommonInterface
+{
+    // 个性化推荐请求：根据场景、或视频拉取个性化推荐的视频列表
+    // 命令字: 0xec38
+    struct GetRecItemRequest
+    {
+        0   require     string  seqNum;                         // 每次请求的流水号
+        1   require     int     tagNum;                         // 请求tag的数量
+        2   require     int     recNum;                         // 每个tag推荐的items数量
+        3   require     RecCommonStruct::RecContext recContext; // 推荐上下文
+        4   optional    string  pageContext;                    // 翻页上下文，如果是首页，填写为空
+        5   optional    string  sourceKey;                      // 请求来源。频道页协议是对应频道ID
+        6   optional    int     skipDedupe;                     // 请求是否需要在数据层做页与页的去重
+        7   optional    RecCommonStruct::ExpFlowInfo expFlowInfo;//流量实验数据
+    };
+
+    // 个性化推荐返回
+    struct GetRecItemResponse
+    {
+        0   require     int     status;                         // 接口调用状态
+        1   optional    string  seqNum;                         // 每次请求的流水号
+        2   optional    string  statusMsg;                      // 调用状态信息
+        3   optional    vector<RecCommonStruct::RecItem> recItemList;   // 返回的推荐实体列表
+        4   optional    vector<RecCommonStruct::RecTag> recTagList;     // 返回的推荐标签列表
+        5   optional    string  pageContext;                    // 翻页上下文，如果是首页，填写为空
+
+        10  optional    vector<RecCommonStruct::RecTag> recSpecialTagList;  // 固定位插入用的特殊推荐标签列表
+    };
+
+    // 个性化推荐请求：根据单个tag取更多视频，数量由recNum控制。获取更多或者获取全部,场景在recContext中控制
+    // 命令字: 0xec39
+    struct GetRecItemByTagRequest
+    {
+        0   require     string  seqNum;                         // 每次请求的流水号
+        1   require     string  tagId;                          // 需要的TagId
+        2   optional    RecCommonStruct::TagType tagType;       // 推荐标签类型
+        3   require     int     recNum;                         // 该Tag请求的推荐实体数目
+        4   require     RecCommonStruct::RecContext recContext; // 推荐上下文
+        5   optional    string  pageContext;                    // 翻页上下文，如果是首页，填写为空
+        6   optional    string  sourceKey;                      // 请求来源。频道页协议是对应频道ID
+        7   optional    RecCommonStruct::TagInfo tagInfo;       // 透传推荐的taginfo信息
+        9   optional    int     skipCache;                      // 是否在数据层使用cache机制，默认为0使用cache。
+        10  optional    RecCommonStruct::ExpFlowInfo expFlowInfo;//流量实验数据
+    };
+
+    // 获取标签的视频列表返回
+    struct GetRecItemByTagResponse
+    {
+        0   require     int     status;                         // 接口调用状态
+        1   optional    string  seqNum;                         // 每次请求的流水号
+        2   optional    string  statusMsg;                      // 调用状态信息
+        3   optional    vector<RecCommonStruct::RecItem> recItemList;   // 返回的推荐实体列表
+        4   optional    string  pageContext;                    // 翻页上下文，如果是首页，填写为空
+    };
+
+    // 个性化详情页请求/简版jce详情页请求：根据当前播放请求指定Tag的推荐内容
+    // 命令字: 0xec3a
+    struct GetDetailRecItemByTagRequest
+    {
+        0   require     string  seqNum;                         // 每次请求的流水号
+        1   require     string  tagId;                          // 需要的TagId
+        2   optional    RecCommonStruct::TagType tagType;       // 推荐标签类型
+        3   require     int     recNum;                         // 该Tag请求的推荐实体数目
+        4   require     RecCommonStruct::RecDetailContext recContext; // 详情页上下文
+        5   optional    string  pageContext;                    // 翻页上下文，如果是首页，填写为空
+        6   optional    RecCommonStruct::DetailPlayVideoInfo playInfo;  // (仅简版jce协议) 当前播放视频的相关信息
+        7   optional    string  sourceKey;                      // 请求来源
+        8   optional    RecCommonStruct::ExpFlowInfo expFlowInfo;//流量实验数据
+    };
+
+    // 个性化详情页返回/简版jce详情页返回
+    struct GetDetailRecItemByTagResponse
+    {
+        0   require     int     status;                         // 接口调用状态
+        1   optional    string  seqNum;                         // 每次请求的流水号
+        2   optional    string  statusMsg;                      // 调用状态信息
+        3   optional    vector<RecCommonStruct::RecItem> recItemList;   // 返回的推荐实体列表
+        4   optional    string  pageContext;                    // 翻页上下文，如果是首页，填写为空
+        5   optional    string  recTitle;                       // (仅看单用) 非空时覆盖插件的原始标题
+        6   optional    int     totalNum;                       // (仅同系列用) 列表总数
+    };
+
+    // 个性化频道页请求：根据频道对应的Tag拉取推荐结果
+    // 命令字: 0xec3b
+    struct GetChannelRecItemByTagRequest
+    {
+        0   require     string  seqNum;                         // 每次请求的流水号
+        1   require     string  tagId;                          // 对应频道的TagId
+        2   optional    RecCommonStruct::TagType tagType;       // 推荐标签类型
+        3   require     int     recNum;                         // 该Tag请求的推荐实体数目
+        4   require     RecCommonStruct::RecChannelContext recContext; // 频道页上下文
+        5   optional    string  pageContext;                    // 翻页上下文，如果是首页，填写为空
+        6   optional    string  sourceKey;                      // 请求来源。频道页协议是频道ID
+        7   optional    RecCommonStruct::ExpFlowInfo expFlowInfo;//流量实验数据
+    };
+
+    // 个性化频道页返回
+    struct GetChannelRecItemByTagResponse
+    {
+        0   require     int     status;                         // 接口调用状态
+        1   optional    string  seqNum;                         // 每次请求的流水号
+        2   optional    string  statusMsg;                      // 调用状态信息
+        3   optional    vector<RecCommonStruct::RecItem> recItemList;   // 返回的推荐实体列表
+        4   optional    string  pageContext;                    // 翻页上下文，如果是首页，填写为空
+    };
+
+    // 频道页标签模块请求：根据频道拉取对应的Tag列表
+    // 命令字: 0xec3c
+    struct GetChannelTagRequest
+    {
+        0   require     string  seqNum;                         // 每次请求的流水号
+        1   require     string  channelId;                      // 频道ID
+        2   optional    RecCommonStruct::RecContext recContext; // 推荐上下文
+        3   optional    RecCommonStruct::ExpFlowInfo expFlowInfo;//流量实验数据
+    };
+
+    // 频道页标签模块返回
+    struct GetChannelTagResponse
+    {
+        0   require     int     status;                         // 接口调用状态
+        1   optional    string  seqNum;                         // 每次请求的流水号
+        2   optional    string  statusMsg;                      // 调用状态信息
+        3   optional    vector<RecCommonStruct::RecTag> tagList; // 返回的标签信息列表
+    };
+
+    // 个性化推荐请求：根据多个tag取更多视频，数量由recNum控制。获取更多或者获取全部,场景在recContext中控制
+    // 命令字: 0xec3d
+    struct GetRecItemByMultiTagRequest
+    {
+        0   require     string  seqNum;                         // 每次请求的流水号
+        1   require vector<RecCommonStruct::RecTag> tagInfoList;    // 推荐标签列表
+        2   require     int     recNum;                         // 每个Tag请求的推荐实体数目
+        3   require     RecCommonStruct::RecContext recContext; // 推荐上下文
+        4   optional    string  pageContext;                    // 翻页上下文，如果是首页，填写为空
+        5   optional    string  sourceKey;                      // 请求来源。频道页协议是对应频道ID
+        6   optional    RecCommonStruct::ExpFlowInfo expFlowInfo;//流量实验数据
+    };
+
+    // 获取标签的视频列表返回
+    struct GetRecItemByMultiTagResponse
+    {
+        0   require     int     status;                         // 接口调用状态
+        1   optional    string  seqNum;                         // 每次请求的流水号
+        2   optional    string  statusMsg;                      // 调用状态信息
+        3   optional    vector<RecCommonStruct::RecItem> recItemList;   // 返回的推荐实体列表
+        4   optional    vector<RecCommonStruct::RecTag> tagList; // 返回的标签信息列表
+        5   optional    string  pageContext;                    // 翻页上下文，如果是首页，填写为空
+    };
+
+    // 获取流量分桶配置
+    struct GetExpFlowInfoRequest
+    {
+        0   require     string  seqNum;                         // 每次请求的流水号
+        1   require     string  sourceKey;                      // 请求来源
+        2   require     string  userId;                         // 用户id
+        3   optional    map<string, string> paraMap;            // 规则参数
+    };
+
+    struct GetExpFlowInfoResponse
+    {
+        0   require     int     status;                         // 接口调用状态
+        1   optional    string  seqNum;                         // 每次请求的流水号
+        2   optional    RecCommonStruct::ExpFlowInfo expFlowInfo;//流量实验数据
+    };
+};
+
+module RecInternalInterface
+{
+    // 个性化干预后台请求：根据场景、或视频拉取个性化推荐的视频列表
+    struct GetInterventionRequest
+    {
+        0   require     string  seqNum;                                 // 每次请求的流水号
+        1   require     RecCommonStruct::RecDetailContext recContext;   // 推荐上下文
+        2   optional    vector<RecCommonStruct::RecItem> recItemList;   // 需要干预的实体列表
+        3   optional    string  pageContext;                            // 翻页上下文，如果是首页，填写为空
+    };
+
+    // 个性化干预后台返回
+    struct GetInterventionResponse
+    {
+        0   require     int     status;                                 // 接口调用状态
+        1   optional    string  seqNum;                                 // 每次请求的流水号
+        2   optional    string  statusMsg;                              // 调用状态信息
+        3   optional    vector<RecCommonStruct::RecItem> recItemList;   // 返回的干预后的实体列表
+    };
+};
+
+module GetFeedCmsInterface
+{
+    enum CmsInterventionType
+    {
+        TOP_SCENE           = 0,                                        //置顶数据
+        REFRESH_SCENE       = 1                                         //刷新数据
+    };
+
+    struct FeedCmsItem
+    {
+        0   require     RecCommonStruct::RecItem item;                  //干预的实体
+        1   optional    string  expireTime;                             //过期时间
+        2   optional    int     refresh_seq;                            //第几刷插入
+    };
+
+    struct GetFeedsCmsRequest
+    {
+        0   require     string  seqNum;                                 // 每次请求的流水号
+        1   require     CmsInterventionType scene;                      // 请求的干预数据类型
+        2   optional    string  pageContext;                            // 请求时带上上文信息，由后台接口自己协商
+        3   optional    string  sourceKey;                              // 频道页请求填channelId
+    };
+
+    struct GetFeedsCmsResponse
+    {
+        0   require     int     status;                                 // 接口调用状态
+        1   optional    string  seqNum;                                 // 每次请求的流水号
+        2   optional    string  statusMsg;                              // 调用状态信息
+        3   optional    vector<FeedCmsItem> cmsItemList;                // 需要干预的实体列表
+    };
+};
+

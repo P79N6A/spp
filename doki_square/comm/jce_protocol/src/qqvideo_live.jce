@@ -1,0 +1,702 @@
+/*
+	直播相关的协议
+*/
+#include "qqvideo_ona.jce"
+#include "qqvideo_common.jce"
+#include "qqvideo_user_info.jce"
+
+module jce
+{
+	//配色
+    struct LiveColorMatching
+	{
+		0 require string globalBg;	 	//默认全局背景色
+		1 require string unDoneBg;		//直播前聊天室背景色 and 直播中未选中tab
+		2 require string floatBg;		//收到新回复、聊天室输入框、直播中购票各类浮层
+		3 require string textColor;		//直播前/中标题、昵称
+	};
+	
+     //单个特权项定义
+    struct LiveVIPRightItem
+	{
+		0 require string title;			//标题
+		1 require string imageUrl;		//图片地址
+		2 optional string des;			//描述信息
+		3 optional Action action;		//跳转动作
+	};
+    
+	//电子票信息 ［分享 和 预定信息 写死］
+    struct LiveTicketInfo
+    {
+    	0 require string imageUrl;		//图片
+    	1 require string title;			//标题
+    	2 require string time;			//时间
+    	3 require long orderCount;		//已购票人数
+    	4 optional string address;		//地点
+    	5 optional string btnTitle;		//按钮文字
+    	6 optional Action btnAction;	//按钮点击后可以执行的动作
+    	
+    	7 require string attentKey;		//关注的key
+    	8 require bool isAttent;		  //当前用户是否已经关注
+    	9 optional bool isHasLottery = false;	 //是否已经抽奖
+
+    };
+
+    //直播前数据，海报图从直播信息LiveVideoItemData中获取
+    struct LiveBeforeInfo
+    {
+    	0 require vector<TempletLine> uiData;					//ona数据列表
+    	1 optional vector<VideoItemData> videoItemList;			//配的临时播放的看点列表
+    	2 optional map<string,CoverDataList> coverDataMap;		//专辑类数据集合（往期，推荐等）
+		3 optional ShareItem shareItem;							//用于直播前分享
+	4 optional bool hasLotteryInfo = false;                             //是否有抽奖信息，若有，则另外请求抽奖结果相关电子票据文案
+    };
+    
+    //直播中数据，直播中的付费信息直接从 LiveVideoItemData 结构获得
+    struct LiveProcessInfo
+    {
+    	0 require vector<LiveTabModuleInfo> moduleList;		//直播中需要加载的模块列表1主持人2聊天室3H54节目单5排行榜6直播视频
+    	1 optional LiveVoteInfo teamList;					//战队列表，使用投票结构来复用
+    	2 optional vector<ActorInfo> actorList;				//当前演唱会演职人员列表
+		3 optional bool isGiftUse;                          //是否使用道具
+		4 optional ShareItem shareItem;						//用于直播中分享
+		5 optional string propsDatakey;						//道具使用的dataKey
+    };
+	
+	struct LiveWhyMeInfo
+	{
+		1 optional string vid; //why me 直播结束后vid
+		2 optional long zanNum; //why me赞的数目
+		3 optional string dataKey; //why me结束推荐	
+		4 optional vector<ActorInfo> actors;			//why me明星信息,包括饭团信
+		5 optional Poster poster; //why me 的播放量
+		6 optional string title;	//why me海报的标题
+		7 optional bool isPraiseOpen;		//点赞开关
+	};
+	
+	//每一路机位的信息
+	struct LiveCameraInfo{
+		0 require string streamId;					//流ID
+		1 require int index;						//机位号
+		2 require string picUrl;		
+		3 require string title;			
+		4 optional bool isVip;						//是否是付费流(并没有使用)
+		5 optional string action;					//付费跳转的action(并没有使用)
+		6 optional SpecialAction specialAction;		//特殊功能的动作定义（拉动第三方app）
+		7 optional vector<MarkLabel> markLabelList; //脚标列表 
+		8 optional string chid;					//机位id
+		9 optional Action realAction;				//跳转action（如果值不为空，切换机位优先使用这个跳转）
+		10 optional byte videoFlag;				//视频信息的一些标记状态，掩码是0xff，最低位标志视频是否全景视频，0x01
+		11 optional long videoFileSize;     	//当前流的大小,与码率相关，单位是 字节/每分钟
+	};
+    
+     //节目单项
+    struct ShowBillItem
+    {
+        0 require int id;			//id，暂时没用
+        1 require long startTime;	//开始时间，1970 到现在的秒数
+        2 require long endTime;		//节目结束时间
+        3 require string title;		//标题
+    };
+ 
+	//web使用，打点信息
+	struct CMarkInfo {
+        0 require long id;              //id
+		1 require int cate;             //type 
+		2 optional long vbt;            //begin time
+		3 optional string sid;          //vote id
+		4 optional string plsimg;
+        5 optional string plsimglink;
+        6 optional string iu;
+        7 optional string t;
+	};
+    
+    //明星聊天室 直播banner信息
+	struct LiveBannerItemData
+	{
+		0 require byte showType;  					//banner展示方式 0：不展示banner 1：替换播放器展示banner 2：待定
+		1 optional string title;  					//banner的主标题
+		2 optional string subTitle;  				//banner的副标题
+        	3 optional vector<ActorInfo> guestList;     //嘉宾列表
+		4 optional string textColor;  				//banner的文字颜色
+		5 optional string bgImgUrl;  				//banner的背景图
+	};
+
+    //明星聊天室 聊天室信息
+    struct LiveStarChatRoomInfo 
+    {
+    	1 optional long noticeCount;		//翻牌数
+		2 optional long interactiveCount;	//互动数
+		3 optional long joinCount;			//参与数
+   	};
+
+	//showRoom入口信息
+	struct LiveShowRoomEntranceInfo
+	{
+		0 require string imageUrl;              //入口展示图片，可以下发gif图
+		1 optional string tipTitle;  					//tip信息
+	};
+
+	//showRoom模版主题
+	struct LiveShowRoomTheme
+	{
+		0 require string logoUrl;              // 顶部的logo url
+		1 optional string viewColor;  		   // 视图颜色
+		2 optional string gradientStartColor;  // 视图的渐变颜色的起始色值
+		3 optional string gradientEndColor;    // 视图的渐变颜色的结束色值
+		4 optional string textColor;    	   // 文字颜色
+	};
+	//showRoom信息
+	struct LiveShowRoomInfo
+	{
+		0 require bool hasShowRoom = false;  					//是否有showRoom入口
+		1 optional  LiveShowRoomEntranceInfo entranceInfo;  	//入口信息				
+		2 optional string backgroundImageUrl;       //背景画布图片url
+        3 optional string dollsH5Url;               //纸娃娃H5页面url
+        4 optional string playIntroductionH5Url;    //玩法介绍H5页面url
+        5 optional string storeRedDotPollKey;          //商城红点轮询key
+        6 optional string storeH5Url;               //商城H5页面url
+        7 optional string rankTitle;                //排行版区title
+		8 optional LiveShowRoomTheme liveShowRoomTheme;    //showroom模版主题
+	};
+    /*----ona 相关定义-------------------*/
+	//倒计时
+    struct ONALiveTrailerCountdown 
+    {
+    	0 require long startTime;		// 直播时间开始时间
+    	1 require long serverTime;		// 当前服务器时间
+    	2 optional string title;       	// 倒计时描述
+		3 optional int uiType;       	// 倒计时显示样式0单行提示1倒计时
+    };
+    
+	struct ONALiveAttentNumber 
+    {
+    	0 require long attentNumber;  // 直播时间开始时间
+    	1 optional string title;      //预约人数的标题
+    };
+	
+    //关注控件；直播免费显示预约，直播付费显示成电子票信息 [需要QQ登陆]
+    struct ONALiveAttent
+    {
+    	0 require VideoAttentItem attentItem;           //用于关注的数据结构
+    	1 optional string attentTitle;		            //关注前显示的文案 
+    	2 optional string origPrice;					// 原价格
+    	3 optional string price;						// 价格
+    };
+
+	//特权信息
+	struct ONALiveVIPRights
+	{
+		0 require vector<LiveVIPRightItem> rightList;	//权利列表
+		1 optional string title;						//标题信息
+	};
+	
+	//简介
+	struct ONALiveIntroduction
+	{
+		0 require string introduction;
+	};
+	
+	
+	//将投票封装到一个ONAview里面，这里其实包含的是一个带投票的评论信息
+    struct ONAVoteRank
+    {
+    	0 require CommentItem commentItem;			//这里一定是一个包含了投票或者竞猜的评论，否则就被过滤掉
+    };
+    
+    //跟人相关的排行榜
+    struct ONAActorRank
+    {
+    	0 require string title;						//标题
+    	1 require vector<ActorRankItem> itemList;	//排行榜数据
+    	2 require int skipRankIndex;				//处理 1，2，3，。。。 4，我，5；制定规则：“...”出现的index值，如果没有“...”，则为0
+    	3 optional string des;						//排行榜描述信息
+		4 optional string subPageContent;			//二级页面的介绍内容
+		5 optional int showCount;					//排行榜视图需要显示的item数量，如果不指定默认为3
+		6 optional int type;						//排行榜类型，从100开始，主要用于区分粉丝排行榜和明星排行榜，100，粉丝排行榜，101，明星排行榜
+    };
+	
+	//直播竞赛呈现 
+    struct ONALiveCompeteSchedule
+    {
+    	0 require int status;	        //0表示未知（表现形式同3）、1表示进行中(正在直播)、2表示已结束、 3表示未开始(关注)、100表示VS	
+		1 require string leftIcon;		//左队伍的icon	
+		2 require string leftTitle;		//左队伍的名称
+		3 require int leftScore;	    //左队伍的分数
+		4 require string rightIcon;     //右队伍的icon	
+		5 require string rightTitle;    //右队伍的名称
+		6 require int rightScore;	    //右队伍的分数
+		7 optional string info;	        //比赛信息：如比分时间
+		8 optional Action action;		//点击后的跳转动作
+		9 optional vector<string> detailInfos; //赛事名称等
+		10 optional string reportKey; //上报
+		11 optional string reportParams; //上报
+    };
+	
+	//直播竞赛呈现 
+    struct ONALiveNewsItem
+    {
+		0 require string newsContent;   //新闻主体信息（没有左侧newsIcon时以单行黑体大字显示，有左侧newsIcon时以第二行副标题显示）
+    	1 optional string newsIcon;		//新闻icon，黄牌红牌进球等
+		2 optional string newsPoint;    //新闻事件点，28‘
+		3 optional string title;        //支持html，单行主标题
+		4 optional string sorceIcon;    //事件来源Icon,即球队icon
+		5 optional Action action;		//点击后的跳转动作
+		6 optional Poster poster;		//视频海报样式
+    };
+	
+	//直播明星 
+    struct ONALiveActorNews
+    {
+		0 require ActorInfo actor;      //直播明星
+		1 optional string newsContent;   //主体信息
+    	2 optional string newsIcon;		//新闻icon，黄牌红牌进球等
+		3 optional string newsPoint;    //新闻事件点，28‘(如果有这个字段说明是足球类型的赛点事件newsIcon显示小图，如果没有说明是篮球类型的球星紧集锦newsIcon显示大图)
+		4 optional string sorceIcon;    //事件来源Icon,即球队icon
+		5 optional Action action;		//点击后的跳转动作
+    };
+
+	//社区列表
+	struct ONACommunityEntrance
+	{
+        0 require vector<ActionBarInfo> items;   //社区列表
+	};
+
+	//爆灯效果信息
+	struct LiveLightEffectInfo
+	{
+		0 require string effectId;		//效果id(道具id)
+		1 optional string starId;	 	//明星id
+		2 optional string adImageUrl;	//广告图片
+		3 optional string starName;     //明星名称
+		4 optional string starHeadUrl;  //明星头像url
+		5 optional string title;        //描述信息主标题
+		6 optional string subTitle;     //描述信息副标题
+		7 optional string effectH5Url;  //承载爆灯动画的H5页面url
+	};
+
+    struct LiveLightInfo {
+    	0 optional map<string, long> curSupportMap;		//当前人气值
+		1 optional vector<LiveLightEffectInfo> lightEffectInfoList;	//爆灯效果信息, 没有就不爆灯
+		2 optional vector<long> criticalValues;   		//明星各阶段爆灯临界值
+    };
+    
+	///////百万答题
+	//百万答题的游戏信息
+	struct QAGameConfigInfo
+	{
+		0 require int QAGameVersion; //版本号（用来提示QA升级）
+		1 optional int QADowngradeLevel; //QA游戏降级处理 0 默认不降级，1降级处理成不能参与答题互动（可看题）
+		2 optional vector<int> forbidUseReviveQuestions;//后台下发禁止使用复活卡的题序号
+	};
+	
+	struct QAGameLiveInfo
+	{
+		0 require string  gameId;
+		1 require int  gameStatus;//0未知 1未开始 2 进行中 3 已结束
+		2 optional string offLiveH5; //直播前和直播结束的h5展示页面
+		3 optional string offGameH5; //游戏结束后显示的webView
+		4 optional int  encryptType;//前后台约定加密算法（0代表不加密）
+		5 optional string  encryptToken;//前后台约定加密算法Token
+		6 optional int  maxUseRevives;//最大可用复活卡数
+		7 optional string  totalBonus;//本场游戏总奖励（h5用）
+		8 optional long winMenCounts;//获奖人数（h5用）
+		9 optional string averageBonus;//本场游戏平均每人奖励（h5用）
+		10 optional int maxQuestionIdx;//本场最大出题序号（终端不会以此判断游戏结束但会严格判断本地）
+		11 optional int requestServerAtEnd;//游戏结束时请求后台(0默认禁止请求，相信本地)
+	};
+	
+	//用户个人信息
+	struct QAGameUserParams
+	{
+		0 require int userStatus; // 用户状态 0 存活 1 淘汰 2 获胜（状态2在游戏状态为结束时由后台结算扭转）
+		1 require int  questionIdxState;//后台为当前用户结算完成的题号
+		2 optional int  avaliableRevives;//剩余可使用复活卡次数
+		3 optional int  hasRevives;//拥有多少张复活卡
+	};
+
+	//本场游戏目前用户信息
+	struct GetQAGameUserInfoRequest
+	{
+		0 require string  pid;
+		1 require string  gameId;
+	};
+	
+	struct GetQAGameUserInfoResponse
+	{
+		0 require int errCode;
+		1 require QAGameUserParams params;
+		2 optional string personalBonus;//用户赢得本场奖励（h5用）
+    };
+
+	//用户提交选项
+	struct PostQAGameUserOptionRequest
+	{
+		0 require string  pid;
+		1 require string  gameId;
+		2 require string  sessionKey;
+		3 require int  questionIdx;//（非0）
+		4 require int  answerIdx;//用户提交选项（如果用户选了就要非0）
+	};
+
+	struct PostQAGameUserOptionResponse
+	{
+		0 require int errCode;
+		1 require QAGameUserParams params; //注意：此时结算的是上一题（或者说本题之前）的结算结果
+		//为了兼容后台认为第一题是不需要返回后台结算的，给后台控制终端是否更新param字段的权力
+		2 optional bool paramDisable = false; //（true时不要更新本地数据）
+	};
+	
+	//用户统计信息
+	struct QAGameUserStatisticsRequest
+	{
+		0 optional string dataKey;//占位（空字符串即可）
+	};
+
+	struct QAGameUserStatisticsResponse
+	{
+		0 require int errCode;
+		1 require string shareCode;
+		2 optional int gameTakes;//参与场次
+		3 optional int gameWins;//挑战成功场次（剩下的都是挑战失败的）
+		4 optional string sumBonus;//累积金额
+		5 optional string leftBonus;//余额（减数就是体现金额）
+		6 optional long leftRevives;//剩余复活卡个数
+		7 optional bool shareCodeUsed = false;//标志用户有没有填写别人的邀请码得到过复活卡
+	};
+	
+	///////百万答题
+    /*----interface-------------------------------*/
+    
+    //获取指定直播的电子票信息
+    struct GetLiveTicketInfoRequest
+    {
+    	0 require string pid;					//直播id
+    };
+    
+    struct GetLiveTicketInfoResponse
+    {
+    	0 require int errCode;						//业务错误码
+    	1 optional LiveTicketInfo ticketInfo;		//电子票信息
+    };
+    
+
+    // 投票请求结构
+    struct LivePostVoteRequest 
+    {
+    	0   require string voteId;                  		// 投票id
+    	1   optional vector<LiveVoteSubject> voteSubjects;  // 所有用户投票的Subject（没投的不包含）
+    };
+
+    struct LivePostVoteResponse 
+    {
+    	0   require int errCode;                // 错误码
+    	1   optional LiveVoteInfo voteInfo;         // 投票信息
+    };
+
+	// 直播轮询接口
+    struct LivePollRequest
+    {
+    	0 require string pollDataKey;		//前端过来轮询的DataKey	由直播页面负责获取
+		1 optional string pollContext;		//前端过来轮询的PollContext，每次拉取后，会返回新的PollContext
+		2 optional int requestType;			//请求类型 1，表示第一次请求。 0 表示非第一次请求
+		3 optional int needMarkInfo;        //是否需要打点信息 1,需要，0，不需要(现为web使用)
+        4 optional string markContext;      //取打点信息的context,每次拉取后，会返回新的markContext(现为web使用)
+        5 optional map<string, long> curSupportMap;	//当前人气值
+        6 optional byte scene;             //轮询的场景   0-直播详情页   1-showroom页面
+    };
+    
+    //请与LiveWaitPollResponse同步修改
+    struct LivePollResponse
+    {
+    	0 require int errCode;							//业务错误码
+    	1 optional string pollContext;					//轮询上下文
+		
+		//下面各个字段中，long 和 int 类型的， >= 0 的值表示有效值， < 0 表示无效值
+    	2 optional map<string,int> refreshTimeOut;		//以tabId为key，描述各个模块的刷新时间间隔，单位为秒,cwyuan, <0:表示不刷新
+    	3 optional map<string,int> refreshFlag;			//是否需要立刻刷新的标志，以tabId为key 来约定各个模块
+    	4 optional long onlineNumber;					//当前同时在线的人数
+		5 optional long attentNumber;					//当前预约人数
+    	6 optional long giftCount;						//赠送的道具总数
+		7 optional long myGiftCount;					//当前用户赠送的道具总数［小于 0 表示无效的值］
+    	8 optional int liveStatus;						//当前直播的状态 1 直播前， 2 直播中 3直播结束 默认1
+    	9 optional Action liveEndAction;				//直播结束后的跳转动作
+    	10 optional int pollTimeOut;					//轮训时间间隔
+    	11 optional long serverTime;					//服务器当前时间
+    	12 optional long liveStartTime;					//直播开始的时间［每次轮询回来都更新UI以这个时间为准］
+    	13 optional string streamId;            //返回播放流id
+		14 optional long playCount;			//当前视频的播放量，why me
+		15 optional long likeNum;				//当前视频的点赞数，why me
+		16 optional int liveSubStatus;			//直播状态子状态
+
+		17 optional vector<CMarkInfo> markList;         //打点信息 (现为web使用)
+		18 optional string markContext;                 //取打点信息的context(现为web使用)
+		19 optional bool isPraiseOpen;					//点赞功能是否开启
+		20 optional bool isGiftUse;						//道具是否开启
+		21 optional long popularity;					//人气值
+		22 optional LiveLightInfo lightInfo;			//爆灯信息
+		23 optional string onlineGuest;                 //在演嘉宾json
+		24 optional LiveStarChatRoomInfo chatRoomInfo;	//明星聊天室信息
+    
+		25 optional QAGameLiveInfo qaGameInfo; //问答游戏信息
+	};
+    
+    
+    //获取单条评论的详情
+    struct GetCommentDetailsRequest
+    {
+    	0 require string commentKey;			//用来标示评论从哪里取，这个key由后台统一
+    	1 require string originCommentId;		//原创的commentId。这里必须为原创的commentId，不能是回复的commentId。
+		2 optional string pageContext;			//翻页上下文
+		3 optional string filterKey;			//评论过滤字段，提供只拉单独属性的评论能力，如果为null，后台吐所有类型的评论
+		4 optional int pageFlag;				//翻页标志：＝0拉取最新的数据；＝1:向上拉最新的数据；=2：向下拉最新的数据
+    };
+    
+    struct GetCommentDetailsResponse
+    {
+		0 require int errCode;							//业务错误码
+		1 require bool hasNextPage;						//是否有下一页
+		2 optional string pageContext;					//翻页上下文
+		3 optional int commentCount;					//回复总数
+		4 optional vector<CommentItem>	commentList;	//回复数据
+    };
+
+    //明星聊天室 推荐明星信息
+	struct LiveDokiRecommendStarListInfo
+	{
+		0 optional string title;  						 //推荐标题
+        1 optional vector<ActorInfo> recommendStarList;  //明星列表
+        2 optional string mainColor;          			 //doki主色调
+	};
+	//播放器常驻活动信息
+    struct PlayerActivityInfo
+    {
+    	0 optional string imageUrl;		//常驻活动入口icon
+		1 optional string activityUrl;	 //常驻活动url
+		2 optional Action action;        //如果下发了action，优先执行action跳转
+    };
+    
+    //直播请求
+    struct LiveRequest
+    {
+    	0 require string pid;			//直播id
+		1 optional int requestType;		//请求类型,默认不填或者为0表示主协议请求，1表示请求相关明星
+	2 optional byte scene;             //场景   0-直播详情页   1-showroom页面
+    };
+    
+    struct LiveResponse
+    {
+    	0 require int errCode;									//业务错误码
+		1 require VideoAttentItem attentItem;           		//用于关注的数据结构
+    	2 optional LiveVideoItemData liveItemData;				//直播数据详情［关键数据］
+    	3 optional long onlineNumber;							//同时在线人数
+    	4 optional string pollDataKey;							//轮询请求的key
+    	5 optional int liveStatus;								//直播状态 1 直播前， 2 直播中 3直播结束 默认1
+    	
+    	6 optional LiveBeforeInfo liveBeforeInfo;				//直播前数据
+    	7 optional LiveProcessInfo liveProcessInfo;				//直播中的数据
+    	8 optional Action liveEndAction;						//直播结束状态时候，需要执行的跳转
+    	
+    	9 optional long serverTime;	
+		//服务器当前的时间，倒计时的时候使用
+		10 optional LiveColorMatching liveColor;           		//下发配色
+		11 optional ShareItem shareItem;						//用于直播结束分享
+		12 optional int responseType;							//响应类型，默认不填或者为0表示主协议请求，1表示请求相关明星
+		13 optional string multiCameraKey;						//请求多机位信息的dataKey
+        14 optional bool isFullScreen;                          //是否全屏
+		15 optional int  liveType;  //0 普通直播，1， whyme直播
+		16 optional LiveWhyMeInfo liveInfo;  //why me 直播信息
+		17 optional int liveSubStatus;		//直播状态子状态
+		18 optional long popularity;		//人气值
+		19 optional int  multiCameraTipsCount;  //同一场直播，多机位tips显示次数
+		20 optional string  multiCameraTips;  //直播多机位tips
+		21 optional string pcid;               //直播的专辑id
+		22 optional AppInfo recommendAppInfo;  //推荐的app信息
+		23 optional long liveStartTime;		//直播开始的时间
+		24 optional LiveBannerItemData bannerItemData;     //直播banner信息
+		25 optional LiveShowRoomInfo showRoomInfo;     //showRoom数据
+		26 optional string liveEndRecommendKey;	//拉取结束推荐key
+		27 optional LiveDokiRecommendStarListInfo recommendStarListInfo; //直播聊天室，推荐关注明星列表信息 
+    
+	    //新增
+		28 optional int routeType; //0 whyme 1 qagame
+		29 optional QAGameConfigInfo qagameConfig; //游戏配置信息
+        30 optional QAGameLiveInfo qaGameInfo; //问答游戏信息
+		31 optional PlayerActivityInfo playerActivityInfo; // 播放器常驻活动信息
+	};
+    
+    //直播中的排行榜信息
+    struct LiveGetRankListRequest
+    {
+    	0 require int tabType;
+    	1 require string tabDataKey;
+    	2 require byte dataType;   // 请求的数据类型 按位取    0-全部，人气榜和粉丝榜都请求  1-请求人气榜  2-请求粉丝榜 
+    };
+    
+    struct LiveGetRankListResponse
+    {
+    	0 require int errCode;
+    	1 optional vector<TempletLine> uiData;
+    };
+
+	//请求节目单
+    struct LiveShowBillRequest
+    {
+        0 require string dataKey;				//直播id	
+        1 optional string pageContext;		//翻页上下文
+    };
+
+	//返回节目单列表
+    struct LiveShowBillResponse
+    {
+        0 require int errCode;							//业务错误码
+        1 optional long serverTime;						//服务器时间
+        2 optional vector<ShowBillItem> billItems;		//节目单列表
+        3 optional string pageContext;					//翻页上下文
+        4 optional bool isHaveNextPage;					//是否还有下一页
+		5 optional vector<TempletLine> uiData;			//UI数据
+    };
+
+	//战况视频列表请求
+	struct LiveVideoListRequest
+	{
+		0 require string dataKey;				//tab带下来的数据
+		1 optional string pageContext;			//翻页上下文
+	};
+	
+	struct LiveVideoListResponse
+	{
+		0 require int errCode;					//业务错误码
+		1 optional vector<TempletLine> uiData;	//UI数据
+		2 optional string pageContext;			//翻页上下文
+		3 optional bool isHaveNextPage;			//是否还有下一页
+	};
+	
+	struct LiveMultiCameraInfoRequest{
+		0 require string dataKey;	 
+	};
+
+	//直播多机位信息
+	struct LiveMultiCameraInfoResponse{
+		0 optional int refreshInterval = 5; 	//默认是5秒刷新一次截图
+		1 require vector<LiveCameraInfo> cameraInfos;
+		2 optional string cameraInfoTips;       // 多机位信息提示语 
+	};
+	
+	
+	//直播排队的轮询请求
+	struct LiveWaitPollRequest{
+		0 require string pollDataKey;		//前端过来轮询的DataKey	由直播页面负责获取
+		1 optional string pollContext;		//前端过来轮询的PollContext，每次拉取后，会返回新的PollContext
+		2 optional int requestType;			//请求类型 1，表示第一次请求。 0 表示非第一次请求
+		3 optional string waitSessionKey;	//用于排队的sessionKey
+        4 optional map<string, long> curSupportMap;	//当前人气值
+	};
+	
+	//直播排队的轮询返回,请与LivePollResponse同步修改
+	struct LiveWaitPollResponse
+    {
+    	0 require int errCode;							//业务错误码
+    	1 optional string pollContext;					//轮询上下文//下面各个字段中，long 和 int 类型的， >= 0 的值表示有效值， < 0 表示无效值
+    	2 optional map<string,int> refreshTimeOut;		//以tabId为key，描述各个模块的刷新时间间隔，单位为秒,cwyuan, <0:表示不刷新
+    	3 optional map<string,int> refreshFlag;			//是否需要立刻刷新的标志，以tabId为key 来约定各个模块
+    	4 optional long onlineNumber;					//当前同时在线的人数
+		5 optional long attentNumber;					//当前预约人数
+    	6 optional long giftCount;						//赠送的道具总数
+		7 optional long myGiftCount;					//当前用户赠送的道具总数［小于 0 表示无效的值］
+    	8 optional int liveStatus;						//当前直播的状态 1 直播前， 2 直播中 3直播结束 默认1
+    	9 optional Action liveEndAction;				//直播结束后的跳转动作
+    	10 optional int pollTimeOut;					//轮训时间间隔
+    	11 optional long serverTime;					//服务器当前时间
+    	12 optional long liveStartTime;					//直播开始的时间［每次轮询回来都更新UI以这个时间为准］
+    	13 optional string streamId;            		//返回播放流id
+		14 optional long playCount;						//当前视频的播放量，why me
+		15 optional long likeNum;						//当前视频的点赞数，why me
+		16 optional long waitRank;						//排队排名,当排队排名=0时不需要再排队
+		17 optional int vipJump;						//开通会员后是否能插队  1是   0  否
+		18 optional int liveSubStatus;					//直播状态子状态
+		19 optional bool isPraiseOpen;					//点赞功能是否开启
+		20 optional bool isGiftUse;						//道具是否开启
+		21 optional long popularity;					//人气值
+		22 optional LiveLightInfo lightInfo;			//爆灯信息
+		23 optional LiveStarChatRoomInfo chatRoomInfo;	//明星聊天室信息
+    };
+	
+	//直播前子状态定义
+	enum ELiveBeforeSubStatus{
+		EBeforeNormal = 1,	//直播前正常
+		EBeforeCanceled = 2,		//直播前预约取消了
+		EBeforeDelayed = 3,			//直播延期了
+	};
+	
+	//直播中子状态定义
+	enum ELiveOnSubStatus{
+		EOnNormal	= 1,	//直播状态正常，流畅
+		EOnInterrupt = 2,	//直播前方发生断流
+	};
+	
+	//直播结束子状态定义
+	enum ELiveEndSubStatus{
+		EEndVodProcessing = 1,		//直播已结束，直播转点播中
+		EEndVodProcessed = 2,			//直播已结束，转点播成功
+		EEndVodProcessFailed = 3,		//直播已结束，转点播失败
+	};
+
+	//直播同步中转消息，纯后台使用的
+	struct LiveUpdateReportRequest
+	{
+		0 require string pid;			//直播id
+		1 require string type;			//直播type, concert/event/fans/match/sports
+		2 optional int liveStatus;		//直播的状态 1 直播前， 2 直播中 3直播结束
+		3 optional int opStatus;		//粉丝直播录制端状态
+	};
+
+    //获取有抽奖信息直播的电子票信息
+    struct GetLiveHasLotteryTicketInfoRequest
+    {
+    	0 require string pid;					//直播id
+    };
+    
+    struct GetLiveHasLotteryTicketInfoResponse
+    {
+    	0 require int errCode;						//业务错误码
+    	1 optional LiveTicketInfo ticketInfo;		//电子票信息
+    };
+	//获取直播用户身份协议
+	struct LiveUserProfileRequest
+	{
+		0 optional string pid;
+		1 optional STStarInfo starInfo;	//明星信息
+	};
+
+	struct LiveUserProfileResponse
+	{
+		0 require int errCode;			//业务错误码
+		1 require int userProfile;		//0:普通 1:嘉宾
+	};
+
+	//获取showRoom商城红点协议
+	struct LiveStoreRedDotRequest
+	{
+		0 require long score;     //用户的人气值，我觉得取名为得分比较贴切，默认值为0
+		1 require string pollDataKey; //轮询key
+		2 optional int requestType;			//请求类型 1，表示第一次请求。 0 表示非第一次请求
+	};
+
+	struct LiveStoreRedDotResponse
+	{
+		0 require int errCode;			//业务错误码
+		1 require long newScore;        //用户当前得分
+		2 require bool hasRedDot;       //是否有红点
+		3 optional int pollTimeOut;         //商城红点轮询间隔时间
+	};
+};
+
+
+
+
+
+
+
+
+

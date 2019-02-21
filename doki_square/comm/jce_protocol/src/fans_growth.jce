@@ -1,0 +1,230 @@
+module jceFansGrowth
+{
+     //命令字
+    enum Command
+    {
+        CMD_FANS_TASK_QUERY  = 0xf176,   //查询粉丝任务状态
+        CMD_FANS_TASK_EXEC	= 0xf177,		//执行粉丝任务
+        CMD_FANS_RECV_TASK  = 0xf178,  //领取任务
+        CMD_FANS_GET_SIGN_PROPERTY = 0xf179,  //查询粉丝签到收获
+        CMD_SIGN_TASK = 0xf184,   //粉丝签到任务
+        CMD_FANS_DAY_RANK = 0xf1b6,  //粉丝值日榜
+        CMD_FANS_CLEAR_SIGNINFO = 0xf1e2, //清除签到奖励
+        CMD_FANS_TASK_TRANS = 0xf24e,     //粉丝任务中转消息
+        CMD_REPORT_FANS_CREATE_TASK = 0xf3e5, // 粉丝创作任务
+        CMD_GET_FOLLOW_LIST_TOP_FANSVAL = 0xf44e, // 拉取用户关注列表的TOP粉丝值
+
+        CMD_BATCH_QUERY_FANSVAL = 0xf60b, // 批量拉取粉丝值
+    };
+
+		//专属福利信息
+		struct stWelfare
+		{
+				0		require int dwGiftId;  //专属福利ID
+		};
+
+		//任务订单
+		struct stTaskInfo
+		{
+				0		require string strBillNo;  //任务订单号
+		};
+
+		//任务详细信息
+		struct stTaskItem
+		{
+				0	require int dwTaskId;
+				1 optional int dwOrderNum;    //排序ID
+				2 optional int dwMaxCount;   //最大任务次数
+				3 optional int dwFinishedCount; //已完成次数
+				4 optional string strTaskName;  //任务名称
+				5 optional int  dwCategory;         //任务归类类型
+				6	optional int  dwFansVal;			//奖励粉丝值
+				7	optional int  dwVCoin;        //奖励V币值
+				8 optional vector<stWelfare> vecReward; //专属福利列表
+				9	optional vector<stTaskInfo>  vecUnRecvTask; //已完成未领取任务列表
+				10 optional string strSignExt;     //签到任务扩展信息json 
+				11 optional int dwStatus;          //任务状态  1:已完成
+				12 optional string strIcon;        //任务图标
+				13 optional string strExt;
+				14 optional long  ddwVersion;      //版本号，最后一次任务完成的时间
+				15 optional int   dwType;          //任务类型，1:每天任务 2:签到任务 3:永久任务
+				16 optional int   dwProps;         //奖励道具数
+				17 optional int   can_resign;      // 是否可以补签
+		};
+		
+		//用户收获
+		struct stUserReward
+		{
+				0		optional	long	ddwFansVal;		//粉丝值
+				1		optional  long  ddwVCoin;			//V币值
+				2		optional  vector<stWelfare> vecWelfare;  //专属福利列表
+				3 		optional  long  ddwProps;			//心跳值
+				4 		optional  int  iBonusTimes;			// 奖励倍数
+		};
+		
+
+		//查询粉丝任务状态请求		
+		struct stQueryFansTaskInfoReq
+		{
+				0 	require	long	ddwStarId;	//明星ID
+				1		optional int  dwFlag;			//查询标志位	0x01: 查询任务状态和当天收获  0x02:查询用户总收获
+		};
+		//查询粉丝任务状态响应
+		struct stQueryFansTaskInfoRsp
+		{
+				0		require int iErrCode;
+				1		optional string strErrMsg;
+				2		optional int dwTotalFans;   //当天获得粉丝值
+				3   optional int dwTotalVCoin;  //当天获得V币
+				4		optional vector<stTaskItem> vecTaskStatus; //任务状态
+				5		optional stUserReward  stReward;  //用户总收获
+				6   optional int dwTotalProps;  //当天获得道具数
+		};
+		
+		//执行粉丝任务(签到任务命令字不同)
+		struct stExeFansTaskReq
+		{
+				0 	require	long	ddwStarId;	//明星ID
+				1		require int 	dwTaskId;   //任务ID
+				2		optional string strTaskKey;  //任务唯一标志或者记录流水相关信息json格式
+				3   optional int iReSign; // 补签
+				4   optional int num_with_create; // 创作任务相关的被点赞或被评论数量
+				5   optional int record_with_create; // 创作任务上次发奖的的被点赞或被评论数量
+		};
+		struct stExeFansTaskRsp
+		{
+				0		require int iErrCode;
+				1		optional string strErrMsg;
+				2		optional stUserReward		stBeforeReward;  //任务前用户收获
+				3		optional stUserReward		stAfterReward;   //任务后用户收获 
+				4		optional  vector<stWelfare> vecWelfare;  //专属福利列表
+				5 		optional int iReSignLimit;		// 本月剩余可补签次数
+				6 		optional int iMissResign; 		// 本月剩余漏签的天数
+				7 		optional int iCurLevelResignNum; // 当前等级可补签次数
+				8 		optional int iMouth;			// 当前月份 [1, 12]
+		};
+		
+		//领取粉丝任务
+		struct stRecvFansTaskReq
+		{
+				0		require long	ddwStarId;	//明星ID
+				1   require int 	dwTaskId;   //任务ID
+				2		require	vector<stTaskInfo> vecUnRecvTask;  //未领取任务
+				3   require int iFlag;    // 0:全部领取 1:部分领取
+		};
+		struct stRecvFansTaskRsp
+		{
+				0		require int iErrCode;
+				1		optional string strErrMsg;
+				2		optional stUserReward		stBeforeReward;  //任务前用户收获
+				3		optional stUserReward		stAfterReward;   //任务后用户收获 
+		};
+		
+		//查询用户签到收获
+		struct stGetSignRewardReq
+		{
+				0		require long	ddwStarId;	//明星ID
+				1		require int   dwTaskId;   //签到ID
+		};
+		struct stGetSignRewardRsp
+		{
+				0		require int iErrCode;
+				1		optional string strErrMsg;
+				2   optional int iSignDay;   //连续签到时间
+				3		optional stUserReward	stReward;  //用户收获
+				4		optional vector<stUserReward>	vecSignConf;  //用户签到任务配置数据			
+		};
+		
+		struct stFansDayRankInfo
+		{
+				0   require long ddwVuid;     //用户UserId
+				1   require int dwFansVal;    //当天所获粉丝值
+				2   optional  stUserReward stReward;  //用户资产
+		};
+		
+	
+		//查询粉丝值日排行榜
+		struct stGetFansRankReq
+		{
+				0		require long	ddwStarId;	//明星ID
+				1   optional int  dwNum;
+				2   optional string pageContext;
+		};
+		struct stGetFansRankRsp
+		{
+				0		require int iErrCode;
+				1		optional string strErrMsg;
+				2   optional vector<stFansDayRankInfo> vecFansRank;  //粉丝排行
+				3   optional string pageContext;
+				4   optional bool hasNextPage;
+		};
+		
+		//清除签到激励
+		struct stDelSignRewardReq
+		{
+				0		require long	ddwStarId;	//明星ID
+		};
+		struct stDelSignRewardRsp
+		{
+				0		require int iErrCode;
+				1		optional string strErrMsg;
+		};
+	
+		//任务中转协议
+		struct stFansTaskTransMsg
+		{
+				0  require int dwTaskId;           //任务ID
+				1  require long ddwStarId;				 //明星ID
+				2  require long ddwVuid;           //用户Vuid
+				3  optional string strBillNo;      //任务订单号
+				4  optional int  dwFansVal;			   //奖励粉丝值
+				5  optional int  dwVCoin;         //奖励V币值
+				6  optional int  iRetCode;        //任务错误码
+				7  optional int  dwProps;         //奖励道具值
+				8  optional long ddwBeforeFansValue;          //赠送前粉丝值
+				9  optional long ddwAfterFansValue;           //赠送后粉丝值
+                10 optional int ddwBeforeFansLevel;          //赠送前粉丝等级
+                11 optional int ddwAfterFansLevel;           //赠送后粉丝等级
+		};
+
+		//清除签到激励
+		struct stStarFansVal
+		{
+				0		require long	ddwStarId;	//明星ID
+				1		require long	ddwFansVal;	//粉丝值
+		};
+		struct stFollowListTopFansValReq
+		{
+				0		require long	ddwVuid;	//vuid
+				1		require int		iReqNum;	//拉取用户关注列表中粉丝值TOP N 的明星
+		};
+		struct stFollowListTopFansValRsp
+		{
+				0		require int iErrCode;
+				1		optional string strErrMsg;
+				2		optional vector<stStarFansVal> vecStarFansVal;
+		};
+
+		//粉丝值
+		struct UsrFansVal
+		{
+			0  require long lVuid;			//用户vuid
+			1  require long lStarId;		//starid
+			2  optional long lFansVal;		// 粉丝值
+		};
+		
+		// 批量查询粉丝值
+		struct BatchQueryFansValReq
+		{
+			0	require vector<UsrFansVal> vecUsrFansVal;
+		};	 
+		
+		struct BatchQueryFansValRsp
+		{
+		   0  require int iErrCode;
+		   1  optional string strErrMsg;
+		   2  optional vector<UsrFansVal> vecUsrFansVal;
+		}; 
+};
+
+

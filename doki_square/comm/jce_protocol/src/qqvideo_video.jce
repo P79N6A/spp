@@ -1,0 +1,99 @@
+/*
+视频播放相关结构和协议
+*/
+
+module jce
+{   
+        //视频播放信息
+        struct VideoPlayInfo {
+            0   require     vector<string> vids;                //视频vid, 当前仅能1个
+            1   optional    string      defn;                   //用户指定的播放清晰度, 取值: auto|msd|mp4|flv|sd|hd|shd|fhd
+            2   optional    int         dtype;                  //视频下载类型, 示例: 1:HTTP; 3:HLS
+            3   optional    string      otype;                  //cgi返回格式, 取值: xml|json
+            4   optional    string      callback;               //JsonP方式返回时的函数名
+            5   optional    string      callvar;                //Json方式返回时的变量名
+            6   optional    int         ptime;                  //指定续播时间点
+            7   optional    int         clip;                   //分片调度标识, 示例: 0:auto; 1:auto; 2:5分钟分片; 3:20分钟分片; 4:完整
+            8   optional    int         dlna;                   //是否投射 示例：0:非投射; 1:dlna或airplay;
+            9   optional    int         fhdswitch;              //是否用户手动切换清晰度 示例：0:自动切换; 1:手动切换;
+            10  optional    int         charge;                 //决定是否查询付费信息 示例：0:不查询; 1:查询;
+	    /*清晰度来源JCE上报 示例：
+		0;未知(目前没有场景使用);
+		1:默认（App新安装后默认使用的清晰度，一般为auto）;
+		2:当次切换（本次vInfo请求是因为用户切换清晰度造成）;
+		3:曾经切换过（用户历史中切换过清晰度，本次vInfo请求使用最后一次用户切换清晰度的设置）;
+		4:网络强行设置低清晰度（在移动网络下为用户播放的默认清晰度使用低清晰度）;
+		5:投射默认（本次vInfo请求是用户发起投射导致）;
+		6:投射切换（本次vInfo请求是用户在投射状态下切换清晰度导致）;
+		7:离线（iPhone在离线播放场景下会请求vInfo，此时请求的清晰度与播放的离线视频清晰度一致）;
+		8:下载默认（用户未更改过清晰度的情况下发起下载）;
+		9:下载切换（用户更改过清晰度的情况下发起下载）;
+		10:因长时间loading自动降低（由于当前清晰度长时间播放不起来，强制给用户降低清晰度播放）;
+	    */
+            11  optional    int         defsrc;                 
+        };
+
+        //app相关信息
+        struct VideoAppInfo {
+            0   require     long        platform;               //播放平台, 示例: 11:pc flash; 10204:pc client; 10303:aphone; 10403:iphone; 10103:ipad; xxx0603:tv
+            1   optional    int         device;                 //机型能力, 示例: 11:可流畅播放hd; 16:shd; 21:fhd  
+            2   optional    int         hevclv;                 //支持hevc能力, 示例: 16:可流畅播放hevc+hd; 21:shd; 26:fhd
+            3   optional    string      sdtfrom;                //用于带宽统计, 示例: aphone:v5000
+            4   optional    long        randnum;                //随机值用于加密
+            5   optional    string      encryptver;             //加密版本号, 由sonar服务端提供
+            6   optional    int         incver;                 //每次发版递增
+            7   optional    int         fp2p;                   //支持p2p 示例：0:不支持; 1:支持;
+            8   optional    int         defnpayver;             //支持1080P付费播放逻辑 示例：0:不支持; 1:支持;
+            9   optional    int         sphls;                  //支持大ts 示例：0:不支持; 1:支持;
+            10  optional    int         sphttps;                //支持返回缩略图的https下载地址 示例：0:返回http地址; 1:返回https地址;
+            11  optional    int         spdrm;                  //支持drm 示例：0:不支持; 1:支持;
+        };
+
+        //用户相关信息
+        struct VideoUserInfo {
+            0   require     string      ckey;                   //客户端鉴权key
+            1   optional    int         nettype;                //网络类型, 示例 0:无网络; 1:wifi; 2:2g; 3:3g; 4:4g; 10:有线
+            2   optional    int         speed;                  //用户网速(单位kBps)
+            3   optional    string      speeds;                 //历史多次网速
+            4   optional    string      telcom;                 //电信免流ID 电信伪码
+            5   optional    string      unicom;                 //联通免流ID 联通伪码
+            6   optional    int         unicomtype = -1;        //联通免流类型, -1:非免流用户; 0:普通免流; 1:小王卡; 2:大王卡
+        };
+
+
+
+        /* 
+         getvinfo原json协议中的以下字段在包头中:
+         Cookie
+         Referer
+         UserAgent
+         access_token
+         appVer
+         appid
+         appver
+         vuserid
+         vusession
+         guid
+         lskey
+         luin
+         uin
+         main_login
+         skey
+         openid
+        */
+
+        //getvinfo信息请求
+        struct GetVInfoRequest {
+            0   require     VideoPlayInfo        playInfo;                //视频播放信息
+            1   require     VideoAppInfo         appInfo;                 //app相关信息
+            2   require     VideoUserInfo        userInfo;                //用户相关信息
+            
+        };
+
+        // getvinfo信息响应
+        struct GetVInfoResponse
+        {
+            0 require   int    errCode;              //业务错误码
+            1 optional  string videoInfo;            //getvinfo返回数据, 格式json/xml
+        };
+};

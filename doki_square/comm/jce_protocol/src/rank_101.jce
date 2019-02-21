@@ -1,0 +1,164 @@
+/*
+@brief:101榜单相关接口
+auth：diaryyang
+time：2018.4.2
+
+测试L5:520769:10944512
+
+101用户投票记录接口 	cmd:0xf55a 		请求包:stVoteRecordReq
+101粉丝贡献榜 			cmd:0xf565 		请求包:st101FansRankMenuReq
+分享页面投票流水 		cmd:0xf564 		请求包:st101ShareFlowReq
+
+*/
+module m101Rank
+{
+	/***************** 101用户投票记录接口 *****************/
+	// cmd: 0xf55a
+	struct stVoteRecord
+	{
+		0 require long lStarId;			// 人名id
+		1 require long lVoteTime;		// 最近一次投票时间戳
+	};
+
+    struct stVoteRecordReq
+    {
+    	0 require  long lVuid;					               
+    };
+
+	struct stVoteRecordRsp
+	{
+		0 require int iErrCode;				 						//业务错误码
+		1 optional string strErrMsg;								//业务错误原因
+		2 optional vector<stVoteRecord> vecVoteRecord;		 		// 投票记录，时间戳从大到小排序。
+    };
+
+	/***************** 101粉丝贡献榜 *****************/
+	// cmd:0xf565
+
+	// 背景图
+	struct BannerImg
+	{
+		0 require string strStarBg;						//人物背景图
+		1 require string strRankBg;						//榜单背景图
+		2 require string strRankName;							//榜单名字图
+	};  
+
+	struct stStarInfo
+	{
+		0 require long lStarId;						
+		1 require long lDokiId;							
+		2 require string strStarName;	
+		3 require string strFaceImgUrl;	// 头像
+	};
+
+	// 用户信息
+	struct STPersonData
+	{
+		0 require long lUserid;
+		1 require string strNick;
+		2 require string strHead;
+		3 require string strCity;
+		4 require string strCountry;
+		5 require string strSex;
+		6 require unsigned byte cFrom;
+		7 require unsigned int dwCreateTime;
+		8 require unsigned int dwStatus;
+		9 optional long lGiftPoint;	
+	};
+
+	// 人气榜粉丝信息
+	struct STFansInfo
+	{
+		0 require STPersonData 		stPersonData;
+		1 require int		   		iVoteNum;			// 投票数/贡献值
+		2 require int		   		iRank;				// 排名
+		3 optional string	   		strPersonalLink;	//粉丝个人页
+		5 optional stStarInfo	    stFavoriteStar;		//"我支持的"明星
+		6 optional int	     		iReceiveNum; 		//分享页面领取票数
+	};
+
+	// 101粉丝贡献榜请求接口
+    struct st101FansRankMenuReq
+    {
+        0 require int iRankType;					//1:明星粉丝榜 2:总投票榜
+        1 optional int iTimeType;                	//时间类型（日榜1,周榜2,月榜3,总榜4）
+        2 optional long lRankTime;					//请求时间戳（为0）则默认为最新一期
+        3 optional unsigned int iReqNum;			//每页数量
+        4 optional unsigned int iPage;				//页数（从0开始） 
+		// iRankType = 1 时需要填写lStarId: 明星对应的粉丝贡献榜
+		5 optional long lStarId;                  //明星ID 
+    };
+
+    //101粉丝贡献榜 响应结构
+	struct st101FansRankMenuRsp
+	{
+		0 require int iErrCode;				 						//业务错误码
+		1 optional string strErrMsg;								//业务错误原因
+		2 optional unsigned int iPeriod;							//当前期数
+		3 optional BannerImg stBannerImg;							//排行榜头部图，page=0返回
+		4 optional vector<STFansInfo> vecUserInfo;		 			// 粉丝数据
+        5 optional unsigned int iNextPage;							//是否还有下一页（0：没有 1：有）
+    };
+
+    /**************** 分享页面投票流水 *******************/
+	// cmd:0xf564
+
+	// 分享页面投票流水请求接口
+    struct st101ShareFlowReq
+    {
+	    0  require  string 	  strStarid;           // 受赠人明星id
+	    1  require  string    strSrcVuid;		// 分享者vuid
+	    2  require  string    strCardId;		// 分享卡片id; 若无卡片id strCardId="0"
+    };
+
+    // 分享页面投票流水返回接口
+    struct st101ShareFlowRsp
+    {
+	    0 require int iErrCode;				 						//业务错误码
+		1 optional string strErrMsg;								//业务错误原因
+		2 optional vector<STFansInfo> vecUserInfo;		 			// 粉丝流水数据 最多20个（产品定义）
+		3 optional int iTotalSupNum;								//总支持次数
+    };
+
+    /***************** 拉取用户信息部分 ********************/
+	/*
+		@brief:机器环境信息
+		TestIp:10.177.130.230
+		TestPort:40942
+		TestL5:301249:1310720
+		OnlineL5:382977:131072
+		enum ModuleCmd
+		{
+			CMD_GET_RS_INFO 	= 0xe954,
+			CMD_GET_USER_INFO 	= 0xe955,
+		};
+	
+		enum ModuleErrCode
+		{
+			RT_SUC = 0,
+			RT_FAIL = 1,
+			RT_RS_NO_EXIST = 1001,			//关系链数据不存在
+			RT_INPUT_INVALID = 1002,		//输入不合法
+			RT_SERVER_ERROR = 1003,			//服务内部错误	
+			RT_READ_RS_FAIL = 1004,			//读取关系链失败
+			RT_READ_RS_TIME_OUT = 1005,		//读取关系链超时
+			RT_READ_INFO_FAIL = 1006,		//读资料信息失败
+			RT_READ_INFO_TIME_OUT = 1007,	//读资料信息超时
+		};
+	*/
+
+	//批量获取好友基础信息请求协议
+	struct STGetUserInfoReq
+	{
+		0 require long lUserid;							//用户userid
+		1 require vector<long> vecUserids;				//需要批量获取用户信息的id
+	};
+	
+	//批量获取好友基础信息回包协议
+	struct STGetUserInfoRsp
+	{
+		0 require int iErrCode;
+		1 optional string strErrMsg;
+		2 optional map<long, STPersonData> mapUserInfo;
+	};
+};     

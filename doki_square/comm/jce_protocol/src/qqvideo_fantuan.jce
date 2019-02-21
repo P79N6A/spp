@@ -1,0 +1,1272 @@
+/*
+* 饭团相关协议
+*/
+
+#include "qqvideo_common.jce"
+#include "qqvideo_ona.jce"
+#include "qqvideo_personality.jce"
+#include "qqvideo_user_info.jce"
+
+module jce
+{	
+
+	/**
+	*
+	* 相关概念：
+	*
+	* fanTuanId,饭团id
+	* feedId,饭团主贴id
+	* commentId，我的评论、我的消息、以及详情页的评论的id
+	* parentId，评论的父节点，可能为饭团主贴或者评论
+	* seq，终端在发表评论或者主贴的时候，由终端透传给后台的seq，可以用于本地假显数据和后台数据的排重
+	* userId,饭团系统中跟用户相关的id，有别于内部票据，是饭团系统独有
+	*/
+	
+	/*-------------依赖的结构体定义------------------------*/
+	//长视频数据,web端    
+	struct FantuanLongVideo    
+	{       
+		0 require string strWebPlayUrl;    
+	};
+	struct FanTuanFollowItem
+	{	
+		0 	require 	string 		fanTuanId;
+		1 	require 	int 		status;			//0,没有加入饭团；1，加入了饭团
+		2 	optional 	int 		signCount;	    //签到次数(已经加入饭团后，<=0没签到，否则签到)
+	};
+
+	// ONAFanTuanRankList对应的item
+	struct FanTuanRankItem
+	{
+		0 	require 	ActorInfo 	userInfo;					//用户信息
+		1 	optional 	long 		popularityNum;				//人气值
+		2 	optional 	string 		rankGroupName;				//所属排行榜的名字
+		3   optional    int			rankStatus;					//上升或者下降等等的信息
+		4	optional	int			rankIndex;					//排行名次
+		5	optional	string		rankNameColor;				//颜色
+	};
+	
+	// 回复的父节点，里面的信息有点类似FanTuanCommentItem，但比FanTuanCommentItem信息少
+	struct FanTuanCommentParentItem
+	{
+		0	require 	string		primaryId;						// 本节点自己的id
+		1 	require 	ActorInfo	userInfo;						// 用户信息
+		2	require 	string		content;						// 发表内容
+		3   optional 	vector<CommonDownloadImageData> photos;		//图片信息，可为null	
+		4   optional 	vector<CommonVideoData> videos;				
+	};
+	
+	// 我的评论、我的消息、以及详情页的评论公用这个节点，与ONAFanTuanFeed
+	struct FanTuanCommentItem
+	{
+		0	require 	string		commentId;
+		1	require 	string		rootFeedId;
+		2	require 	string		fanTuanId;
+		3	require 	FanTuanCommentParentItem parentItem;
+		4	require 	string		content;
+		5 	require 	ActorInfo	userInfo;
+		6 	require 	int			floor;
+		7 	require 	long		pubTime;
+		8 	optional 	long		commentNum;
+		9 	optional 	long		upNum;
+		10 	optional	string		seq;							//由终端带到服务器的seq，需要由服务器再带回
+		11  optional 	vector<CommonDownloadImageData> photos;		//图片信息，可为null	
+		12  optional 	vector<CommonVideoData> videos;
+		13 	optional 	Action	action;								// 跳转链接，跳转到详情页;
+		14  optional ActorInfo                  fanTuanInfo;        //新增，该消息所在饭团信息，只包括id，头像，标题（web）
+	};
+	
+	struct FanTuanDefaultMessage
+	{
+		0	optional	string					description;		// 默认消息类型的文案
+		1	optional   	ActorInfo				actorInfo;			// 默认的头像
+	};
+	
+	struct FanTuanMessageItem
+	{
+		0	require 	int						msgType;			// 消息类型,被回复：108，被赞：109,111被加精，125被编辑推荐
+		1	require		string					msgId;				// 消息类型
+		2	optional 	FanTuanCommentItem		commentItem;		// 评论和赞的结构
+		3	optional	FanTuanDefaultMessage	defaultMessage;		// 默认消息类型的结构体
+		4	optional	long					time;				// 消息时间
+		5	optional	Action					action;				// 跳转链接，只有点赞和评论消息需要跳转，目前是跳转到feed详情页					
+	};
+	
+	//后台做数据合并时需要的来源等参数信息
+	struct FanTuanExtInfo
+	{
+		0 require int dwFrom;//消息来源,1表示来自影视圈 
+		1 require string strExtInfo;
+		2 optional STStarInfo starInfo;    			//561新增
+		3 optional BasicVideoInfo videoInfo;      //561新增，用于发表小视频到饭团时，该小视频关联的视频源信息
+	};
+	
+	struct DokiHeadExtraInfo
+	{
+		0 optional int type = 0;   				   // 0，普通模式；1，9大厂牌背景样式
+	};
+
+	struct FanTuanActionBarsInfo 
+	{
+		0 optional ActionBarInfo rankBar;						//排行榜Bar
+		1 optional ActionBarInfo fansBar;						//粉丝信息Bar
+		2 optional ActionBarInfo presentBar;					//为TA打榜Bar
+		3 optional ActionBarInfo taskBar;						//今日任务Bar
+		4 optional ActionBarInfo updateInfoBar;                 //更新信息Bar
+		5 optional map<string, ActionBarInfo> extraBars;         //额外信息Bar   "101Chat"-私信ActionBar
+	};
+
+	/*-------------ONAView对应的结构体------------------------*/
+	
+	//承载“我的发表”或者“我的消息”的结构体
+	struct ONAFanTuanGrid
+	{
+		0 optional int flag;	// 占位符，目前没用
+	};
+
+	// 饭团排行榜列表入口的结构体
+	struct ONAFanTuanRankList
+	{
+		0 require vector<FanTuanRankItem> fanTuanRankList;		//饭团排行榜列表
+		1 optional string  reportKey;              //上报
+		2 optional string  reportParams;              //上报
+	};
+	
+	//区分饭团帖子来源 562后台添加
+	struct FanTuanFeedSource
+	{
+		0 optional BasicVideoInfo FtVideoInfo;  //来源基本信息
+		1 optional string   attentKey;					//关注Key
+	};
+
+	// 饭团主贴
+	struct ONAFanTuanFeed
+	{
+		0	require 	string		feedId;
+		1	require 	string		title;
+		2	require 	string		content;
+		3 	require 	ActorInfo 	userInfo;					//用户信息
+		4 	require 	long		pubTime;					//发表时间
+		5 	optional 	long		commentNum;					
+		6 	optional 	long		upNum;
+		7 	optional 	int		 	hot;						//热点，取值1
+		8 	optional 	int		 	top;						//置顶，取值1	
+		9 	optional 	int		 	essence;					//精华，取值1
+		10  optional	string 		seq;						//终端发出的seq，由服务端再返回
+		11  optional 	vector<CommonDownloadImageData> photos;	//图片信息，可为null	
+		12  optional 	vector<CommonVideoData> videos;			//视频播放信息
+		13  optional 	ActorInfo fanTuanInfo;					//当前帖子的饭团信息，包含饭团id，只需要含有id，图片url和标题三个字段
+		14  optional    Action action;							//点击后的跳转动作
+		15	optional	long		updateTime;					//更新时间
+		16  optional 	int 		status;						//主贴状态，取值待定义，比如删除状态等。0，待审核；1，通过；2，删除
+		17  optional vector<CircleShortVideoUrl> miniVideos;     //小视频列表
+		18  optional int feedType = 0;              // feed类型  0-普通feed 1-短视频feed   2-焦点图feed   3-微博原创feed
+		19  optional ONABulletinBoard bulletinBoard;     // 短视频
+		20  optional ONAGalleryPoster galleryPoster;        //焦点图
+		21  optional int attendStatus;                   // 关注该feed所属饭团的状态 0-未关注   1-已关注
+		22 optional vector< UserAction> userActions;      // 负反馈交互文案列表
+		23 optional bool isRecommend = false;    // 是否编辑推荐
+		//包含实时插入的短视频的insertNewLineDataKey，5.0版本使用bulletinBoard字段，5.1版本后使用bulletinBoardV2，所以5.1版本后短视频的数据同时填在这两个字段中
+		24 optional ONABulletinBoardV2 bulletinBoardV2;   
+		25 optional string  reportKey;                 			//上报的key值
+		26 optional string  reportParams;              			//上报params值
+		27 optional IconTagText topTagText;	//顶部提示信息
+		28 optional byte isLike;                       //对于主贴id的点赞状态  1：点赞 0：没有赞 
+		29 optional string voteId;               //投票ID
+		30 optional vector<ActorInfo>   vecStartInfo;        // feed相关明星列表    
+		31 optional map<string, int>    mapAttendStatus;     // 相关明星的关注状态
+		32 optional FanTuanFeedSource   feedSource;						//帖子来源 562后台添加
+	};
+	
+	// 饭团排行榜二级页面对应的结构体
+	struct ONAFanTuanRankItem
+	{
+		0	optional 	FanTuanRankItem		fanTuanRankItem; // 和一级页面的入口复用这个结构体
+	};
+
+	//推荐关注明星入口 V5.1
+	struct ONAFantuanRecommendStarsEntrance {
+		0 require Poster poster;
+		1 optional string reportKey; //曝光上报
+		2 optional string reportParams; 
+	};
+
+	//推荐关注明星分组，例如“国内热门明星组、国外热门明星组” V5.1
+	struct FantuanRecommendStarsGroup {
+		0 require string title;
+		1 require vector <FanInvolveItem> starList;
+	};
+
+	//小视频timeline显示的UI数据
+	struct MiniVideoUIData
+	{
+		0 require CircleShortVideoUrl video;            //video信息，用于展示和播放
+		1 optional ActorInfo user;                      //发表人信息
+		2 optional vector<CircleLikeInfo> likes;        //点赞列表
+		3 optional string content;                      //发表内容
+		4 optional vector<CircleCommentFeed> comments;  //评论内容，默认仅下发两条
+		5 optional int likeCount;                       //点赞数
+		6 optional int commentCount;                    //评论数
+	};
+
+	//饭团小视频timeline操作数据
+	struct FanTuanData
+	{
+		0 require string fanTuanId;                     //饭团ID
+		1 require string feedId;                        //帖子ID
+		2 optional string seq;                          //sequence，防止终端重复提交，后台下发，终端透传
+		3 optional string h5ShareUrl;                   //分享URL
+		4 optional Action feedAction;                   //feed跳转action
+	};
+
+	//小视频timeline数据
+	struct MiniVideoItem
+	{
+		0 require MiniVideoUIData uiItemData;           //UI展示数据
+		1 optional FanTuanData fanTuanData;             //饭团feed信息
+	};
+	
+	// 饭团打榜列表 ， 命名需要加上ONA所以此结构废弃，改用ONAFanTuanSignedList
+	struct FanTuanSignedList {
+		0 require vector<FanInvolveItem> fanInvolves;
+	};
+
+	// 饭团打榜列表
+	struct ONAFanTuanSignedList {
+		0 require vector<FanInvolveItem> fanInvolves;
+		1 optional string reportKey;
+		2 optional string reportParams;
+	};
+
+		//猜你喜欢明星列表
+	struct ONAFantuanRecommendStarsGroup
+	{
+		0 require vector <FanInvolveItem> starList;
+		1 optional string  reportKey;               //上报
+		2 optional string  reportParams;            //上报
+	};
+	
+	//单个榜单对象
+	struct FanTuanLatestRankItem {
+		0 require vector<ActorInfo> actorList;  // 前几名的明星列表
+		1 optional string maskImgUrl;   // 蒙版图片url
+		2 optional string firstLine;    // 第一行文本
+		3 optional string secondLine;   // 第二行文本
+		4 optional Action  action;             //跳转
+		5 optional string mainColor;       //主色调，firstLine使用的颜色，如：“#ff076e”
+		6 optional int uiType;          //0-头像显示方图，1-头像显示圆图
+		7 optional string lottieUrl;    //uiType=1时，直播中的item，在头像处添加lottie光晕动画
+	};
+
+	//饭团排行版列表
+	struct ONAFanTuanLatestRankInfo
+	{
+		0 require vector<FanTuanLatestRankItem> posterList;	// 横滑控件至少一个数据
+		1 optional string  reportKey;               //上报
+		2 optional string  reportParams;            //上报
+	};
+
+	// 明星评论结构体
+	struct DokiCommentInfo
+	{	 
+		0 	require int		totoalCount;        //该明星的总评论条数
+		1 	require CirclePrimaryFeed 		feedInfo;			//评论信息
+	};
+
+	// 直播前结构体
+	struct DokiLiveBeforeInfo
+	{
+		0	optional VideoAttentItem attentItem;           //用于关注的数据结构
+		1	optional long curAttentCount; 				  //当前预约人数
+		2	optional long totalCommentCount;			  //聊天室tab的总评论数
+		3	optional string textContent;                  //文本信息
+		4   optional ActionBarInfo  attentButton;         //预约按钮信息
+	};
+
+	// 直播中结构体
+	struct DokiLivingInfo
+	{
+		0	optional long starCommentCount;				  //明星发表的评论总数
+		1	optional vector<CommentItem> commentList;     //评论列表，可以构建成一棵评论数
+	};
+
+	// 直播中结构体
+	struct DokiLiveEndInfo
+	{
+		0	optional long starCommentCount;				  //明星发表的评论总数
+		1	optional vector<CommentItem> commentList;     //评论列表，可以构建成一棵评论数
+	};
+
+	struct DokiLiveInfo
+	{
+		0	require	byte liveStatus;   //直播状态
+		1	optional DokiLiveBeforeInfo liveBeforeInfo;
+		2	optional DokiLivingInfo liveingInfo;
+		3	optional DokiLiveEndInfo liveEndInfo;
+	};
+
+	struct ONADokiNewsCard
+	{	
+		0 	require vector<ActorInfo> actorList;
+		1	optional string firstLineText; //主标题
+		2   optional string secondLineText; //副标题
+		3	require byte newsType;   // 卡片信息类型 0-明星评论  1-明星直播聊天室 2-whyme直播
+		4	optional DokiCommentInfo commentInfo;   //明星评论信息 当newsType = 0时使用该字段
+		5	optional DokiLiveInfo liveInfo;   //直播相关信息，当newsType = 1/2 时读取该字段
+		7	optional string reportKey;  
+		8	optional string reportParams;
+		9	optional Action action;
+		10  optional string mainColor;       //主色调，昵称、标签背景等使用的颜色，下发色值如“#ff076e”
+		11  optional vector<string> actorCircleColors;   // 头像外面圆圈渐变色数组，后台下发16进制颜色字符串，如"#ffffff"
+		12  optional string lottieSourceUrl;    //卡片lotti动画资源包url
+		13  optional ActionBarInfo leftActionBar;    //左侧信息按钮
+
+	};
+
+	//详情页明星热评列表，数据需要先带下来几条，然后做分页拉取
+	struct ONADokiNewsCardList
+	{	
+		0 optional vector<ONADokiNewsCard> cardList;	
+		1 optional string reportParams;	//上报参数
+		2 optional string reportKey;	//上报参数
+		3 optional string dataKey;        //场景信息，主要用于明星评论假显
+		4 optional bool hasMore;  //是否有更多卡片
+		5 optional Action moreAction; //更多按钮跳转链接
+	};
+  
+	struct ONADokiMovementCard
+	{	
+		0 require vector<ActorInfo> actorList;
+		1 optional string firstLineText; //主标题
+		2 optional string firstLineTagText; //主标题后面的标签文本信息
+		3 optional IconTagText secondLineTagText;  //副标题带icon的文本
+		4 optional DokiRankInfo rankInfo;    //排行版信息
+		5 optional vector<string> actorCircleColors;   // 头像外面圆圈渐变色数组，后台下发16进制颜色字符串，如"#ffffff"
+		6 require byte newsType;   // 卡片信息类型 0-默认  1-预约  2-单图运营卡片(使用contentInfo的photos的第一张图片)
+		7 optional MediaContentInfo contentInfo;  //内容信息，展示于卡片中间部分
+		8 optional VideoAttentItem attentItem;           //用于关注的数据结构
+		9 optional string lottieSourceUrl;    //卡片lotti动画资源包url
+		10 optional ActionBarInfo leftActionBar;    //左侧信息按钮
+		11 optional string leftDescText; 			//	左侧信息按钮
+		12 optional ActionBarInfo rightActionBar;   // 右侧操作按钮
+		13	optional string reportKey;  
+		14	optional string reportParams;
+		15	optional Action action;
+	};
+
+	//详情页明星热评列表，数据需要先带下来几条，然后做分页拉取
+	struct ONADokiMovementCardList
+	{	
+		0 optional vector<ONADokiMovementCard> cardList;	
+		1 optional string reportParams;	//上报参数
+		2 optional string reportKey;	//上报参数
+		3 optional string dataKey;        //场景信息，主要用于明星评论假显
+		4 optional bool hasMore;  //是否有更多卡片
+		5 optional Action moreAction; //更多按钮跳转链接
+	};
+
+	//doki广场页明星榜单变动信息二级浮层ONAView
+	struct ONADokiRankBroadcast
+	{
+	    0 optional RankBroadcastItem rankBroadcast;
+	};
+
+	// doki动态item
+    struct DokiDynamicItem
+    {
+        0 optional string headImgUrl;   //头像图片url
+        1 optional string title;	    //文案
+		2 optional string cornerImgUrl; //角标图片url
+		3 optional Action action;       //点击跳转操作
+		4 optional string reportKey; //曝光reportKey
+		5 optional string reportParams; //曝光reportParams	
+    };
+
+	// doki动态ONAView
+	struct ONADokiDynamic
+	{
+		0 optional vector<DokiDynamicItem> dokiDynamicItemList;
+		1 optional string reportKey; //曝光reportKey
+		2 optional string reportParams; //曝光reportParams	
+	};
+
+	//doki 明星作品tab 带帖子信息的图片View 610新增
+	struct DokiPhotoItem 
+	{
+		0 require CircleMsgImageUrl imageInfo;              //外层 图片信息
+		1 optional CirclePrimaryFeed primaryFeed;           //预览 帖子信息
+		2 optional string reportKey;
+		3 optional string reportParams;
+	};
+
+	//doki 单个美图信息，用于复用运营页协议 610新增
+	struct ONADokiPhotoItem
+	{
+		0 require DokiPhotoItem photoInfo;
+	};
+
+	//doki 美图一级入口数据列表
+	struct ONADokiPhotoList 
+	{
+		0 require vector<DokiPhotoItem> photoList;	
+		1 require string dataKey;                       //用于二级页tab请求
+		2 optional string reportParams;					//上报参数
+		3 optional string reportKey;					//上报参数
+	};
+
+	/*-------------这里是服务请求和服务响应------------------------*/
+	
+	/**
+	*  复用和类似现有协议的说明
+	*	
+	* （1）饭团广场页请求复用ChannelDataRequest协议
+	*	   饭团广场页请求复用ChannelDataResponse协议
+	*
+	* （2）饭团主页请求类似StarHomeRequest协议
+	*	   饭团主页响应类似StarHomeResponse协议
+	*	   
+	* （3）饭团排行榜的二级页面请求用FanTuanNavOperatePageRequest和FanTuanOperationPageRequest
+	*	   饭团排行榜的二级页面响应用FanTuanNavOperatePageResponse协议和FanTuanOperationPageResponse
+	*	
+	*/
+	
+	// 饭团主页请求
+	struct FanTuanHomeRequest
+	{
+		0 require string fanTuanId;							//饭团的id
+		1 optional string pageContext;
+	};
+	
+	// 饭团主页响应
+	struct FanTuanHomeResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 require FanInvolveItem fanInfo;					//明星基础信息
+		2 optional vector<TempletLine>	mainData;			//主数据
+		3 optional vector<TempletLine>	uiData;				//帖子数据
+		4 optional map<string,CoverDataList> coverDataMap;	//专辑类数据集合（往期，推荐等）[这个字段的处理规则同详情页]
+		5 optional map<string,ActorList> actorDataMap;		//明星列表数据集合
+		6 optional string pageContext;						//下一页上下文
+		7 optional bool hasNextPage;						//是否有下一页数据
+		8 optional string postDataKey;						//发表主贴相关的key，现在用来拉取网络图片
+		9 optional ShareItem shareItem;						//用于分享，数据合法有效才会显示
+		10 optional vector<LiveTabModuleInfo> tabModuleList;//tab列表
+	};
+
+	// 由内部票据换取饭团系统的userId的请求，饭团系统有自己的饭团用户id,这个协议可以不用实现，由登录那边帮我们去做
+	struct FanTuanGetUserIdRequest
+	{
+		0 optional int flag;								//纯占位，无意义
+	};
+	
+	// 由内部票据换取饭团系统的userId的请求
+	struct FanTuanGetUserIdResponse
+	{
+		0 require int errCode;	
+		1 require string fanTuanUserId;						//饭团系统的userId的请求
+	};
+	
+	// 我的原创请求协议
+	struct FanTuanMyPostRequest
+	{
+		0 optional string pageContext;
+	};
+
+	// 我的原创响应协议
+	struct FanTuanMyPostResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 optional vector<ONAFanTuanFeed> fanTuanFeedList;//我的原创列表
+		2 optional string pageContext;					//翻页上下文
+		3 optional bool hasNextPage;						//是否有下一页数据
+	};
+	
+	// 我的评论请求协议
+	struct FanTuanMyCommentRequest
+	{
+		0 optional string pageContext;
+	};
+	
+	// 我的评论响应协议
+	struct FanTuanMyCommentResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 optional vector<FanTuanCommentItem> fanTuanMyCommentList;		//我的评论列表
+		2 optional string pageContext;					//翻页上下文
+		3 optional bool hasNextPage;						//是否有下一页数据
+	};
+	
+	// 获取未读消息计数请求
+	struct FanTuanGetUnReadMsgCountRequest
+	{
+		0 optional int flag;			//纯占位，无意义
+	};
+	
+	// 获取未读消息计数响应
+	struct FanTuanGetUnReadMsgCountResponse
+	{
+		0 require int errCode;
+		1 require int count;			// 返回的未读消息数
+		2 require long modifyTime;		// 未读消息的修改时间，通过这个来判断未读消息是否有变，如果有变，则去拉取未读消息列表
+		3 optional ActorInfo userInfo;	// 最新未读消息作者信息
+	};
+	
+	// 获取消息请求，合并所有消息和未读消息
+	struct FanTuanGetMsgListRequest
+	{
+		0 require int type;					// 0 所有消息，1 未读消息
+		1 optional string beginMsgId;		// 查看这条消息id一下的所有消息，可以完成点击查看更多功能
+		2 optional string pageContext;		// 翻页上下文
+	};
+	
+	// 获取消息响应，合并所有消息和未读消息
+	struct FanTuanGetMsgListResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional bool hasNextPage;						//是否有下一页
+		2 optional vector<FanTuanMessageItem> msgList;		//消息集合	
+		3 optional string pageContext;						//取下一页会带这个字段上去
+	};
+	
+	// 设置最后读的一条消息请求
+	struct FanTuanSetLastReadMsgRequest
+	{
+		0 require string lastMsgId;
+	};
+	
+	// 设置最后读的一条消息响应
+	struct FanTuanSetLastReadMsgResponse
+	{
+		0 require int errCode;								//业务错误码
+	};
+	
+	// 我的饭团二级界面请求协议
+	struct FanTuanMyFollowRequest
+	{
+		0 optional string pageContext;
+		1 optional int onePageCount;  //请求的每页数据后台返回的最大明星个数
+		2 optional int needUpdateInfo;  // 是否需要饭团的更新个数信息，0-不需要， 1-需要
+		3 optional string userId;       //指定要取哪个用户关注的doki列表，未指定（为空）时，取登录态的doki列表
+		4 optional int requestType;   // 0,默认    1，包括游戏社区
+	};
+	
+	// 我的饭团二级界面响应协议
+	struct FanTuanMyFollowResponse
+	{
+		0 require int errCode;							 //业务错误码
+		1 optional vector<ActorInfo> fanTuanMyFollowList;//我的饭团关注列表
+		2 optional string pageContext;					 //翻页上下文
+		3 optional bool hasNextPage;					//是否有下一页数据
+		4 optional map<string,string> updateInfoList; // 饭团所对应的更新个数信息，key是饭团id，value是该饭团更新个数
+		5 optional map<string,string> updateVersionList;    //饭团对应更新信息的版本信息，key是饭团ID，value是版本号
+	};
+
+	// 查询、加入、退出饭团
+	
+	// 加入饭团、退出饭团
+	struct FanTuanFollowRequest
+	{
+		0 optional string fanTuanId;			//饭团id
+        1 optional int type;                    	//0，表示加入饭团；1，表示退出饭团; 2，表示批量关注
+		2 optional int needCheck;               //加入、退出饭团是否需要判断用户是否已经加入
+        3 optional vector<string> fanTuanIdList;	//饭团id数组
+		4 optional string followDataKey;        //饭团关注dataKey，可扩展关注场景等信息
+	};
+	
+	struct FanTuanFollowResponse
+	{
+		0 require int errCode;					//业务错误码
+		1 optional int signCount;				// 签到次数
+        2 optional vector<FanTuanFollowItem> followList;	//批量关注的结果
+	};
+	
+	// 批量查询关注请求
+	struct FanTuanQueryFollowRequest
+	{
+		0 require vector<string> fanTuanIdList;			//饭团id列表
+		1 optional int optType;							//操作类型，默认0是只请求是否加入饭团，1表示是否加入饭团&签到次数
+	};
+
+	// 批量查询关注响应结果
+	struct FanTuanQueryFollowResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 require vector<FanTuanFollowItem> followList; //批量关注的结果
+	};		
+	
+	// 签到
+	struct FanTuanSignRequest
+	{
+		0 optional string fanTuanId;			//饭团id
+	};
+	
+	// 签到响应
+	struct FanTuanSignResponse
+	{
+		0 require int errCode;					//业务错误码
+	};
+	
+	// 请求feed详情页,涵盖了只看楼主，和正序倒序这几个功能
+	struct FanTuanFeedDetailRequest
+	{
+		0 require string feedId;				//帖子feedid
+		1 require string pageContext;
+		2 require int type;					//1，看全部；2，看楼主;
+		3 require int direction;				//1  倒序，由新到旧；2，正序，由旧到新
+	};
+	
+	// feed详情页的响应
+	struct FanTuanFeedDetailResponse
+	{
+		0 require int errCode;							 				 //业务错误码
+		1 optional vector<FanTuanCommentItem> fanTuanFeedCommentList;	 //feed详情页的评论列表
+		2 optional string pageContext;						// 上下文					
+		3 optional bool hasNextPage;						// 是否有下一页数据	
+		4 optional ONAFanTuanFeed primaryFeed;				// 主贴数据，从消息列表或者我的评论跳转详情页的的时候需要这玩意
+		5 optional string shareH5Url;						// 分享的h5 url
+		6 optional ShareItem shareItem;						// 分享的数据结构体
+        7 optional int ftFlags;                             // 饭团内容标识位
+	};
+
+	// 发表主贴请求
+	struct FanTuanPublishFeedRequest
+	{
+		0 require string fanTuanId;		// 发表的帖子对应的饭团id
+		1 optional string title;		// 标题
+		2 optional string content;		// 内容
+		3 optional string seq; 			// sequence，防止终端重复提交
+		4 optional vector<CircleUploadImageUrl> photos;	//图片信息，可为null
+		5 optional FanTuanExtInfo stExtInfo;
+		6 optional vector<FantuanLongVideo> longVideos;//新增,web端的长视频,app不要设置
+		7 optional vector<CircleShortVideoUrl> miniVideos;//新增,app支持小视频发表
+        8 optional string summaryInfo;                         //快报数据的摘要
+	};
+	
+	// 发表主贴响应
+	struct FanTuanPublishFeedResponse
+	{
+		0 require  int 	  errCode;
+		1 require  string feedId;
+		2 optional string fanTuanId;
+		3 optional long	  pubTime;
+		4 optional Action action;		   //点击后的跳转动作
+	};
+	
+	// 发表评论请求
+	struct FanTuanPublishCommentRequest
+	{
+		0 optional string parentId;	
+		1 optional string content;
+		2 optional string seq;				// 终端自带，透传给服务器，用作终端假显数据和后台服务器返回数据的去重
+		3 optional vector<CircleUploadImageUrl> photos;	//图片信息，可为null
+		4 optional int targetType;			//1,主题，2，评论
+		5 optional FanTuanExtInfo stExtInfo;
+		6 optional string rootId;  //评论的根节点，新增字段
+		7 optional string fanTuanId;//新增字段，饭团id
+		8 optional vector<FantuanLongVideo> longVideos;//web
+	};
+	
+	// 发表评论响应
+	struct FanTuanPublishCommentResponse
+	{
+		0 require  int errCode;
+		1 require  string commentId;
+		2 optional string parentId;
+		3 optional string feedId;
+		4 optional long pubTime;
+	};
+	
+	// 删除帖子或者评论请求，与FanTuanAdminDeleteFeedRequest区分开来
+	struct FanTuanDeleteRequest
+	{
+		0 optional string targetId;
+		1 optional int type;			//1,主题，2，评论
+		2 optional string fanTuanId;    //新增for web进行管理员删除
+	};
+	
+	// 删除帖子或者评论响应
+	struct FanTuanDeleteResponse
+	{
+		0 require int errCode;
+	};
+	
+	// 饭团点赞请求
+	struct FanTuanUpRequest
+	{
+		0 optional string targetId;
+		1 optional int targetType;			//1,主题，2，评论
+		2 optional int operateFlag;			//1,点赞，2，取消赞
+		3 optional string fanTuanId;		//新增字段
+		4 optional FanTuanExtInfo stExtInfo;  //新增一个扩展字段，用来区分调用饭团老适配层的请求来源(后台)
+	};
+	
+	// 饭团点赞响应
+	struct FanTuanUpResponse
+	{
+		0 require int errCode;
+	};
+	
+	// 饭团举报请求
+	struct FanTuanReportRequest
+	{
+		0 optional string targetId;
+		1 optional int targetType;				//1,主题，2，评论
+		2 optional int reportType;				//举报类型，目前终端不用
+		3 optional string reportDesc;           //举报描述
+	};
+	
+	// 饭团举报响应
+	struct FanTuanReportResponse
+	{
+		0 require int errCode;
+	};
+	
+	//饭团列表请求
+	struct FanTuanListRequest
+	{
+		0 optional string lid;
+		1 optional string cid;
+		2 optional string vid;
+	};
+	//饭团列表响应
+	struct FanTuanListResponse
+	{
+		0 require int errCode;
+		1 require string errMsg;
+		2 optional vector<ActorInfo> fanTuanListPart;         //优先展示的部分饭团列表
+		3 optional vector<ActorInfo> fanTuanListAll;          //全部饭团
+		4 optional ActionBarInfo promotionInfo;               //推广位，比如小视频录制场景拉动moka app
+	};
+	
+	//饭团列表请求
+	struct FanTuanLatestRequest
+	{
+	
+		0 optional string type;			//业务自由使用
+		1 optional string dataKey;		//业务自由使用
+		2 optional string pageContext;
+		3 optional string versionCode; //本地记录的上次请求的戳
+	};
+	
+	//饭团列表响应
+	struct FanTuanLatestResponse
+	{
+		0 require int errCode;
+		1 optional vector<TempletLine>	uiData;	//用来显示的数据	
+		2 optional string pageContext;			//翻页上下文
+		3 optional bool isHaveNextPage;			//是否还有下一页
+		4 optional string versionCode;         //本地记录的上次请求的戳
+		5 optional string  updateCount;			//本次更新个数
+	};
+
+	//饭团推荐关注明星页面请求 V5.1
+	struct FanTuanRecommendStarsRequest
+	{
+		0 optional string pageContext;          //翻页上下文
+        1 optional int type;					//0，表示默认的饭团推荐关注明星页面请求 1，表示冷启动关注明星页面请求
+	};
+
+	//饭团推荐关注明星页面应答 V5.1
+	struct FanTuanRecommendStarsResponse
+	{
+		0 require int errCode;
+		1 optional vector <FantuanRecommendStarsGroup> starGroupList;
+		2 optional string pageContext;			//翻页上下文
+		3 optional bool isHaveNextPage;			//是否还有下一页
+	};
+
+	// 饭团请求插入新的onaview请求
+	struct FanTuanGetNewLineRequest
+	{
+		0 require string dataKey;	                
+	};
+	
+	// 饭团请求插入新的onaview响应
+	struct FanTuanGetNewLineResponse
+	{
+		0 require int 	errCode;	         //业务错误码
+		1 require vector<TempletLine>	data;   //插入数据
+	};
+
+	
+	//小视频timeline请求
+	struct MiniVideoTimelineRequest
+	{
+		0 require string dataKey;                       //请求dataKey，区分饭团和底层页入口
+		1 optional string pageContext;                  //请求上下文
+	};
+	
+	//小视频timeline请求响应
+	struct MiniVideoTimelineResponse
+	{
+		0 require int errCode;
+		1 optional vector<MiniVideoItem> videoList;	    //视频列表
+		2 optional string pageContext;					//翻页上下文
+		3 optional bool hasNextPage;					//是否有下一页
+		4 optional int timelineType;                    //0-影视圈，1-饭团
+	};
+	//单独定义一条协议下发饭团主页的导航内容
+	struct FanTuanNavOperatePageRequest
+	{
+		0 optional string type;			//业务自由使用
+		1 optional string dataKey;		//业务自由使用，可以填充饭团id
+		2 optional string extDataKey;	//业务自由使用，额外的dataKey
+	};
+	
+	struct FanTuanNavOperatePageResponse
+	{
+		0 require int errCode;									//业务错误码
+		1 require FanInvolveItem fanInfo;						//顶部头图
+		2 require vector<LiveTabModuleInfo> moduleList;			//tab列表
+		3 optional DokiHeadExtraInfo dokiHeadExtraInfo;			//doki的头部额外补充信息
+		4 optional ShareItem shareItem;							//用于分享，数据合法有效才会显示
+		5 optional FanTuanActionBarsInfo actionBars;            //action button信息
+		6 optional DegreeLabel degreeLabel;						//粉丝等级(徽章)信息
+		7 optional PromotionBannerInfo promotionInfo;			//描述拉动条的信息，比如Doki广场的推广
+		8 optional Action introAction; 	//点击名字、简介、头像跳转到明星简介的Action
+	};
+
+	//修改帖子或者评论请求	
+	struct FanTuanModifyRequest
+	{
+		0 require string fanTuanId; 		// 发表的帖子对应的饭团id
+		1 require string msgId;             // 消息id
+		2 optional string title;            // 标题
+		3 optional string content;          // 内容
+		4 optional string seq; 			                 //防止终端重复提交
+		5 optional vector<CircleUploadImageUrl> photos;  //图片信息，可为null
+		6 optional FanTuanExtInfo stExtInfo;
+	};
+
+	// 修改帖子或者评论响应
+	struct FanTuanModifyResponse
+	{
+		0 require int errCode;
+		1 optional string errMsg;
+	};
+	struct FanTuanHomeFeedRequest
+	{
+		0 require string dataKey;							
+		1 optional string pageContext;
+		2 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+		3 optional RecommendReqExtInfo recmdInfo;  //个性化基本请求信息  590新增
+	};
+	
+	struct FanTuanHomeFeedResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional vector<TempletLine>	uiData;				//帖子数据
+		2 optional string pageContext;						//下一页上下文
+		3 optional bool hasNextPage;						//是否有下一页数据
+		4 optional string postDataKey;						//发表主贴相关的key
+		5 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+		6 optional RecommendRespExtInfo recmdInfo; 		    //个性化基本回包信息  590新增
+		7 optional PromotionEventInfo  promotionInfo;       //频道推广活动信息  590新增，活动资源位信息
+	};
+	//648 - doki后援会新的服务请求
+	struct DokiHomeFeedRequest
+	{
+		0 require string dataKey;							
+		1 optional string pageContext;
+		2 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+		3 optional RecommendReqExtInfo recmdInfo;  //个性化基本请求信息  590新增
+	};
+	//648 - doki后援会新的服务请求回包
+	struct DokiHomeFeedResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional vector<TempletLine>	uiData;				//帖子数据
+		2 optional string pageContext;						//下一页上下文
+		3 optional bool hasNextPage;						//是否有下一页数据
+		4 optional string postDataKey;						//发表主贴相关的key
+		5 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+		6 optional RecommendRespExtInfo recmdInfo; 		    //个性化基本回包信息  590新增
+		7 optional PromotionEventInfo  promotionInfo;       //频道推广活动信息  590新增，活动资源位信息
+	};
+	//明星动态卡片请求
+	struct DokiNewsCardRequest
+    {
+        0 require string datakey;
+        1 optional string pageContext;			//翻页上下文
+    };
+
+	//明星动态卡片应答
+	struct DokiNewsCardResponse
+    {
+        0 require int errCode;                              //业务错误码
+        1 require vector<TempletLine> newsList;             //动态数据列表
+        2 optional string pageContext;			//翻页上下文
+		3 optional bool isHaveNextPage;			//是否还有下一页
+    };
+
+    //粉丝值任务激励请求
+	struct DokiDegreeTaskRequest 
+	{
+		0 require int opType;         //操作类型，0-其他，1-关注，2-签到，3-点赞，4-评论，5-发帖
+		1 require string dataKey;     //明星主页关联的dataKey
+		2 optional int curDegree;     //当前等级
+		3 optional string context;    //上次任务完成的上下文(比如时间戳)，由后台下发app透传，第一次请求为空
+	};
+
+	//粉丝值任务激励回包
+	struct DokiDegreeTaskResponse 
+	{
+		0 require int errCode;               //业务错误码
+		1 optional string showUrl;           //展示Url，关注的时候返回的是欢迎页面，其他的都是升级的
+		2 optional ActionBarInfo taskBar;    //每日任务信息
+		3 optional DegreeLabel degreeLabel;  //粉丝徽章信息(升级可能导致变化)
+		4 optional string taskToastText;     //任务的提示文案
+		5 optional string context;           //本次任务完成的上下文(比如时间戳)，app需要存该信息，下一次请求时带上
+		6 optional ActionBarInfo presentBar; //粉丝在当前明星下的打榜信息
+	};
+	// 里程碑信息
+	struct DokiMileStoneItem
+	{
+		0 require string title;   //主标题，可下发格式化后的时间，如|“2017.12.11”
+		1 optional string subTitle;  //下发描述信息
+		2 optional string imgUrl;    //图片url;
+		3 optional Action action;   //跳转action
+		4 optional string reportKey; //曝光reportKey
+		5 optional string reportParams; //曝光reportParams
+	};
+
+	// doki里程碑列表
+	struct ONADokiMileStoneList
+	{
+		0 require vector<DokiMileStoneItem> stoneList;
+		1 optional string reportKey; //曝光reportKey
+		2 optional string reportParams; //曝光reportParams
+		
+	};
+	
+	//doki入口，支持横滑
+	struct ONADokiEntryList
+	{
+		0 require vector<FanTuanLatestRankItem> entryList;	// 横滑控件至少一个数据
+		1 optional string  reportKey;               //上报
+		2 optional string  reportParams;            //上报
+	};
+	//Doki头图按钮额外信息
+	struct DokiHeadBarInfo
+	{
+		0 optional bool closeBgAnimation; //是否打开背景动画（呼吸灯）
+		1 optional bool openGrowthSystem; //是否打开成长体系对按钮文案的调整（今日任务，打榜需要设置为true,其他false）
+		2 optional bool closeRedDot;      //是否打开按钮小红点（目前只有私信设置为false,其他true）
+		3 optional bool needLogin;   //按钮操作前是否检查登录态（目前只有加入，点赞，打榜按钮需要设置为true,其他false）
+		4 optional int actionType;     //0-使用ActionBarInfo里面的action跳转  1-关注Doki操作
+	};
+	//相关doki模块ONAView
+    struct ONARelatedDokiList {
+        0 require vector<RelatedDoki> relatedDokiList;
+        1 optional string  reportKey;               //上报
+		2 optional string  reportParams;            //上报
+    };
+	
+	//壁纸头图信息
+	struct WallPaperHeadInfo {
+		0 require int headerType;               //0-个人页只展示头像个人信息；1-今日推荐 展示个人信息+背景图信息
+		1 require ActorInfo actorInfo;          //doki明星信息
+		2 optional string bgImageUrl;           //headerType = 1时，显示背景图URL
+		3 optional string bgColor;              //headerType = 1时，显示背景颜色
+		4 optional string titleColorStart;      //标题颜色渐变开始
+		5 optional string titleColorEnd;        //标题颜色渐变结束
+		6 optional string introduction;         //headerType = 1时，显示个人简介文案
+		7 optional ActionBarInfo actionBar;     //跳转链接
+	};
+	//Doki福利社的导航栏主协议
+	struct DokiWelfareNavRequest {
+		0 optional string datakey;  //用于请求福利社导航栏信息
+	};
+	
+	struct DokiWelfareNavResponse {
+		0 require int errCode;
+		1 require vector<LiveTabModuleInfo> tabs; //导航栏信息
+		2 optional string title;                         //福利社标题
+	};
+	
+	//Doki福利社，壁纸页，精选壁纸聚合页协议
+	struct DokiWallPaperPageRequest {
+		0 require string datakey;        //用于请求壁纸聚合页面信息
+		1 require string pageContext;    //翻页上下文
+	};
+	
+	struct DokiWallPaperPageResponse {
+		0 require int errCode;
+		1 require vector<TempletLine> uiData;   //ONAView数据列表
+		2 require string pageContext;           //翻页上下文
+		3 require bool hasNextPage;             //是否有下一页
+		4 optional string postDataKey;          //上传壁纸的发表datakey
+		5 optional string title;                //页面的Title
+		6 optional string dokiId;               //DokiId
+		7 optional WallPaperHeadInfo wallPaperHeadInfo;    //壁纸页头图信息
+		8 optional string reportKey;
+		9 optional string reportParams;
+	};
+	
+	//标识Doki福利社的一张“静态壁纸”所需要的数据
+	struct DokiPicWallPaperItem {
+		0 require CircleMsgImageUrl imageInfo;   //包含该静态壁纸的缩略图+原图url，还附带人脸识别区域等信息
+		1 optional ActorInfo userInfo;           //发表者信息
+		2 optional string wallpaperDataKey;      //该壁纸的唯一标识，用于下载，加精，下架等上报后台，让后台识别操作对象
+		3 optional string reportKey;
+		4 optional string reportParams;
+		5 optional Action action;                //壁纸点击跳转Action
+	};
+	
+	//标识Doki福利社的一张“动态壁纸”所需要的数据
+	struct DokiLiveWallpaperItem {
+		0 require CircleShortVideoUrl videoInfo;   //包含视频vid，视频封面图等信息
+		1 optional string preViewGifUrl;           //预览用的gif封面
+		2 optional ActorInfo userInfo;             //发表者信息
+		3 optional string liveWallpaperDataKey;    //该壁纸的唯一标识，用于下载，加精，下架等上报后台，让后台识别操作对象
+		4 optional string reportKey;
+		5 optional string reportParams; 
+		6 optional Action action;                  //壁纸点击跳转Action，包含点击上报数据 
+	};
+	
+	//标识Doki福利社的一张“壁纸”所需要的数据
+	struct DokiWallPaperItem {
+		0 optional DokiPicWallPaperItem  picWallpaperItem;   //如果该壁纸是静态图片壁纸，数据保存在该字段
+		1 optional DokiLiveWallpaperItem liveWallpaperItem;  //如果该壁纸是动态壁纸，数据保存在该字段
+		2 optional string downloadTimes;                     //该壁纸被下载的次数“2.5万”
+		3 optional ShareItem shareItem;                      //分享使用的数据
+		4 optional vector<MarkLabel> marklabels;             //壁纸上的“动态”等角标
+		5 optional string wallPaperId;                       //壁纸ID
+	};
+	
+	//单张“壁纸”的ONAView
+	struct ONADokiWallPaperItem {
+		0 require DokiWallPaperItem wallpaper;       //壁纸数据
+		1 optional bool showUserInfo;                //是否需要展示发表者信息
+		2 optional string reportKey;
+		3 optional string reportParams;
+		4 optional int backgroundType;		     //背景类型:0:默认无背景 1:显示堆叠类型的背景
+	};
+	
+	//3张“壁纸”的列表ONAView
+	struct ONADokiWallPaperList {
+		0 require vector<ONADokiWallPaperItem> wallpaperList;  //壁纸 列表数据
+		1 optional string reportKey;
+		2 optional string reportParams;
+	};
+	
+	//多张“壁纸”横滑列表ONAView
+	struct ONADokiWallPaperScrollableList {
+		0 require vector<ONADokiWallPaperItem> wallpaperList;  //壁纸 列表数据
+		1 optional string reportKey;
+		2 optional string reportParams;
+		3 optional int uiType;                                 //0-默认，壁纸福利页样式（9:16），1-doki后援会插入样式（方图）
+		4 optional UIPadding uiPadding;                        //由后台控制UI的padding
+	};
+	
+	
+	//向后台查询dataKey对应的壁纸数据
+	struct WallPaperQueryRequest {
+		0 require string datekey;     //用于请求单张壁纸详情信息
+	};
+	
+	struct WallPaperQueryResponse {
+		0 require int errCode;
+		1 require DokiWallPaperItem wallpaper;  //壁纸数据
+	};
+	
+	//doki主页扩展数据请求
+	struct DokiHomePageExtendDataRequest
+	{
+		0 optional string type;			//业务自由使用
+		1 optional string dataKey;		//饭团id
+	};
+	//doki主页扩展数据回包
+	struct DokiHomePageExtendDataResponse
+	{
+		0 require int errCode;                              //业务错误码
+		1 optional ONABulletinBoardV2 introductionVideo;    //doki安利视频
+	};
+	//壁纸列表数据请求
+	struct WallPaperListRequest
+	{
+		0 require string dataKey;
+		1 require string pageContext;
+	};
+	//壁纸列表数据回包
+	struct WallPaperListResponse
+	{
+		0 require int errCode;
+		1 optional vector<ONADokiWallPaperItem> wallpaperList;
+		2 require string pageContext;           //翻页上下文
+		3 require bool hasNextPage;             //是否有下一页
+	};
+
+	//十佳帖二级页请求
+	struct DokiTopTenFeedListRequest
+	{
+	    0 require string datakey;
+	    1 optional string pageContext;   //翻页上下文
+	};
+
+	//十佳帖二级页回包
+	struct DokiTopTenFeedListResponse
+	{
+	    0 require int errCode;                              //业务错误码
+	    1 require vector<TempletLine> newsList;             //动态数据列表
+	    2 optional string pageContext;   //翻页上下文
+		3 optional bool isHaveNextPage;   //是否还有下一页
+	};
+	struct DokiInfo
+	{
+	    0 require  ActorInfo actorInfo;                           
+	    1 optional int followState;      // 0,没有关注   1，关注
+	  
+	};
+	
+	//查询某个doki的关注列表请求
+	struct QueryDokiFollowListRequest
+	{
+	    0 require string userId;       
+	    1 optional int  dokiType;      //0,普通明星 1，剧集doki 2, 兴趣doki 4，游戏doki 5，自拍doki 6，额次元doki 7，动漫doki 8，小说doki  1000 所有类型    2000 额次元聚合
+		2 optional int  sortFlag;      //排序 0. 新到旧   1 ，旧到新
+		3 optional int  scene;         //场景
+		4 optional int needFollowState;  // 查询请求的登录用户的关注状态  0 不查询 1 查询
+		5 optional string pageContext;    //翻页上下文
+	};
+
+	struct QueryDokiFollowListResponse
+	{
+	    0 require int errCode;                              //业务错误码
+	    1 require vector<DokiInfo> dataList;             //动态数据列表
+	    2 optional string pageContext;                     //翻页上下文
+		3 optional bool isHasNextPage;                    //是否还有下一页
+	};
+	//Doki表情结构信息集合
+	struct DokiEmoticonItem
+	{
+		0 require string url; //表情图片url
+		1 optional bool isGif; //是不是Gif
+		2 optional string feedId; //表情对应的主贴Id
+		3 optional ActorInfo userInfo; //表情对应的主贴的发表者
+		4 optional string opeartionDataKey; //管理员权限操作dataKey
+		5 optional string EmoticonId;   //表情的唯一ID
+		6 optional Action action;       //表情点击跳转action
+		7 optional ShareItem shareItem; //分享表情shareItem
+	};
+	
+	//单张表情的ONAView
+	struct ONADokiEmoticonItem
+	{
+		0 require DokiEmoticonItem data; //视图的主要数据
+		1 optional string reportKey;
+		2 optional string reportParams;
+		3 optional int backgroundType;		     //背景类型:0:默认无背景 1:显示堆叠类型的背景
+	};
+	
+	//多张表情的横滑列表ONAview
+	struct ONADokiEmoticonList
+	{
+		0 require vector<ONADokiEmoticonItem> emoticonList;
+		1 optional string reportKey;
+		2 optional string reportParams;
+	};
+	
+	//明星主题的UI展示信息体
+	struct StarThemeUIItem
+	{
+		0 require vector<string> urls; //4个Tab的图片
+		1 require string bgUrl;        //背景图
+		2 require Action action;       //点击跳转
+		3 optional string reportKey;
+		4 optional string reportParams;
+	};
+	
+	//明星主题的列表ONAView
+	struct ONADokiStarTheme
+	{
+		0 require vector<StarThemeUIItem> starThemeList; //明星主题列表
+		1 optional string reportKey;
+		2 optional string reportParams;
+	};
+	
+	//拉取表情列表二级页协议
+	struct DokiEmoticonGroupPageRequest {
+		0 require string dataKey;     //从跳转带过来的带回给后台
+		1 require string pageContext; //翻页上下文
+	};
+ 
+	struct DokiEmoticonGroupPageResponse {
+		0 require int errCode;
+		1 require vector<TempletLine> uiData; //ONAView列表
+		2 require string pageContext; //翻页上下文
+		3 require bool hasNextPage;   //有没有下一页
+		4 optional string title;      //页面的Title
+	};
+	
+	
+	//直播模块
+	struct ONADokiLiveBroadcast {
+		0 require int liveStatus;                         //直播状态        
+		1 optional vector<string> iconList;               //icon列表，四个
+		2 optional string title;                          //直播标题
+		3 optional string subTitle;                       //直播副标题 
+		4 optional Action liveAction;                     //直播详情页跳转action
+		5 optional VideoAttentItem attentItemData;        //看单关注item
+		6 optional string reportKey;
+		7 optional string reportParams;
+	};
+	//活动模块
+	struct ONADokiActivityInfo {
+		0 require int activityType;                       //活动类型
+		1 optional string frontImage;                     //前景图,doki头像
+		2 optional string bgImage;                        //背景图
+		3 optional string durationTips;                   //右上角文案
+		4 optional vector<string> durationBgColors;       //右上角文案背景色渐变
+		5 optional string title;                          //活动标题
+		6 optional string subTitle;                       //活动副标题
+		7 optional string hintTips;                       //活动补充文案，一般显示在副标题后面居右
+		8 optional long requireTotalCount;                //活动总参与人数
+		9 optional long curJoinCount;                     //活动当前参与人数
+		10 optional vector<string> processColors;         //活动进度颜色 渐变
+		11 optional Action activityAction;                //点击跳转Action
+		12 optional string reportKey;
+		13 optional string reportParams;
+	};
+	
+	//doki管理员数据请求
+	struct DokiAdminDataRequest
+	{
+		0 optional string dokiId;
+	};
+	//doki管理员数据回包
+	struct DokiAdminDataResponse
+	{
+		0 require int errCode;                        //业务错误码
+		1 optional string adminEntryTips;             //管理审核入口文案
+		2 optional Action adminEntryAction;           //管理审核入口跳转Action
+		3 optional int msgCount;                      //管理审核入口消息数
+	};
+	//doki精品贴审核列表请求
+	struct DokiAdminFeedListRequest 
+	{
+		0 optional string dataKey;
+		1 optional string pageContext;
+	};
+	//doki精品贴审核列表请求回包
+	struct DokiAdminFeedListResponse 
+	{
+		0 require int errCode;                              //业务错误码
+	    1 optional vector<TempletLine> feedList;             //动态数据列表
+	    2 optional string pageContext;   //翻页上下文
+		3 optional bool isHaveNextPage;   //是否还有下一页
+	};
+	
+	//Doki表情二级页tab协议
+	struct DokiEmotionTabPageRequest {
+		0 optional string datakey;  //用于请求福利社导航栏信息
+	};
+	
+	struct DokiEmotionTabPageResponse {
+		0 require int errCode;
+		1 optional vector<LiveTabModuleInfo> tabs; //tab信息
+		2 optional string title;                         //表情页标题
+		3 optional string postDataKey;                         //表情页发表dataKey
+		4 optional string dokiId;				//页面对应的dokiId
+	};
+};

@@ -1,0 +1,376 @@
+/*
+ *  话题相关接口
+ *  测试：520769:4915200[NOSET]
+ *  正式：822337:131072[NOSET]
+ *
+ */
+
+#include "qqvideo_common.jce"
+
+
+module topic_ugc
+{
+	//命令字
+	//数据接口: 话题详情0xf08f 排行榜0xf2d8
+	//新版数据接口：话题详情0xf5fc 排行榜0xf5fb
+	enum RequestCommand
+	{
+		CreateTopic = 0xf08a,
+		DeleteTopic = 0xf08d,
+		ModifyTopic = 0xf08e,
+		GetTopic 	= 0xf08f,  		 //读单个话题（无主贴）（GetTopicRequest），用于web侧或者后台读话题详情，会修改pv数
+		SearchTopicByTitle = 0xf090, //搜索（SearchTopicRequest），按title搜索
+		SearchTopicsForPub = 0xf196, //文本匹配搜索话题（SearchTopicsForPubRequest），即批量title搜索
+			
+		GetTopicList = 0xf091, 		 //doki广场的话题模块（GetTopicTopListRequest）
+		GetPostList  = 0xf0c0,  	 //读话题的评论（GetPostsRequest 好像没有用到）
+		
+		PubBox_GetTopics = 0xf0c9,  //发表框读话题列表（qqvideo_message.jce PubTopicListRequest）
+		DetailPage_GetTopics = 0xe91f, //底层页话题模块（qqvideo_interface.jce DynamicDataRequest）
+		OperationPage_GetTopics = 0xe8c5, //话题模块（话题热榜或者底层页话题）的二级页（qqvideo_interface.jce  OperationPageRequest）
+		DetailPage_GetTopicDetail =0xf0cb, //读话题详情（qqvideo_message.jce TopicDetailRequest）
+		GetHotTopics = 0xf2d8, //读话题热榜，非onaview（ GetHotTopicsRequest ）
+		GetPubHasTopics = 0xf2de, //发表框是否有井号
+		
+		GetRelatedTopics = 0xf3dd, //获取相关话题
+		
+		StarTopic_Create = 0xf142, //管理台创建明星话题
+		StarTopic_Modify = 0xf143, //管理台修改明星话题
+		StarTopic_Delete = 0xf148, //管理台删除明星话题
+		
+		//中转
+		ShareRelay = 0xea9f, //分享
+		
+		//支持视频话题
+		CMD_GetTopicListRequest	  = 0xf5fb, //读话题热榜
+		CMD_GetTopicDetailRequest = 0xf5fc, //读话题详情, 内部协议
+		
+		//话题增删改 生产者中转
+		CMD_AddDelModifyTopic = 0xf562,
+	};
+	
+	//返回给调用方话题
+	struct TopicSummary
+	{
+		0 optional string id;
+		1 optional string title;	//话题名
+		2 optional string brief;	//导语
+		3 optional string actionUrl;
+		
+		7 optional vector<string> starNames;	//相关明星
+		8 optional vector<string> playNames;	//相关剧名
+		9 optional vector<jce::CircleMsgImageUrl> photos;	//图片信息
+		10 optional string targetId;
+		11 optional int  pvCount;	//pv
+		12 optional int  feedCount; //主贴数量		
+	};
+	
+	//话题基本属性
+	struct TopicBase
+	{
+		0 optional string id;
+		1 optional string title;	//话题名
+		2 optional string brief;	//导语
+		3 optional string sponsor;	//发起人vuid
+		4 optional long   createTime; 		//创建时间
+		5 optional long   startTime; 		//起始时间
+		6 optional long   endTime;   		//结束时间
+		7 optional vector<string> starIds;	//相关明星ID
+		8 optional vector<string> cids;		//相关cid
+		9 optional vector<string> vids; 	//相关vid
+		10 optional vector<string> lids;	//相关栏目id
+		11 optional vector<jce::CircleMsgImageUrl> photos;	//图片信息
+		12 optional string sponsorType; //发起人身份
+		13 optional int    sponsorAccountType; //发起人帐号类型 0:qq 1:微信
+		14 optional string shareInfo; //{"shareImage":"http://xxx","firstTitle":"XXX","secondTitle":"YYY","singleTitle":"ZZZ"}
+		15 optional vector<long> activeidList; //视频话题对应活动id	
+		16 optional int    type; //0:默认 3：视频话题 4:游戏话题
+		17 optional string music; //背景音乐
+		18 optional int    channelCategory; //频道页频道类目
+	};
+	
+	//话题全部属性
+	struct TopicInfo
+	{
+		0 optional TopicBase topicBase;
+		1 optional int	score; 		//热度
+		2 optional int 	postCount;	//评论的总数量
+		3 optional int  replyCount=0; //回复总数量
+		4 optional int 	readCount;	//话题阅读总数量
+		5 optional int  thumbCount; //点赞总数量
+		6 optional int 	followCount;//关注总数量	
+		7 optional int  scoreBase=0;//后台保留
+		8 optional int  reserve;    //后台保留，干预话题的排序编号
+		9 optional int  titleFlag;  //-2：不知情 0：普通话题 1：与明星同名 2：与剧同名  3：视频话题 4:游戏话题
+		10 optional string namesakeId; //相关物的跳转目标id（饭团id，cid等），如果是普通话题就是详情页地址
+		11 optional string strReserve; //后台保留 targetid
+		12 optional int status;  //0:normal 3:delete （如果用于丢中转 0:创建 1：修改 3:删除）
+	};
+
+	struct PostInfo
+	{
+		0 optional string postId;
+		1 optional string topicId;
+		2 optional int   readCount;
+		3 optional int   replyCount;
+		4 optional int   thumbCount;
+		5 optional int   createTime;
+		6 optional vector<string> topicIds;
+	};
+	
+	// 1. 创建话题
+	struct CreateTopicRequest
+	{
+		0 require  TopicBase topicBase;
+		1 optional string targetId; //明星话题、剧名话题等提供的参数：饭团id或者cid
+	};
+	struct CreateTopicResp
+	{
+		0 require  int    errorCode;		// 0:success
+		1 require  string topicId;  		//话题id, 非空表示成功
+		2 optional string title;            //如果不为空，表示话题名字加上明星id等作为后缀。
+		3 optional int    shareErrCode;		//发表接口支持同步到其它平台时的结果code
+		4 optional string shareCircleUrl;	//发表接口支持同步到其它平台时生成的H5着陆页面		
+	};
+	
+	// 2. 删除话题
+	struct DeleteTopicRequest
+	{
+		0 require string topicId;
+	};
+	struct DeleteTopicResp
+	{
+		0 require int errorCode; // 0:success
+	};
+	
+	// 3. 修改话题
+	struct ModifyTopicRequest
+	{
+		0 require  TopicInfo topicInfo;
+	};
+	struct ModifyTopicResp
+	{
+		0 require int errorCode; // 0:success
+	};
+
+	// 4. 通过id读取话题
+	struct GetTopicRequest
+	{
+		0 require  string topicId;
+		1 optional int    reqSrc;   //请求来源，0：默认 1：webdoki 2：发表
+		2 optional int    needFeeds=0; //需要拉主贴详情  0：不要 1：需要
+		3 optional string pageContext; //翻页上下文
+	};
+	struct GetTopicResp
+	{
+		0 require int errorCode;  // 0:success
+		1 optional TopicInfo topicInfo;
+		2 optional vector<jce::CirclePrimaryFeed> feeds;
+		3 optional string pageContext;			//翻页上下文
+		4 optional string sponsorName;
+		5 optional string sponsorFaceUrl;
+		6 optional vector<string> starNames;	//相关明星
+		7 optional vector<string> cidNames;		//相关cid
+		8 optional vector<string> lidNames;	    //相关栏目id
+		9 optional vector<string> vedioDokiIds;   //相关的剧doki
+		10 optional string postDataKey;
+		11 optional string extraKey;
+	};
+	
+	// 5. 通过标题搜索话题
+	struct SearchTopicRequest
+	{
+		0 optional string title;
+		1 optional int    flag=0;
+		2 optional int    reqSrc;   //请求来源，待定
+	};
+	struct SearchTopicResp
+	{
+		0 require  int  errorCode;  // 0:success
+		1 optional string topicId;  //满足条件的其中一个topicId，将来作废
+		3 optional string extraKey; //话题复写
+		4 optional vector<string> topicIds; //满足条件的所有topicId，但是过滤了视频话题的
+		5 optional vector<string> allTopicIds;  //满足条件的所有topicId
+	};
+	
+	// 发表之前通过标题搜索话题，支持多个title同时搜索
+	struct SearchTopicsForPubRequest
+	{
+		0 optional vector<string> titles;
+	};
+	struct SearchTopicsForPubResp
+	{
+		0 require  int  errorCode;  // 0:success
+		1 optional map<string, vector<jce::TopicInfoLite> > topicIds; //每个title对应的话题列表
+	};
+	
+	// 6. 读排行榜
+	//读取话题排行榜总榜
+    //或者读取和某个明星相关的话题排行榜
+	//或者读取和某个cid/vid相关的话题排行榜
+	struct GetTopicTopListRequest
+	{
+		0 require  int    type; 	// 0:总榜 1:和某个明星相关 2：和cid相关 3：和vid相关
+		1 require  int    reqSrc;   //请求来源，待定
+		2 optional string starId;  //和某个明星有关
+		3 optional string cid;      //和某个剧集有关
+		4 optional string vid;		//和某个剧集有关
+		5 optional string startPage; //从哪一页开始读取
+	};
+	struct GetTopicTopListResp
+	{
+		0 require int errorCode;  // 0:success
+		1 optional vector<TopicInfo> topics; 	//话题列表
+		2 optional string nextPage; //下一页，空表示最后一页
+	};
+	
+	// 7. 读话题的评论（作废）
+	struct GetPostsRequest
+	{
+		0 optional string topicId;  //话题id
+		1 optional string topicTitle;
+		2 optional int    flag;
+		3 optional string startPage; //从哪一页开始读取
+	};
+	struct GetPostsResp
+	{
+		0 require  int errorCode;  // 0:success
+		1 optional vector<string> postId; 	//评论id列表
+		3 optional string nextPage; //下一页，空表示最后一页
+	};
+	
+	//8. 读话题热榜，非onaview
+	struct GetHotTopicsRequest
+	{
+		0 optional string dataKey;
+		1 optional string reqSrc;   //请求来源，暂时忽略
+		2 optional string pageContext;
+	};
+	struct GetHotTopicsResp
+	{
+		0 require int errorCode;  // 0:success
+		1 optional vector<TopicInfo> topics; 	//话题列表
+		2 optional string pageContext; //下一页，空表示最后一页
+	};
+	
+	//9. 话题是否有井号
+	struct GetPubHasTopicsRequest
+	{
+		0 optional string dataKey;
+		1 optional int cfrom; // 8 doki广场
+	};
+	struct GetPubHasTopicsResp
+	{
+		0 require  int errorCode;  // 0:success
+		1 optional string errorMsg;
+		2 optional bool bHaveTopics = false;
+	};
+	
+	//10. 获取相关话题
+	struct GetRelatedTopicsRequest
+	{
+		0 require  string dataKey;
+		1 optional string pageContext;
+		2 optional int scene; 	 // 1 精选页卡推荐模块 2 webdoki
+		3 optional int minCount; // 0 按实际数量返回 >0不够取热榜的补充
+		4 optional int getAuto;  // 0 不返回自动话题（人名和剧名） 1 返回自动话题
+	};
+	struct GetRelatedTopicsResp
+	{
+		0 require  int errorCode;  // 0:success
+		1 optional string errorMsg;
+		2 optional vector<TopicSummary> topicVec;
+		3 optional string pageContext;
+	};
+	
+	// 11. 读排行榜(支持视频话题)
+	struct GetTopicListRequest
+	{
+		0 require  int    type;  // 0:总榜
+		1 optional int    reqSrc;   //请求来源，待定
+		2 optional int    topicType;     //话题类型（按bit设置）0：全部 1:明星话题 2：普通 4:视频话题
+		3 optional int    pageSize; //每页数量，后台有数量限制
+		4 optional string    pageContext;	
+	};
+	struct GetTopicListResp
+	{
+		0 require int errorCode;  // 0:success
+		1 optional vector<string> topicIdList;  //话题列表
+		2 optional string nextPageContext;
+	};
+
+	// 12. 通过id读取话题详情(支持视频话题)
+	struct GetTopicDetailRequest
+	{
+		0 require  string topicId;
+		1 optional int    reqSrc;   //请求来源，0：不更新pv 1：广场页视频话题卡 2：底层页视频话题卡 3：详情页
+		2 optional int    needFeeds=0; //需要拉主贴详情  0：不要 1：需要
+		3 optional int    pageSize; //每页数量，后台有数量限制
+		4 optional string    pageContext;		
+	};
+	struct GetTopicDetailResp
+	{
+		0 require int errorCode;  // 0:success
+		1 optional string errorMsg;
+		2 optional TopicInfo topicInfo;
+		3 optional vector<string> feedids;
+		4 optional string nextPageContext; //
+		5 optional string sponsorName;
+		6 optional string sponsorFaceUrl;
+		7 optional vector<string> starNames; //相关明星
+		8 optional vector<string> cidNames;  //相关cid
+		9 optional vector<string> lidNames;     //相关栏目id
+		10 optional vector<string> dokiIds;   //相关的doki	
+	};
+ 
+	//自动开明星话题
+	struct stStarInfo
+	{
+		0 optional string star_id;
+		1 optional string star_name;
+		2 optional string ftid; //饭团id
+	};
+	struct autoCreateTopicReq
+	{
+		0 optional vector<stStarInfo> starInfoVec;
+	};
+	struct autoCreateTopicRsp
+	{
+		0 optional  int errorCode;  // 0:success
+		1 optional  int successCount;
+		2 optional  vector<int> errors;
+	};
+	struct autoDeleteTopicReq
+	{
+		0 optional vector<stStarInfo> starInfoVec;
+	};
+	struct autoDeleteTopicRsp
+	{
+		0 optional  int errorCode;  // 0:success
+	};
+	struct getAutoTopicIdReq
+	{
+		0 optional vector<string> starIds;
+	};
+	struct getAutoTopicIdRsp
+	{
+		0 optional  int errorCode;  // 0:success
+		1 optional  map<string, string> starId2topicId;  // 明星id到话题id的map
+	};
+	struct relationAutoTopicReq
+	{
+		0 optional map<string, vector<string>> addCid2TopicIds;
+		1 optional map<string, vector<string>> addLid2TopicIds;
+		2 optional map<string, vector<string>> delCid2TopicIds;
+		3 optional map<string, vector<string>> delLid2TopicIds;
+		4 optional vector<string> delCids;
+		5 optional vector<string> delLids;
+	};
+	struct relationAutoTopicRsp
+	{
+		0 optional  int errorCode;  // 0:success
+		1 optional  int successCount;
+		2 optional  vector<int> errors;		
+	};
+
+};

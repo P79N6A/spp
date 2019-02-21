@@ -1,0 +1,343 @@
+#include "qqvideo_ad_defines.jce"
+
+module jce
+{
+    struct AdReport
+    {
+
+	    0 optional string reportKey;				//上报key
+	    1 optional string reportParam;				//上报参数
+	    2 optional string url;						//上报广告url
+	    3 optional vector<string> apiReportUrl;		//api上报广告url
+	    4 optional vector<string> sdkReportUrl;		//sdk上报广告url
+	    5 optional int reportTime;                //播放到reportTime秒时进行上报，贴片广告上报时用，单位毫秒
+    };
+
+    struct AdShareItem
+    {
+        0 optional string shareUrl;						//分享h5链接地址
+	    1 optional string shareTitle;					//分享使用的主标题
+	    2 optional string shareSubtitle;				//分享使用的副标题
+	    3 optional string shareImgUrl;					//分享图片链接
+	    4 optional bool shareFromH5 = true;             //是否从h5中提取分享信息
+	    5 optional string sharePage;                    //分享来源
+	    6 optional bool shareEnable;                    //是否允许分享
+    };
+
+    struct PackageAction
+    {
+	    0 optional string url;//应用直达的url
+	    1 optional string coordinatesStr;//写入剪贴板的JSON字符串
+    };
+
+    struct AdActionButton 
+    {
+        0 optional string icon;  //行动按钮图标
+        1 optional string tips;  //行动按钮文案
+    };
+
+    struct AdCorner
+    {
+        0 optional map<string, AdActionButton> actionButton;  
+			//约定key：default-底部默认展示的行动按钮 （下载，应用直达未安装；普通外链、JD外链）
+			//open-下载，应用直达应用已安装时底部展示的行动按钮
+			//playEnd-视频广告播放结束蒙版上的行动按钮  
+			//焦点图不支持行动按钮
+	    1 optional PackageAction packageAction;
+	    2 optional string packageName;//打开包名，判断是否有安装
+		3 optional string appIconUrl;  //下载应用的图标地址
+		4 optional string appName;     //下载应用的名称
+    5 optional int highlightDelay = -1; //行动按钮曝光高亮延迟时间 单位秒，默认值为-1 关闭高亮特效
+    6 optional string highlightColor;  //行动按钮图标和文案的高亮颜色 ”#FFFFFF“
+    };
+
+
+
+	//请求广告需要使用的平台相关信息
+	struct AdPlatformInfo
+    {
+	    0 optional string hwmodel;					//移动设备硬件类型,ios 从系统hw.model中获取 
+	    1 optional string hwmachine;				//移动设备型号,ios 从系统hw.machine中获取
+	    2 optional string deviceToken;				//push使用的deviceToken
+	    3 optional string idfv;						//idfv,ios 从系统接口identifierForVendor 中获取
+	    4 optional string screenSize;     			//屏幕尺寸如5.5
+	    5 optional string appid;					//一般以com.开头,例如ios：com.tencent.live4iphone
+	    6 optional string mobileNetworkCode;		//移动运营商编码 MCC+MNC 比如中国移动”46000”
+        7 optional string routerMacAddress; 		//移动设备路由器MAC地址
+        8 optional string wifiName;					//当前手机连接wifi
+        9 optional string brands;					//移动设备品牌
+		10 optional string macaddress;				//移动设备mac地址 
+		11 optional string androidid; 				//android 特有
+		12 optional string mid;						//android 特有 odk分配id
+		13 optional string city;					//android 特有
+		14 optional string street;					//android 特有
+		15 optional string oauth_consumer_key;		//android 特有
+		16 optional string app_channel;				//android 特有
+		17 optional string openudid;				//移动设备唯一标识
+	};
+		//广平sdk请求广告需要使用的相关信息
+	struct AdSdkRequestInfo
+    {
+	    0 optional string sdkversion;							//广告sdk版本,ios 如：QViPhoneV4.0 
+	    1 optional string requestid;							//请求ID，唯一标识符标识当前请求
+		2 optional string appversion;							//sdk版本号，例如：180202
+		3 optional vector<string> deduplicationOids;			//引擎排重订单
+		4 optional string requestCookie;						//广平广告请求需要带的cookie
+	};
+
+    //广告请求参数数据结构
+	struct AdRequestInfo
+    {
+	    0 optional AdPlatformInfo platformInfo;					//请求广告需要的平台相关信息
+	    1 optional long timestamps;						//客户端请求时的时间戳，单位ms
+    };
+    
+
+	//广平广告回包信息，透传给sdk
+	struct AdSdkResponseInfo
+    {
+	    0 optional string responseCookie;					//广平广告回包中的cookie，用于后续曝光，点击上报时带上
+	    1 optional string adxResponse;						//透传adx广告 json数据
+	};
+
+   //广告上报核心数据结构
+	struct AdCoreReportInfo
+    {
+        0 optional AdReport exposureReport; 				//广告的有效曝光上报
+	    1 optional AdReport clickReport; 					//广告点击上报
+        2 optional AdReport effectReport; 					//广告效果上报
+		3 optional string adReportKey;						//广告上报透传reportkey字段
+		4 optional string adReportParams;					//广告上报透传reportParams字段
+		5 optional AdReport originExposureReport; 			//广告的原始曝光上报
+		6 optional AdReport emptyReport; 					//广告的空单曝光上报
+		7 optional int dp3ReportEnable;						//是否需要dp3上报   	0 不需要 ； 1 需要
+		8 optional int wisdomReportEnable;					//是否需要智慧点上报	0 不需要 ； 1 需要
+    };
+
+    //广告基本数据结构
+	struct AdBaseInfo
+    {
+	    0 require string adId;								//广告标识
+	    1 optional AdCoreReportInfo reportInfo;				//广告核心上报
+		2 optional map<string,string> extraParam;	   		//额外的参数   约定channelId-频道Id seq-广告的相对位置 absSeq-广告的绝对位置 debugMsg-Debug信息（广告信息名称 & 广告ID & 广告主ID & 商品ID & 商品类型 & 行业 & 广告相对位置 & 广告绝对位置）adPos-广告位	
+		3 optional string adCookie;							//广告cookie，下次请求的时候需要将cookie带上，上报时也需要给请求注入cookie
+		4 optional int isEmptyAd;							//0:有效订单；1:空单
+    };
+
+
+
+	//广告脚标标签
+	struct AdMarkLableInfo
+    {
+	    0 require byte position;								//0 左上，1右中 2右上，3左下，4右下
+	    1 optional string imageUrl;							//广告图片        
+      2 optional byte type;                    //0 表示文字 1 表示脚标图片
+      3 optional string bgColor;              //标签的背景颜色（ #FF7F00橘色）
+      4 optional string primeText;            //为文字时使用 标签的内容使用  <font color="#ff00ff00">文字内容</font> 的方式来指定
+    };
+
+    //皮肤广告数据结构
+	struct AdSkinInfo
+    {
+	    0 optional AdBaseInfo adBaseInfo;						//广告基本数据结构
+	    1 optional vector<AdMarkLableInfo> markLableList;		//广告脚标标签      
+    };
+
+    //搜索热词广告数据结构
+	struct AdHotWordInfo
+    {
+	    0 optional AdBaseInfo adBaseInfo;						//广告基本数据结构
+	    1 optional int from;							        //广告来源   
+	    2 optional string dataKey;   							//透传字段
+    };
+
+    //闪屏配置+webview配置
+    struct AdCommonConfigRequest
+    {
+       0 require string  requestId;                           //每次拉取配置时的唯一id
+    };
+
+    //框内广告sdk配置回包
+    struct AdCommonConfigResponse
+    {
+       0 require int errCode;
+       1 optional string configJson;    //配置的JSON字符串
+    };
+    struct AdRangeReport
+    {
+      0 optional int reportBegin;          //上报区间起始时间，单位毫秒
+      1 optional int reportEnd;            //上报区间结束时间，单位毫秒
+      2 optional AdReport adReport;        //adReport
+    };
+
+    //广告曝光数据结构
+    struct AdInSideVideoExposureItem
+    {
+    	0 optional vector<AdReport> originExposureReportList;     //广告的原始曝光上报
+    	1 optional vector<AdReport> exposureReportList; 	        //广告的有效曝光上报
+    	2 optional AdReport emptyReport; 			                    //广告的空单曝光上报
+    	3 optional string   adReportKey;			                    //广告曝光mta上报透传reportkey字段
+    	4 optional string   adReportParams;			                  //广告曝光mta上报透传reportParams字段	
+      5 optional AdReport playbackReport;                       //播放上报
+      6 optional vector<AdRangeReport> rangeReportList;         //广告的区间曝光上报
+    };
+
+    //点击跳转action
+    struct AdActionReport
+    {
+      0 optional AdReport clickReport;      //点击上报
+      1 optional AdReport effectReport;     //广告效果上报
+      2 optional AdReport feedBackReport;   //负反馈上报
+      3 optional string   adReportKey;      //广告点击mta上报透传reportkey字段
+      4 optional string   adReportParams;   //广告点击mta上报透传reportParams字段  
+    };
+      
+
+    //打开url item 
+    struct AdUrlItem
+    {
+      0 optional string url;      //url
+    };
+
+    //应用下载Item  广平应用下载
+    struct AdDownloadItem
+    {
+      0 optional AdUrlItem urlItem;     //url
+      1 optional string packageName;    //打开包名，判断是否有安装
+      2 optional string appIconUrl;     //下载应用的图标地址
+      3 optional string appName;        //下载应用的名称
+      4 optional int downloadType;      //下载方式，1-应用宝详情页下载；2-广平接口直接下载；3-跳h5下载；4-spa接口直接下载
+      5 optional int versionCode;       //版本号
+      6 optional string channelId;      //渠道
+      7 optional bool autoDownload = false;     //是否自动下载
+      8 optional bool autoInstall = false;      //是否自动安装
+      9 optional int downloadActionType;       //跳转行为类型，0:不处理，1:预加载
+    };
+
+    //打开第三方appItem  应用直达(spa/adx)
+    struct AdOpenAppItem
+    {
+      0 optional PackageAction packageAction;               //应用直达信息
+      1 optional EAdOpenAppFailedAction openFailedAction;   //打开第三方app失败后的行为
+      2 optional AdDownloadItem downloadItem;               //下载信息
+      3 optional string appName;                            //应用名称
+      4 optional string packageName;                        //打开包名，判断是否有安装
+    };
+
+    //打开小程序
+    struct AdOpenMiniProgramItem
+    {
+      0 optional AdUrlItem urlItem;     //url
+      1 optional string    appName;    //小程序名称
+    };
+
+    //打开巨幕广告 
+    struct AdOpenCanvasItem
+    {
+      0 optional string verticalUrl;     //竖屏时打开的url 
+      1 optional string horizontalUrl;    //横屏时打开的url 
+    };
+
+    //打开H5页面
+    struct AdH5UrlItem
+    {
+      // 这里没有h5的链接，h5的链接是通过点击上报的url来进行跳转的
+      0 optional int webviewType = 1;     //打开webview的方式：1，通过sdk内部webview打开;2，通过app的webview打开 
+      1 optional string adxSplashH5Url;      //广平闪屏落地页的url（专用），因为广平闪屏不走click上报。
+      2 optional int h5UrlValid = 0;      //0:表示adxSplashH5Url无效（SPA用）；1表示adxSplashH5Url有效（广平用）；
+    };
+
+    //点击跳转action
+    struct AdActionItem
+    {
+      0 optional AdUrlItem adUrl;                             //跳转url数据，仅仅用作跳转native和微信使用，切记，不要用来作h5跳转
+      1 optional AdDownloadItem adDownload;                   //下载数据
+      2 optional AdOpenAppItem  adOpenApp;                    //打开第三方app数据
+      3 optional AdOpenMiniProgramItem adOpenMiniProgram;     //打开小程序数据
+      4 optional AdOpenCanvasItem adOpenCanvasItem;           //打开巨幕广告 
+      5 optional int parseType;                               //0-不解析上报回包数据，1-解析上报回包的clickId、link信息
+      6 optional AdH5UrlItem adH5UrlItem;                     //打开h5页面
+    };
+
+    //点击行为
+    struct AdAction
+    {
+       0 require  EAdActionType  actionType;              //订单点击类型
+       1 optional AdActionItem   actionItem;              //点击item
+       2 optional AdActionReport   actionReport;          //点击上报
+       3 optional int pageType;       //页面类型 0 是普通页面跳转（非拼接页） 1 拼接页
+    };
+
+    //订单位置信息
+    struct AdPositionItem
+    {
+       0 optional  string  channelId;                        //频道id
+       1 optional  int  position;                            //所处的频道的相对位置
+       2 optional  int  absPosition;                         //所处的频道的绝对位置
+       3 optional  string  adSpace;                          //广告位
+    };
+
+    //订单信息
+    struct AdOrderItem
+    {
+       0 require  string  orderId;                          //订单Id
+       1 optional EAdType adType;                           //取值含义详见视频广告广告类型列表（广告类型 同请求的ad_type定义相同）
+       2 optional AdInSideVideoExposureItem exposureItem;    //曝光数据上报数据
+       3 optional AdAction adAction;                        //订单点击
+       4 optional AdPositionItem positionItem;              //订单位置信息
+       5 optional map<string,string> adExperiment;          //广告实验参数
+    };
+
+    //广告标题信息
+    struct AdInsideTitleInfo
+    {
+       0 optional string title;                  //标题
+       1 optional string firstSubTitle;          //不需要判断app安装状态的广告类型从这里获取副标题，需要判断app安装状态的，已安装时从这里获取
+       2 optional string secondSubTitle;         //未安装时从这里获取副标题
+       3 optional string dspName;                //第三方投放平台的dspName
+    };
+
+    //行动按钮 品牌氛围卡
+    struct AdActionButtonInfo
+    {
+        0 optional map<string, AdActionButton> actionButton;
+        //约定key：
+        //default-底部默认展示的行动按钮 （下载，应用直达未安装；普通外链、JD外链）
+		//（仅aphone使用）open-下载，应用直达应用已安装时底部展示的行动按钮
+		//playEnd-视频广告播放结束蒙版上的行动按钮  
+        1 optional AdAction adAction; //按钮action
+    };
+    //沉浸式广告信息
+    struct ImmersiveAdInfo
+    {
+        0 require bool isValid = false;
+        1 optional AdOrderItem orderItem;           //订单信息
+        2 optional AdInsideTitleInfo adTitle;       //按钮标题
+        3 optional int stayTime;                    //结束停留时长,单位秒
+    };
+    //广告模版包裹结构体
+    struct AdONATempletItem
+    {
+        0 require EAdONAViewType itemType;                                //view的类型
+        1 optional vector<byte> data;                                   //模版对象序列化后的内容
+    };
+
+    //广告模版行结构
+    struct AdONATempletLine
+    {
+        0 require AdONATempletItem item;                        //每个模版其实都是独占一行的
+    };
+
+    //广告海报模版
+    struct AdcPoster
+    {
+      0 optional string imageUrl;                        // 图片地址
+      1 optional vector<AdMarkLableInfo> markLabelList;  // 脚标列表
+    };
+    //花絮广告首页内容数量，及最大显示数量
+    struct AdDetailShowSizeInfo
+    {
+        0 optional int contentCount;	//首次拉取内容数量
+        1 optional int maxOutShowSize;   //首屏内容最大显示数量
+    };
+};

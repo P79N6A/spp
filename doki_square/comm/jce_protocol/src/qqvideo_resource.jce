@@ -1,0 +1,28 @@
+module jce
+{
+	struct ResourceCurInfo{
+		0 require int pid; //业务id
+		1 require string resName; //资源名称
+		2 require string curVersion; //版本号[可设置在某个版本区间内的so均升级到最新so而不用管客户端版本]
+	};
+
+	struct ResouceUpgradeInfo{
+		0 require int retCode; //错误码
+		1 require int pid; //业务id
+		2 require string resName; //包名称
+		3 optional string destVersion; //目的版本号
+		4 optional string downloadUrl; //下载地址
+		5 optional string md5; //md5校验值
+	};
+
+	//请求
+	struct ResourceUpgradeRequest{
+		 0 require vector<ResourceCurInfo> curInfos;
+	};
+
+	//回包
+	struct ResourceUpgradeResponse{
+		0 require int retCode; //0：请求成功 -100：服务过载
+		1 optional vector<ResouceUpgradeInfo> upgradeInfos;
+	};
+};

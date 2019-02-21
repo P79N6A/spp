@@ -1,0 +1,77 @@
+#include "qqvideo_common.jce"
+
+module jce
+{
+
+	struct MCReplyParamInfo
+	{
+		0 optional string parentId;
+		1 optional string dataKey;
+	};
+
+	// 评论、点赞 帖子内容
+	struct MCMessageContent
+	{
+		0 optional ActorInfo userInfo;
+		1 optional string msgContent;
+		2 optional vector<CircleMsgImageUrl> imageList;
+		3 optional ActorInfo parentUserInfo;
+		4 optional bool isDeleted = false;  // 是否删除
+		5 optional bool isLike = false;     // 是否点赞
+		6 optional string feedId;           // 帖子id
+		7 optional ApolloVoiceData voiceData; //语音数据
+	};
+
+	struct MCMessageItem
+	{
+		0 require string msgId;
+		1 require int msgSource;     // 消息的来源，如影视圈，饭团等
+		2 require int msgType;       // 1评论 2 点赞
+		3 optional long time;		 //消息的发表时间，展示用
+		4 optional MCMessageContent content;              //当前帖信息
+		5 optional vector<MCMessageContent> parentList;  
+		6 optional MCMessageContent feed;                 //主帖信息
+		7 optional MCReplyParamInfo replyParamInfo;
+		8 optional Action action;
+	};
+
+	struct MCGetNewMsgInfoRequest
+	{
+		0 require string version;
+	};
+
+	struct MCGetNewMsgInfoResponse
+	{
+		0 require int errCode;
+		1 require string version;
+		2 optional int msgCount;
+	};
+
+	struct MCGetMsgListRequest
+	{
+		0 require string pageContext;
+		1 optional int readFlag; //0-未读 1-已读
+		2 optional string version; //上次本地版本号，pageContext为空要带上
+	};
+
+	struct MCGetMsgListResponse
+	{
+		0 require int errCode;
+		1 require string pageContext;
+		2 require bool hasNextPage;
+		3 optional vector<MCMessageItem> msgItemList;
+	};
+
+	struct MCDeleteMessageRequest
+	{
+		0 require string msgId;
+		1 require int msgSource;     // 消息的来源，如影视圈，饭团等
+	};
+
+	struct MCDeleteMessageResponse
+	{
+		0 require int errCode;
+	};
+};
+
+

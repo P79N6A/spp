@@ -1,0 +1,1729 @@
+#include "qqvideo_common.jce"
+#include "qqvideo_vplus_reward.jce"
+#include "qqvideo_ad.jce"
+
+module jce
+{
+    //ONAViewCSS
+	struct ONAViewCSS
+	{
+		0 optional int styleID;							//0:默认样式 1:iPad 儿童模式样式
+		1 optional map<string, string> propertyList;	//属性列表
+	};
+	// 自定义按钮，目前用于搜索的播放按钮，已经存在ActionBarInfo，此结构废弃
+	struct ONAButtonInfo 
+	{
+		0 require string title;  // 按钮上标题
+		1 optional string titleColor;  //标题颜色
+		2 optional string bgColor; //按钮背景色
+		3 optional Action action;  //点击按钮跳转
+	};
+
+	//一行多个海报:最多同时显示三个，三个时竖图，以下为横图（首页、运营页下发）
+	struct ONAMultPoster
+	{
+		0 require vector<Poster> posterList;//单行海报列表（action都可以单独跳转）	
+		1 optional int showNum;				//支持最多显示三个showNum<=0按照前端规则显示，showNum>=3都作为3个显示；即配置有效个数则按照后台配置不满一行使用空白占位
+		2 optional int style;               //style==1时显示为影集样式 2 海报为正方形、无标题样式，用于达人频道里的最新
+		3 optional byte uiType;              //默认为0，每一行左右留有间距，1-左右无间距
+		4 optional ONAViewCSS onaCSS;        //ONAView样式结构
+		5 optional ChannelInsertInfo channelInsertInfo;  // 非快捷区域频道插入的辅助信息
+	};
+	
+	//运营页、明星个人页、V+主页头部海报
+	struct ONAHeadPoster
+	{
+		0 require Poster poster;			//包含头图url和action，firstLine，主标题左侧文字（action若配置可整个view点击跳转）
+		1 optional ActorInfo actor;         //明星信息
+		2 optional VRSSItem rssItem;        //V+号信息
+	};
+	
+	
+	//V+主页头部海报
+	struct ONAVRSSHeadPoster
+	{
+		0 require VRSSItem rssItem;        //V+号信息
+	};
+	
+	//广告海报画廊
+	struct ONAGalleryAdPoster
+	{
+		0 optional byte uiType;	                 //为了支持首页海报和横向占满两种：uiType=0默认首页样式，1横向占满,2好莱坞Tab页样式(高宽比726:320，不显示主副标题)
+		1 optional byte adType;	                 //广告类型， 0首个海报 1信息流海报
+		2 optional int adKey;	                 //广告的id，每个类型的广告有个一自增的id从0开始
+		3 optional vector<Poster> posterList;	 //首个广告海报要和我们的首个视图查在一起所以这里需要将我们的首个视图数据放在这里
+		4 optional string extension;             //广告扩展字段，需要从广告侧获取
+		5 optional string adSerialNumber;		 //用来标识焦点图广告出现的位置
+		6 optional vector<PosterGroup> insertPosterGroup; //在posterList中指定位置插入一组Poster
+		7 optional AdFocusInfo focusInfo;//广告焦点图信息
+		8 optional int bottomPadding;            //下空白间距
+	};
+	//海报大标题
+	struct ONAPosterTitle
+	{
+		0 require string title;								// 主标题
+		1 optional string subhead;							// 右侧更多入口提示
+		2 optional Action action;							// 点击后执行的动作，如果没有此字段，不会有右向箭头	
+		3 optional vector<MarkLabel> markLabelList;			// 脚标列表，对主标题起作用
+		4 optional byte style;								// 样式，低五位byte(ZABCD), Z:右侧是否展示按钮 0-不展示 1-展示 A:副标题位置，0-另起一行，1-紧跟主标题后面；B:箭头位置，0-右边，1-紧跟标题；C：0-普通样式，1-VIP即将上映，D：0-普通样式，1-个性化样式 
+		5 optional vector<MarkLabel> subMarkLabelList;		// 脚标列表，对副标题起作用	
+		6 optional string reportParams;				    	// 上报参数
+		7 optional string subTitle;	    					// 主标题下面的副标题
+		8 optional VideoImage imag;    						// 左侧头像区域 默认圆形点击可跳转
+		9 optional string reportKey;   						// 上报key
+		10 optional string titleColor;						// 标题颜色
+		11 optional string bgColor;							// 背景色
+		12 optional int uiType;								// 用来表示postertitle后面的箭头图片的，默认是0（如果有是白色），好莱坞的样式要下发1，展示金色的箭头
+		13 optional ONAViewCSS onaCSS;						// ONAView样式结构
+		14 optional ChannelInsertItem channelInsertItem;    // 非快捷区域频道插入按钮信息 
+		15 optional ActionBarInfo rightChainInfo;    		// 右侧文字链、右侧按钮、右侧学习模块进度
+		16 optional int rightChainType;						// 0 代表右侧文字链；1 代表右侧圆角按钮(跑马灯)；2 代表右侧学习模块进度；3 右侧圆角按钮文字（静态）
+		17 optional int imagUIType;							// 左侧头像区域 UIType: 0 默认圆形点击可跳转20*20dp; 1 方形图32*32dp; 2 方图 高度20dp、宽度最大为屏幕宽度/2
+		18 optional int extraInfoType;						// 需要额外展示信息，0：默认不展示  1：展示当前ona所在的底层页cid对应的学习时长文案
+		19 optional PromotionAppDetail promotionAppInfo;  // 第三方app拉动详情
+	};
+	
+	//添加用户信息的海报大标题
+	struct ONAUserPosterTitle{
+		0 require string title;			//主标题
+		1 optional string subhead;		//右侧更多入口提示
+		2 optional Action action;		//点击后执行的动作，如果没有此字段，不会有右向箭头	
+		3 optional vector<MarkLabel> markLabelList;	//脚标列表，对主标题起作用
+		4 optional vector<MarkLabel> subMarkLabelList;	//脚标列表，对副标题起作用	
+		5 optional string reportParams;				    //上报参数
+		6 optional string deafultTitle;	//没有登录态默认下发的字段
+		7 optional byte style;			//样式，低四位byte(ABCD),A:副标题位置，0-另起一行，1-紧跟主标题后面；B:箭头位置，0-右边，1-紧跟标题；C：0-普通样式，D：是否显示用户头像，0-隐藏，1-显示，并跟随登录态变化
+		8 optional Action userPhotoAction;   //点击用户头像跳转动作
+		9 optional string reportKey;   //上报key
+	};
+
+	//分割线，里面的内容纯占位
+	struct ONASplitLine
+	{
+		0 optional string color;			//无意义纯占位
+		1 optional byte aroundSpace;		//低四位的1分别表示左上右下存在间隙，如左边有间隙则低四位为1000，左右有间隙为1010
+		2 optional int uiType;              // 0,默认  1，隐藏上下空白的占位图; 注意：当被包含在ONAView视图中时64表示显示出来，其余不显示
+		3 optional string title;          // 分割线上的标题
+		4 optional int titlePosition;      // 分割线上标题位置  0 –无标题 1-左边  2-中间 3-右边
+		5 optional int location;		   //当这个视图放在某些视图内不时 0 不显示  1 整体下方  2 整体上方(490)
+		6 optional int bottomPadding;       //底部区域间隙，以dip为单位
+		7 optional ONAViewCSS onaCSS;        //ONAView样式结构
+	};
+
+	//加载更多按钮
+	struct ONALoadMoreAction
+	{
+		0 require int uiType;       //0. 只有文字，1. 只有向下的箭头，2. 文字+向右箭头
+		1 optional string title;
+		2 optional int actionType;  //0. 跳转，1. 刷新数据
+		3 optional Action action;
+		4 optional string type;
+		5 optional string dataKey;
+		6 optional string reportParams;		//点击事件用来上报的内容(点击)
+		7 optional string reportKey;		//点击事件用来上报的事件名称，后台下发必须以"server_"开头
+		8 optional string routeKey;         //协议请求的路由字段
+		9 optional int loadSource;          //0-运营页协议，1-个性化协议
+	};
+	
+	//明星投票和直播排行榜的显示列表
+	struct ONAStarList
+	{
+		0 require vector<ActorInfo> starList;		//明星列表；注意，默认显示均分的4个或以下，超过四个，第四个会露出一些
+		1 require byte showFlag;					//显示控制位， 0表示普通头像显示，1表示投票显示
+		2 optional string dataKey;					//用在有2级跳转的时候数据回填
+		3 optional string reportParams;				//上报参数
+		4 optional int uiStyle;                     // 0 表示明星投票列表样式 1表示直播排行列表样式
+		5 optional string  reportKey;              //上报(485)
+		6 optional ONAViewCSS onaCSS;				//ONAView样式结构
+	};
+
+	
+	//搜索结构横图
+	//一个左海报，右文字的展现方式。在海报的基础上多显示一个播放数
+	struct ONANewsItem
+	{
+		0 require Poster poster;			//左边显示的海报图,这里如果有action，可以单独响应
+		1 optional Action action;           //此处action负责整个view跳转（不需要自动播放）
+		2 optional byte uiType;					//0:普通样式  1:饭团更新样式 2:详情页简介快报样式 3：话题列表样式
+		3 optional vector<IconTagText> lineTag;
+		4 optional VideoAttentItem attentItem;	//关注信息
+		5 optional ShareItem shareItem;			//分享信息
+		6 optional string feedbackDataKey;		//负反馈的key值
+		7 optional string feedbackType;			//负反馈的type值
+		8 optional string mdsumVideo;		    //视频的md5值
+	};
+	
+	//赛事新闻和赛事呈现
+	struct ONAMatchSchedule
+	{
+		0 require int status;	        // 0表示未知（表现形式同3）、1表示进行中、2表示已结束、3表示未开始
+		1 optional string matchIcon;	//上面一支队伍的icon	
+		2 optional string firstText;	
+		3 optional string secondText;	// firstText和secondText会根据有无matchIcon来竖向或横向排版
+		4 optional VideoAttentItem attentItem;          //用于关注的数据结构
+		5 optional Action action;		//点击后的跳转动作
+		6 optional vector<ActionBarInfo> actionBars;		//拉动条
+		7 optional string  infoTitle;	//后台需要根据当前状态配置文字（最好不超过4个字）
+		8 optional string reportKey;	//上报参数
+		9 optional string reportParams;	//上报参数
+	};
+	
+	//竞赛呈现 
+	struct ONACompeteSchedule
+	{
+		0 require int status;	        // 0表示未知（表现形式同3）、1表示进行中(正在直播)、2表示已结束（如果有比分，则在已结束上显示比赛名称和时间）、 3表示未开始(关注)	
+		1 require string topIcon;		//上面一支队伍的icon	
+		2 require string topTitle;		//队伍的名称
+		3 require string btmIcon;       //下面一支队伍的icon	
+		4 require string btmTitle;      //下面一支队伍队伍的名称
+		5 optional string firstLine;	//比赛名称
+		6 optional string secondLine;	//比赛时间
+		7 optional int topScore;	    //上面一支队伍的分数
+		8 optional int btmScore;	    //下面一支队伍的分数
+		9 optional VideoAttentItem attentItem;          //用于关注的数据结构
+		10 optional Action action;		//点击后的跳转动作
+		11 optional vector<ActionBarInfo> actionBars;		//拉动条
+		12 optional string  infoTitle;	//后台需要根据当前状态配置文字（最好不超过4个字）
+		13 optional string reportKey;   // 上报key
+		14 optional string reportParams; //上报参数
+	};
+	
+	struct ONAGrid
+	{
+		0 require vector<GridItem> itemList;	//数据
+		1 require int rowCount;					//grid 有多少列
+		2 optional byte uiType;					//0:普通样式  1:个性化推荐样式 2:儿童模式
+		3 optional byte childModeButtonShow;    //0:进入儿童模式按钮不显示 1:进入儿童模式按钮显示
+		4 optional ONAViewCSS onaCSS;			//ONAView样式结构
+	};
+	
+	
+	
+	//影视圈分享，此控件会自动获取相关好友信息
+	struct ONADetailsVideoCircleShare
+	{
+		1 require string shareTitle;			//分享的提示语，目前是“分享给小伙伴”
+		2 require string readKey;				//读取信息使用的key（待定）
+		3 require string writeKey;				//写操作使用的key（待定）
+		4 optional byte uiType;					//0:详情页样式  1:个性化推荐样式(显示分享内容和图片)
+	};
+	
+	//详情页视频标题工具条，有关注和缓存功能
+	struct ONADetailsToolbar
+	{
+		0 require string title;							//标题
+		1 optional string updateDetails;				//简介
+		2 optional vector<MarkLabel> markLabelList;		//标题矩形区域的脚标
+		3 optional VideoAttentItem attentItem;          //用于关注的数据结构
+		4 optional string cacheDataKey;					//缓存列表的key，可能为defaultVideoDataKey或者defaultCoverDataKey之一
+		5 optional byte uiType;							//0:详情页样式  1:个性化推荐样式 2.feel流样式（隐藏评论入口）
+		6 optional string subTitle;						//副标题
+		7 optional vector<MarkLabel> subLabelList;		//附标题矩形区域的脚标
+
+
+		9 optional ShareItem shareItem;          		//用于分享
+		10 optional vector<ActorInfo> actors;			//头像信息
+		11 optional long feedsNum;						//影视圈feed个数
+		12 optional int downloadCopyRight;				//是否可以下载  方便后面扩展 会员非会员不同的下载规则
+		13 optional int presentRight;					//是否可以赠送  方便后面扩展 0-不可赠送 1-可赠送
+		14 optional Action commentAction;				//点击comment优先使用的action 可以为空 为空则响应默认逻辑
+	};
+	
+	//详情页，剧集列表，数据从response的 获取，如果这个字段没内容，则不显示
+	struct ONADetailsVideoList
+	{
+		0 require int uiType;		// 0 表示小方格，1 表示 单行文本方格，2 表示多行文本	 100 表示ipad 平铺样式（专门针对ipad端）
+		1 require string dataKey;	// 从response 的数据map中取数据的key
+		2 optional string reportParams;	//上报参数
+		3 optional string reportKey;	//上报参数
+		4 optional ONAPosterTitle title; //标题
+		5 optional ONASplitLine spliteLine; //分割线
+	};
+	
+	//详情页，海报列表
+	struct ONADetailsPosterList
+	{
+		0 require int uiType;		   			// 6 表示 竖图,其余横图
+		1 require string dataKey;	 			// 从response 的数据map中取数据的key
+		2 optional string reportParams;	//上报参数
+		3 optional string reportKey;	//上报参数
+		4 optional int operateFlag;           //0表示无高亮无定位（默认）1表示有高亮有定位（目前只有往期需要）
+		5 optional CoverDataList mainData;   //来自第三方的数据可能会直接带回来第一页
+		6 optional ONAPosterTitle title; //标题(ipad 450支持个性化推荐)
+		7 optional ONASplitLine spliteLine;//分割线(ipad 450支持个性化推荐)
+	};
+	
+	//详情页，剧集列表，数据从response的 获取，如果这个字段没内容，则不显示(490)
+	struct ONADetailsVerticalVideoList
+	{	
+		0 require string dataKey;	// 从response 的数据map中取数据的key
+		1 optional string reportParams;	//上报参数
+		2 optional string reportKey;	//上报参数
+		3 optional ONAPosterTitle title; //标题
+		4 optional ONASplitLine spliteLine; //分割线
+		5 optional ONALoadMoreAction  moreAction; //查看全部
+		6 optional int maxOutShowsize; //最大首屏展示个数
+		7 optional int needChange;//1 需要换一批 0 不需要换一批
+	};
+	
+	//后台下发占位，实际填充由前端/广告渲染
+	struct ONAAdPlaceHolder
+	{
+		0 optional string reportParams;				//上报参数
+		1 optional string reportKey;          //上报参数
+		2 optional string dataKey;            //用于扩展信息
+		3 optional byte   adType;          //占位的位置，目前在详情页推荐列表下发，贴片广告不需要
+		4 optional string adKey;               //广告的标识
+	};
+	
+	//详情页，海报列表(490)
+	struct ONADetailsVerticalPosterList
+	{
+		0 require string dataKey;	 			// 从response 的数据map中取数据的key
+		1 optional string reportParams;			//上报参数
+		2 optional string reportKey;			//上报参数
+		3 optional ONAPosterTitle title; 		//标题
+		4 optional ONASplitLine spliteLine; 	//分割线
+		5 optional ONALoadMoreAction  moreAction; //查看全部
+		6 optional int maxOutShowsize; //最大首屏展示个数
+		7 optional CoverDataList mainData;   //来自第三方的数据可能会直接带回来第一页
+		8 optional int operateFlag;          //0表示无高亮无定位（默认）1表示有高亮有定位（目前只有往期需要）
+		9 optional int needChange;//1 需要换一批 0 不需要换一批
+		10 optional vector<ONAAdPlaceHolder> adPlaceHolderList;   //占位数据
+		11 optional vector<ONALeftImageRightTextAdPoster>  leftImageRightTextAdPosterList; //SPAfeed流广告
+		12 optional vector<string> adContext;  //当前模块下发的广告模块(key)list
+		13 optional string adChannelId;        //分配给广告的channelId，用于广告的曝光。
+	};
+
+	//详情页横滑海报列表(支持多tab和单标题)
+	struct ONADetailsHorizonPosterList
+	{	
+		0 require string dataKey;	     // 从response的数据map中取数据的key
+		1 optional byte type;            // 0：非多tab导航样式  1：多tab导航样式
+		2 optional int maxOutShowsize;   // 最大首屏展示个数
+		3 optional ONAPosterTitle title; // 标题
+		4 optional Action moreAction;    // 查看全部
+		5 optional string reportParams;	 // 上报参数
+		6 optional string reportKey;	 // 上报参数
+	};
+
+	//详情页简介
+	struct ONADetailsIntroduction
+	{
+		0 require string dataKey;	//从response 的数据map中取数据的key
+		1 optional Action action;	//点击执行的动作
+	};
+	
+	//评论列表，这个控件默认会被移动到页面最底部，控件的数据会另外拉取
+	struct ONACommentWrite
+	{
+		0 require string commentKey;					//用来拉取和发表评论的key
+		1 require bool	isCanWrite;
+		2 optional string commentTip;					//评论的“我来说几句”
+		3 optional string filterKey;					//评论过滤字段，提供只拉单独属性的评论能力，如果为null，后台吐所有类型的评论
+		4 optional string title;						//主标题
+		5 optional Action action;						//点击后执行的动作，如果没有此字段，不会有右向箭头		
+		6 optional byte hide;							//是否隐藏 0不隐藏 1隐藏
+		7 optional int uiType;                          //0-普通评论（右侧显示评论数），1-剧集doki（右侧显示button）
+	};
+	
+	//搜索结果 
+	struct ONASearchPoster 
+	{ 
+    	0 require Poster poster; 						//海报数据：此处action负责播放按钮跳转（自动播放）,imageUiType[0横图，1竖图，2原图，3方图，10无图]
+    	1 optional vector<VideoItemData> videoList;		//视频数据集合 ：此处action负责剧集按钮跳转（自动播放）
+    	2 optional int uiType;							//视频数据显示样式（0[一行]2[其余数字都是剧集样式]） 
+    	3 optional vector<string> lineLabel;			//一行显示一个信息(右侧内容，可以规定优先显示poster中1、2、3行接着显示此字段内容) 
+    	4 optional string playBtn;						//是否播放 
+    	5 optional Action action;						//详情页 播放页 明星页：此处action负责整个view跳转（不需要自动播放） 
+		6 optional string clickReportKey;				//点击上报(用来做搜索质量优化的，会通过别的接口上报)
+		7 optional vector<IconTagText> lineTag;			//支持富文本显示的一行内容
+		8 optional vector< ONAButtonInfo> playButtons;  // 播放按钮列表，废弃，改用ActionBarInfo
+		9 optional vector<ActionBarInfo> playActionButtons;   // 播放按钮列表
+		10 optional ActionBarInfo moreActionTip;   // 暂时pad使用，显示明星右侧提示更多明星入口
+	    11 optional ActionBarInfo downloadButton;  //下载按钮
+	    12 optional string mdsumVideo;             //视频的md5值
+	    13 optional ActionBarInfo rightActionButton;	//右侧功能按钮，如果要显示定制的"进入Doki"按钮，rightActionButton的title必须是"进入doki"
+	};
+
+	//没有搜索结果的UI展现
+	struct ONANoSearchHit
+	{
+		0 require string title;			//标题
+		1 require string details;		//内容
+		2 optional Action action;
+		3 optional string reportKey;    //曝光上报
+		4 optional string reportParams;  //曝光上报
+	};
+	
+	//热点公告板 
+	struct ONABulletinBoard 
+	{ 
+		0 require Poster poster; 					//海报数据（海报 角标 第一行视频简介[可展开]） 
+		1 optional vector<IconTagText> tagTexts;	//左侧Icon右侧文字的格式，显示在一行，使用html格式 
+		2 optional vector<string> comments;			//两行评论 
+		3 optional Action action;					//跳转详情页 或 全屏播放器 
+		4 optional vector<IconTagText> ritchComments;	//两行评论
+		5 optional VideoAttentItem attentItem;					//关注
+		6 optional VideoItemData videoData;				//用于播放
+		7 optional bool isAutoPlayer;             //控制是否支持自动播放
+		8 optional bool isLiveVideo;              //是否是直播类型
+		9 optional string pid;                   //直播pid，用于轮询直播状态
+		10 optional string streamId;               //播放流id
+		11 optional long startTime;                //直播开始时间
+		12 optional long endTime;                 //直播结束时间
+		13 optional bool dislikeMark;             //不感兴趣按钮是否展示  0,不展示 1,展示
+		14 optional OptionGroup dislikeOptionGroup;  //不感兴趣的选项
+		15 optional int uiStyle;						//0默认普通新闻直播样式1简单直播样式 
+		16 optional VideoItemExtra liveExtra;			//直播的额外信息
+	};
+	
+	//直播当前播 
+	struct ONATomLiveBoard 
+	{ 
+		0 require Poster poster; 					//海报数据（海报 角标 第一行视频简介[可展开]） 
+		1 optional int uiStyle;						//0默认普通新闻直播样式1简单直播样式 
+		2 optional vector<IconTagText> tagTexts;	//左侧Icon右侧文字的格式，显示在一行，使用html格式 
+		3 optional Action action;					//跳转详情页 或 全屏播放器 
+		4 optional vector<IconTagText> ritchComments;	//两行评论
+		5 optional VideoAttentItem attentItem;			//关注
+		6 optional LiveVideoItemData videoData;				//用于播放
+		7 optional bool isAutoPlayer;             //控制是否支持自动播放
+	};
+	
+	//用来显示合作推广的app信息，支持下载唤起功能
+	struct ONAAppInfo
+	{	
+		0 require AppInfo appInfo;		//app本身的信息
+		1 require Poster poster;		//复用poster来做UI显示
+		2 optional Action action;		//跳转
+	};
+	
+	//明星简介
+	struct ONAStarIntroduction
+	{
+		0 require ActorInfo starInfo;			//明星的个人资料信息
+		1 optional vector<KVItem> kvItemList;	//用来传递 简介：xxxx  主要成就：xxx ，在明星资料页的时候默认取list的第一项显示
+		2 optional Action action;		//跳转
+		3 optional string  reportKey;              //上报(485)
+		4 optional string  reportParams;              //上报(485)
+		5 optional ONAStarList  starList;  //关联明星列表，复用原来的ONAStarList
+		6 optional ONABulletinBoardV2 introductionVideo; //简介视频
+	};
+	
+	//用来显示明星动态
+	struct ONAStarNews 
+	{ 
+		0 require string content; 					//动态内容 
+		1 optional vector<VideoImage> imgList;		//图片列表
+		2 optional string  detailInfo;              //2013年7月26日 17：44来自微博
+		3 optional int shareNum;					//分享数
+		4 optional int commentNum;					//评论数
+		5 optional Action action;					//跳转详情页 或 全屏播放器 
+	};
+	
+	//豆瓣评论样式的控件。引号+评论+右下角文
+	struct ONAQuoteComment
+	{
+		0 require string content;	//内容
+		1 optional string rightCornerText;	//右下角文本
+	};
+
+	//简介控件
+	struct ONASummary
+	{
+		0 require string content;	//主体内容
+		1 optional int defaultLines; //可展开模式下默认显示的行数
+		2 optional string rightCornerText;	//右下角文本
+		3 optional byte uiType;		//显示样式  0:可展开模式文本   1:首字符放大占用2～3行，可设置背景色
+	};
+
+	//视频简介的导演、演员列表
+	struct ONAActorList
+	{
+		0 require vector<ActorList> actorLists;	//导演、演员等的列表
+	};
+
+	//个性化照片墙
+	struct ONAPictureWall
+	{
+		0 require vector<VideoImage> images;	//剧照图片url列表
+		1 optional string  reportKey;              //上报
+		2 optional string  reportParams;              //上报
+	};
+	
+	//个性化追赶视图
+	struct ONAPursuit
+	{
+		0 require vector<PursuitItem> list;
+		1 optional int focusIndex;	//list中被选中的头像
+	};
+	
+	//直播频道：poster内action负责直接跳转到直播播放，外面这个action可配置跳转到详情页
+	struct ONAProgramItem
+	{
+		0 require Poster poster;			//左边显示的海报图,这里如果有action，可以单独响应
+		1 optional Action action;
+	};
+	
+	//功能入口提示
+	struct ONAEnterTip
+	{
+		0 require int tipType;				//10好莱坞,20游戏,30App入口，100以后配置给类似展示的业务（如101好声音摇一摇）,200搜索人名打榜入口 201 doki入口
+		1 optional Action action;
+		2 optional vector<string> urls;		//使用的图片地址（注意需要按顺序）
+		3 optional vector<string> lines;	//显示的文字（注意需要按顺序）
+		4 optional map<string,IconTagText> labels; //"force_all"全员；"0"默认;"1"未登录;"force_logon";"pasted_n"过期N天；"2"非会员；"to_past_n"N天后过期；"3"会员；
+		5 optional AppInfo apkInfo;			//对应app
+		9 optional long serverTime;			//当前服务器系统时间
+		10 optional string reportParams;	//上报参数
+		11 optional string reportKey;	//上报参数
+		12 optional vector<ExtraReportKV> extraReportKVs;  //额外的上报参数
+	};
+
+	//通用竖海报列表(490)
+	struct ONAVerticalPosterList
+	{
+		0 require int uiType;		   			//0横图 1竖图 2 圆图 3方图 4横图圆角
+		1 require PosterList posterList;	
+		2 optional vector<PosterList> posterMore; 
+		3 optional ONAPosterTitle title; 		//标题
+		4 optional ONASplitLine spliteLine; 	//分割线
+		5 optional ONALoadMoreAction  moreAction; 			//查看全部
+		6 optional string reportParams;			//上报参数
+		7 optional string reportKey;			//上报参数
+	};
+	
+	//通用海报列表
+	struct ONAPosterList
+	{
+		0 require int uiType;		   			//0横图 1竖图 3方图 4饭团排行版入口
+		1 require vector<Poster> posterList;	// 横滑控件至少一个数据
+		2 optional vector<string> lines;		// poster描述内容，为了支持扩展多个文本用数组
+		3 optional string reportParams;	//上报参数
+		4 optional string listTitle;    // 列表名称
+		5 optional string  reportKey;              //上报(485)
+	};
+
+	//带关注的海报列表
+	struct ONAAttentPosterList
+	{
+		0 require int uiType;		   			//0横图 1竖图 3方图  4即将上映（5.2.0新增）
+		1 require vector<AttentPoster> attentPosterList;	// 横滑控件至少一个数据
+		2 optional vector<string> lines;		// poster描述内容，为了支持扩展多个文本用数组
+		3 optional string reportParams;	//上报参数
+		4 optional string reportKey;	//上报参数
+		5 optional int leftPadding;   //左侧间距
+		6 optional int maxLine = 1;  //最大显示行数，默认为1，doki广场下发为2
+	};
+	
+	//通用简介
+	struct ONAIntroduction
+	{
+		0 require string introduction;
+		1 optional int maxLimitLines;  //最大显示行数 = 8
+		2 optional int maxShowLines;   //超过最大显示行数后最多显示的行数 =5
+		3 optional string textColor;   //文字的颜色
+		4 optional int showStyle;      //0,默认 1,左右留有空白间隙
+		
+	};
+	
+	//动态数据的请求视图，默认0为不显示只作为动态请求的标志
+	struct ONADynamicPanel
+	{
+		0 require string type;			//请求类型 UserVote表示获取用户投票
+		1 require string dataKey;		//请求参数
+		2 require int uiType;			//显示类型（470及以前都没用上）1for箭头加载更多	
+	};
+	
+	//饭团动态
+	struct ONAFanNews
+	{
+		0 require vector<string> content; 			//第一行内容默认为标题 
+		1 optional vector<VideoImage> imgList;		//图片列表
+		2 optional string  faceUrl;              	//用户头像
+		3 optional string  detailInfo;              //用户昵称 发表时间
+		4 optional int shareNum;					//分享数
+		5 optional int commentNum;					//评论数
+		6 optional int type;						// 0 普通不显示 ；1 表示热； 2 表示精 ；3 顶
+		7 optional Action action;					//跳转到详情
+		8 optional string  reportKey;              //上报
+		9 optional string  reportParams;              //上报
+	};
+	//体育频道，用于展示带图片列表的News
+	struct ONAFanNewsWithImgList
+	{
+		0 require vector<string> content; 			//第一行内容默认为标题 
+		1 optional vector<VideoImage> imgList;		//图片列表
+		2 optional string  faceUrl;              	//用户头像
+		3 optional string  detailInfo;              //用户昵称 发表时间
+		4 optional int commentNum;					//评论数
+		5 optional int type;						// 0 普通不显示 ；1 表示热； 2 表示精 ；3 顶
+		6 optional Action action;					//跳转到详情
+		7 optional vector<string> leftIconUrl;       //标题的左侧角标
+		8 optional vector<string> rightIconUrl;      //标题的右侧角标
+	};
+	
+	//业务的投票列表
+	struct ONABusinessVoteList
+	{
+		0 require vector<ActorInfo> voteList;	//投票列表
+		1 require int voteLimit;				//用户每天投票上限
+		2 require int votedCount;				//用户当天已投票次数  (当votedCount >= min（voteLimit，bottleCount） 时，用户当天就不能再进行投票了) 
+		3 require int bottleCount;          	//用户已收集瓶子数量
+		4 optional string title;				//主标题
+		5 optional string subhead;				//副标题
+		6 optional Action action;				//标题行点击后执行的动作，如果没有此字段，不会有右向箭头	
+		7 optional vector<MarkLabel> markLabelList;			//脚标列表，对主标题起作用
+		8 optional map<string,CommonDialogInfo> dialogs;    //各种场景下需要弹的弹框，key 有bottle_use_out 加油瓶已用完;bottle_exceed_limit 加油瓶使用次数超过限制
+		9 optional AppInfo appInfo;     					//用来关联下载
+		10 optional Action sharePageAction;                 //跳分享页面的action
+		11 optional ShareItem mShareItem;					//用于分享的内弄
+		12 optional string reportParams;				    //上报参数
+		13 optional string reportKey;						//上报参数
+	};
+	
+	//饭团引流数据
+	struct ONAFanInvolveEntry
+	{
+		0 require FanInvolveItem fanItem; //饭团数据
+	};
+	
+	//图文或btn引流视图
+	//0、默认为图文模式（不要图片可通过poster里的imageUiType设置）；1、电影票需求；2、V+引流；3、好莱坞提示（vip不显示非会员显示）
+	//4、直播左图右文；5、music样式上面罩个黑胶图片；6、更多作品；7、明星主题；8、小说样式上罩个书页图片；9、下载样式上有下载交互
+	struct ONAPromoteEntry
+	{
+		0 require int type;					//引流视图样式 
+		1 require Poster poster;			//type=1时，poster内img负责作为左侧icon展示
+		2 optional Action action;           //此处action负责整个view跳转
+		3 optional UIStyle uiStyle;			//图文长宽属性 & button 背景属性
+		4 optional int moreFlag;			//更多
+		5 optional string subHead;			//右侧提示文字
+		6 optional GameDownloadItemData appInfo;	//下载信息
+		7 optional bool isCanPlaceHoler = false;       //视图是否可以被占位覆盖
+		8 optional string titleColor;   //标题颜色
+	};
+	
+	struct ONADiscoveryEntry
+	{
+		0 require vector<DiscoveryEntryItem> discoveryEntryLists;	//精选页游戏、影视圈、我的影院等入口list(从第三个tab发现页卡搬过来)
+		1 optional string reportKey;	//上报参数
+		2 optional string reportParams;	//上报参数
+	};
+	
+	//视频名片
+	struct ONAVideoCard
+	{
+		0 require int uiType;							//0只展示海报横图 5上横图下文（一周影视底层） 6上横图下文（好莱坞底层，关注为会员样式）7上横图下文（好莱坞首页,	海报不铺满全屏) 8 只有文字区域，没有海报图模块
+		1 require VideoIntroduction intro;				//海报角标详细信息
+		2 optional vector<IconTagText> lineTag;			//用于评论区域
+		3 optional VideoAttentItem attentItem;          //用于关注的数据结构
+		4 optional int showStyle;                       //0,默认 1,海报图左右展示留有空隙，空隙是白色 2，海报图左右展示留有空隙，空隙是透明
+		5 optional string time;							//用于显示时间
+		6 optional vector<Poster> appendPosters;		//用于每日荐片的剧照模块
+		7 optional ActorInfo commentator;               //每日荐片评论员的信息
+	};
+	
+	//视频影院
+	struct ONAVideoCinema
+	{
+		1 require vector<PersonalizeVideoItem> itemList;	//个性化推荐数据列表
+		2 optional int type;									//0-循环滚动 1-换一批
+		3 optional int pageSize;								//type=1时，每一页的显示数量
+		4 optional string version;							//用于区分数据版本
+		5 optional string updateText;                       //用于二级页面视频妹页面的显示文本
+		6 optional ONAUserPosterTitle userPosterTitle;      //用于一二级页面数据同步需求的标题栏
+		7 optional ONASplitLine spliteLine;                 //用于一二级页面数据同步需求的分割线栏
+		8 optional string positionId;                       //用于区分该数据适用于哪个位置
+		9 optional string loginType;                        //用于数据为个性化推荐时附带用户帐号信息
+		10 optional string userId;                          //用于数据为个性化推荐时附带用户帐号信息
+		11 optional int showType;                           // 0 下划线不显示   1 下划线在模块下面   2 下划线在模块上面
+		12 optional int viewType;                           //0 竖图 1 横图
+		13 optional int viewCount;                          //一页展示多少view
+		14 optional string reportKey;   					//我的影院的模块上报
+		15 optional string reportParams;					//我的影院的模块上报
+	};
+
+
+
+	//视频电影介绍
+	struct ONAVideoIntroduction
+	{
+		
+		0 require VideoIntroduction intro;				//海报角标详细信息
+		1 optional vector<IconTagText> lineTag;			//用于评论区域
+		2 optional vector<Poster> morePoster;			//更多
+		3 optional string moreTitle;					//定制更多的标题
+	};
+	
+	//占位视图的描述
+	struct ONAPlaceHolder
+	{
+		0 optional int uiType;			     //0,16：9的大小  1,4：3的大小  2,1:1的大小  3,占满全屏
+		1 optional Poster poster;		//用于描述占位图的poster  
+		2 optional MarkLabel btnLabel;   // 用于描述控件的中部的按钮
+	};
+	
+	//一个专辑的视图
+	struct ONACoverIntroduction
+	{
+		0 require int uiType;		   			// 0 表示横图 ，1 表示 竖图
+		1 require string dataKey;	 			// 从response 的数据map中取数据的key
+		2 optional string reportParams;	//上报参数
+		3 optional string reportKey;	//上报参数
+	};
+
+	//下载横滑列表
+	struct ONAAppList
+	{
+		0 require int uiType;		   		//0横图 1竖图 3方图 
+		1 require vector<GameDownloadItemData> appList;	// 横滑控件至少一个数据
+		2 optional vector<string> lines;	// poster描述内容，为了支持扩展多个文本用数组
+		3 optional string reportParams;	//上报参数
+		4 optional string reportKey;	//上报参数
+		5 optional int needPadding;     // 0 不需要 1 是顶部  2 是底部  4 顶部和底部
+	};
+	
+	//一行多个下载海报
+	struct ONAMultAppPoster
+	{
+		0 require vector<GameDownloadItemData> appList;	//单行海报列表（action都可以单独跳转）	
+		1 optional int showNum;				//支持最多显示三个showNum<=0按照前端规则显示，showNum>=3都作为3个显示；即配置有效个数则按照后台配置不满一行使用空白占位	
+	};
+	
+	//视频列表播放器
+	struct ONAVideoListPlayer
+	{ 
+		0 require vector<VideoInfoPosterItem> items; 	//展示可播放的视频列表，附带有海报图等
+		1 optional bool isAutoPlay;						//是否在wifi下自动播放
+		2 optional byte adType = -1;					//广告类型，-1，无效；0，焦点图
+		3 optional byte uiType = 0;							//0：6.0之前的样式 
+															//1：标题和video分开  
+															//2：展示主副标题，展示当前轮播是第几个的pagecontrol样式
+		4 optional AdFocusInfo focusInfo;              //广告焦点图信息
+		5 optional string adSerialNumber;		       //用来标识焦点图广告出现的位置
+	};
+	
+	//好莱坞会员付费拉动提示条站位数据
+	struct ONAVipActionTips
+	{ 
+		0 optional string data; 				//无需填写的站位
+	};
+	
+	//直播预览数据
+	struct ONALivePreviewBoard
+	{
+		0 require string pid;							//当前视频的pid, 同LiveVideoItemData 中的pid
+		1 require Poster poster;						//海报图，以及下面的标题,以及播放量都在这里面
+		2 optional VideoItemData vodVideoData;			//如果是点播,用这个数据
+		3 optional LiveVideoItemData liveVideoData;		//如果是直播视频，填充这个
+		4 optional Action action;						//点击海报的跳转
+		5 optional bool isAutoPlayer;             		//控制是否支持自动播放
+		6 optional bool isLiveVideo;           		   	//是否是直播类型
+		7 optional long startTime;                		//直播开始时间
+		8 optional long endTime;                 		//直播结束时间
+		9 optional vector<ActorInfo> actors;			//明星信息,包括饭团信息（仅用于uiType=0的情况）
+		10 optional long likeNums;						//当前视频点赞数（仅用于uiType=0的情况）
+		11 optional string livePollKey;					//直播轮询的data key（直播需要下发）
+		12 optional string starImageUrl;				//明星或者组合的头像（仅用于uiType=0的情况）
+		13 optional string title;						//海报的标题
+		14 optional string actorsName;					//下发的人名列表（仅用于uiType=0的情况）
+		15 optional int uiType;							//0:目前why metab页的样式，1：用于NBA体育的心样式，
+		16 optional MarkLabel markLabel;				//在直播中的位置增加推荐角标的展示
+		17 optional bool isLikeShow;					//是否展示点赞开关
+		18 optional long popularity;					//人气值
+		19 optional bool isPopularityShow;				//是否展示人气值
+	};
+	
+	
+	//影片预告片的电影票视图
+	struct ONAFilmPreViewTicket
+	{
+		0 optional ActionBarInfo hollywoodItem;	//电影票开通好莱坞的相关信息
+		1 optional ActionBarInfo buyTicketItem;	//电影票购票相关信息
+		2 optional bool isShowForVip=false;			//vip用户是否展示开通好莱坞信息（该字段不影响购票信息的展示），540版本新增
+		3 optional bool isCanPlaceHoler = false;       //视图是否可以被占位覆盖
+	};
+	
+	//包含未知ONA视图的视图，更多视图通过请求后台获取
+	struct ONAViewShowBox
+	{
+		0 optional vector<TempletLine>	data;	//这个模块包含的视图
+		1 optional BatchData batchData;	        //换一批操作数据
+		2 optional string reportKey;	        //上报参数
+		3 optional string reportParams;	        //上报参数
+		4 optional ActionBarInfo actionBar;     //支持配置点击跳转->左侧按钮(from 6.0)
+		5 optional ActionBarInfo rightActionBar;     //右侧按钮
+		6 optional ONAPosterTitle title;        //标题
+	};
+	
+	struct ONAReward
+	{
+		0 require AccountState accountState;	// 打赏信息
+		1 require string infoNoReward;			// 无人打赏时的title
+		2 require string infoHasReward;			// 有人打赏时的title（预留人数占位符%s，如有%s人打赏了视频）
+		3 require string rewardTip;				// 打赏提示
+		4 require string rewardKey1;			// 打赏key1
+		5 require AccountInfo idolAccount;		// V+账号信息，用以刷新打赏信息
+		6 optional VideoInfo videoInfo;			// 视频详情页时，需要传该参数
+		7 optional string rewardUrl;			// 打赏url
+	};
+
+	//带预约的海报-营销专区用
+	struct ONAMarketingAttentPosterList
+	{
+		0 require int uiType;		   		      				//0-左图右文 1上图下文 2上图下文（大）
+		1 require vector<MarketingAttentPoster> attentPoster;	 // 带预约的海报数据
+		2 optional string reportParams;              		   	//上报参数
+		3 optional string reportKey;							//上报参数
+	};
+
+	//ip受限提示视图
+	struct ONAIpLimitInfo
+	{
+		0 require string mainTitle;			//IP限制主标题：暂时只对中国大陆地区提供服务
+		1 require string subTitle;			//可查到用户所在地时：由于版权限制无法播放，望您谅解。您现在在日本，如有误判可提交申诉。查不到所在地时：由于版权限制无法播放，望您谅解。如有误判可提交申诉。
+	};
+	
+	//图文或btn引流视图
+	//0默认为图文模式（不要图片可通过poster里的imageUiType设置）1电影票需求2V+引流3、好莱坞提示（vip不显示非会员显示）
+	//4直播  左图右文  右箭头不一样private;5music 样式同0 需要个黑胶mask;6更多作品;7主题;8小说;9下载
+	struct ONAPromoteList
+	{
+		0 require vector<ONAPromoteEntry> entryList;	// 横滑控件至少一个数据
+		1 optional ONAPosterTitle title; //标题
+		2 optional ONASplitLine spliteLine; //分割线
+		3 optional BatchData batchData;	        //换一批操作数据
+		4 optional string reportKey;	//上报参数
+		5 optional string reportParams;	//上报参数
+		6 optional vector<ExtraReportKV> extraReportKVs;  //额外的上报参数
+	};
+
+	//轮播图数据结构，支持广告
+	struct ONAGalleryPosterPager
+	{
+		0 optional byte adType;	                 //广告类型， 0首个海报 1信息流海报
+		1 optional int adKey;	                 //广告的id，每个类型的广告有个一自增的id从0开始
+		2 optional vector<Poster> posterList;	 //首个广告海报要和我们的首个视图查在一起所以这里需要将我们的首个视图数据放在这里
+		3 optional string extension;             //广告扩展字段，需要从广告侧获取
+		4 optional string adSerialNumber;		 //用来标识焦点图广告出现的位置
+	};
+	
+	//搜索关键词匹配和相关词
+    struct ONASearchMatch
+    {
+        0 optional string searchKey;            //当前搜索
+		1 optional string matchResult;			//当后台判断当前query可能存在错误输入的情况下，匹配至最近的query
+		2 optional vector<string> hotWordList;  //搜索相关词
+		3 optional string reportKey; //曝光上报
+		4 optional string reportParams;	//曝光上报参数
+	};
+	
+	//筛选+PosterList
+	struct ONANavPosterList
+	{
+		0 require vector<LiveTabModuleInfo> tabList;     // tab列表
+		1 optional int uiType;		   			// 将当前选中Tab的信息带回, 0横图 1竖图 3方图 
+		2 optional vector<Poster> posterList;	// 将当前选中Tab的信息带回，横滑控件至少一个数据
+	};
+
+	 //奥运金牌榜
+	struct ONAScoreList
+	{      
+        0 require int uiType;		//0无左边广告图片的样式 1有左边广告图片的样式
+		1 require vector<ScoreListItem> scoreList;     // 比分列表
+        2 optional string leftImgUrl; //左边对应的广告图片url   
+        3 optional Action action;		//点击后执行的动作
+	    4 optional string reportKey;	//上报参数
+		5 optional string reportParams;	//上报参数
+	};
+
+    //标签组
+    struct ONATagDataGroup 
+    {
+        0 require vector<IconTagText> tagList;           // 标签组列表数据
+		1 optional string textColor;                     // 标签显示文字颜色，不填使用默认颜色（#222222）
+		2 optional string backgroundColor;               // 标签背景颜色，不填使用默认颜色（#f6f9fc）
+		3 optional string reportKey;                     // 用作曝光上报
+		4 optional string reportParams;                  // 用作曝光上报
+		5 optional int    maxLineNum;                    // 限制显示最大行数
+		6 optional string title;                         // 标题，使用场景：搜索页动态插入模块
+    };
+    
+    //网红结构
+    struct ONANetworkRed
+    {
+        0 require string networkRedId;     // 网红id
+        1 require Poster poster;         // 海报
+    };
+	
+	//功能入口滚动播放
+	struct ONAScrollTips
+	{
+		0 require vector<ActionBarInfo> items; 		//滚动播放数据	 
+		1 optional int scrollTime;			        //滚动播放动画时间（单位毫秒）
+		2 optional int stopTime;			        //滚动播放暂停时间（单位毫秒）
+		3 optional string  reportKey;               //上报
+		4 optional string  reportParams;            //上报
+	};
+	
+	//功能入口图片展示
+	struct ONAEnterPictures
+	{
+		0 require vector<ActionBarInfo> items; 		//图片展示的数据 
+		1 optional string  reportKey;               //上报
+		2 optional string  reportParams;            //上报
+		3 optional int limitShowCount;			    //展示次数频控，一次进程内展示记为一次
+		4 optional bool hasBottomSpace;				//控制下发是否留白
+		5 optional vector<ExtraReportKV> extraReportKVs;  //额外的上报参数
+		6 optional vector<ActionBarInfo> nonVipItems; 		//非会员情况下的显示数据，与之相对的，第一个字段items就是会员下的显示数据。当有这个字段的时候表明这个视图要关心会员态
+	};
+
+	struct ONAWeiboPoster
+    {
+    	1 require Poster poster;
+    	2 optional string intro; 				//长文介绍
+    	3 optional Action action; 				//点击文字跳转
+    	4 optional vector<ActorInfo> userList; 	//微博用户列表
+    	5 optional vector<string> lines; 		//附加文字信息
+    	6 optional string reportKey;
+    	7 optional string reportParams;
+    };
+    struct ONASchoolList
+	{
+		0 require vector<ActionBarInfo> schoolList;		//学校列表
+		1 require int type;                     // 0 表示选择大学样式 1表示更多大学样式
+		2 optional string reportKey;              //上报参数
+		3 optional string reportParams;	//上报参数
+	};
+    //搜索结果同名明星列表
+	struct ONASearchStarList
+	{
+		0 require vector<ActorInfo> starList;		//明星列表
+		1 optional string desc;						//列表描述，用来显示在第一个位置
+		2 optional string reportKey; 				//上报参数
+		3 optional string reportParams;				//上报参数
+		4 optional int listType;                     // 列表类型  0-同名明星  1-企鹅号
+	};
+
+	 //饭团独家TAB未来直播
+	struct ONAStarMeetList
+	{
+		0 require vector<StarMeetInfo> meetList;     //未来直播列表
+		1 optional string  reportKey;               //上报
+		2 optional string  reportParams;            //上报
+	};
+
+    //饭团明星行程
+	struct ONAStarAgenda
+	{
+		0 require int  			uiType;      	//区分动态一级页和行程二级页，0,动态页行程;1,行程二级页
+		1 optional ActorInfo 		actor;			//明星
+		2 optional AgendaTime    agendaTime;	    //行程时间信息
+        3 optional string  			desc;      		//行程描述
+        4 optional IconTagText  	topTips;		//顶部提示信息
+        5 optional IconTagText  	activityTime;	//活动时间
+        6 optional IconTagText  	activityAddr;   //活动地址
+        7 optional Action 			action;	//点击跳转
+        8 optional int    			status;         //当前状态(预留)
+        9 optional string  reportKey;               //上报
+		10 optional string  reportParams;            //上报
+	};
+
+
+	//明星打榜信息
+	struct ONAStarHotRankInfo
+	{
+		0 optional ActorInfo 			actor;		   //该榜单对应的明星
+		1 optional vector<KVItem> 		detailInfo;	   //<粉丝，42246,fansnum><人气值，726,popularity>第三个字段为前后台约定的标识，用来理解内容
+		2 optional vector<PortraitInfo> relateFans;	   //粉丝信息
+		4 optional Action 				detailAction;  //跳转到完整榜单
+		5 optional ActionBarInfo 	    moreAction;    //"为他打榜"等
+		6 optional string  reportKey;               //上报
+		7 optional string  reportParams;            //上报
+		8 optional int type;						//业务类型，0-明星，1-v+
+		9 optional PresentGiftParam giftParam;		//打赏数据
+		10 optional byte uiType;              		//0-默认，用在原明星主页/V+页面顶部，顶部自带h40空白， 1-用在其他场景，顶部无间隙
+	};
+	//明星话题信息 561新增
+	struct ONAStarHotTopicsInfo
+	{
+		0 optional vector<StarTopicInfo> 	    starTopics;    //话题列表
+		1 optional string  reportKey;                          //上报
+		2 optional string  reportParams;                       //上报
+		3 optional byte style;        //话题样式 0-后台不下发头像(普通样式)    1-后台下发头像(doki样式) 2-后台下发排序号(650新样式)
+	};
+
+	//我关注明星的动态，在FanInvolveItem的detailInfo中添加<starNews,value>，用于提取明星动态 561新增
+	struct ONAFocusStarNews
+	{
+		0 optional vector<FanInvolveItem> 	    starNews;    //明星动态列表
+		1 optional string  reportKey;                        //上报
+		2 optional string  reportParams;                     //上报
+	};
+
+	//详情页明星热评列表，数据需要先带下来几条，然后做分页拉取
+	struct ONADetailsCommentList
+	{	
+		0 optional vector<CirclePrimaryFeed> feedList;	//主贴列表(部分)
+        1 optional string commentKey;					//评论系统的key，由server下发
+		2 optional string pageContext;					//翻页上下文
+		3 optional bool isAllData;						//表示是否已经是全部的数据，方便客户端来判断是否需要再次请求
+		4 optional string reportParams;	//上报参数
+		5 optional string reportKey;	//上报参数
+		6 optional ONAPosterTitle title; //标题
+		7 optional ONASplitLine spliteLine; //分割线
+		8 optional ONALoadMoreAction  moreAction; //查看全部
+		9 optional int maxOutShowsize; //最大首屏展示个数
+		10 optional long allCommentNum; //所有评论数
+	};
+	//可展开的TextView
+	struct ONAExpandableText
+	{
+		0 require string content;
+		1 optional bool expanded;
+		2 optional int maxLines;
+		3 optional string reportKey;
+		4 optional string reportParams;
+	};
+	//简介评分、更新频次tips
+	struct ONAVideoTipsIntro 
+	{
+		0 require int rating;
+		1 optional string tipsFirstLine;
+		2 optional string tipsSecondLine;
+		3 optional string reportKey;
+		4 optional string reportParams;
+	};
+	//影评信息
+	struct ONAFilmComment
+	{
+		0 require ActorInfo commentUser;
+		1 require string commentTitle;
+		2 optional string commentContent;
+		3 optional Action detailAction;
+		4 optional string reportKey;
+		5 optional string reportParams;
+	};
+	//横划分类列表
+	struct ONAClassificationList
+	{
+		0 require vector<ActionBarInfo> classificationList;		//分类列表
+		1 optional string reportKey;              //上报参数
+		2 optional string reportParams;	//上报参数
+	};
+	struct ONATimeLineTitle
+	{
+		0 require int uiType;   //0 时间线开始  1 时间线中部   2  时间线末尾
+		1 optional string title;
+	};
+	struct ONATimeLinePoster
+	{
+		0 require int uiType;  //0显示时间线 1，不显示时间线
+		1 require Poster poster; 
+	};
+	struct ONAText
+	{
+		0 require string text;  //文字
+		1 optional int gravity;  //0靠左 1 居中 2 靠右
+		2 optional int leftPadding; //左边空隙
+		3 optional int rightPadding; //右边间隙
+		4 optional string textColor;     //默认白色
+		5 optional int textSize;         //字体大小 单位：dip
+		6 optional string backgroundColor; //背景色
+		7 optional int bottomPadding; //下空白间距
+		8 optional string reportKey;
+		9 optional string reportParams;
+	};
+	
+	//一行排行榜样式
+	struct ONARankItem
+	{
+		0 require RankItem item;  
+	};
+	
+	struct ONAExploreTagList
+	{
+		0 require string title;		//模块标题
+		1 require vector<ExploreTag> tagList; // 标签列表
+		2 require string btnTitle; // 提交按钮文案
+		3 optional string reportKey;    //上报参数
+		4 optional string reportParams;	//上报参数
+	};	
+	//左图右文的ONAView
+	struct ONAHorizontalBar{
+		0 require Poster poster;  //利用poster的标题 
+		1 optional string reportKey;              //上报参数
+		2 optional string reportParams;	//上报参数
+	};
+	//大海报播放器
+	struct ONAThemePlayer{
+		0 require VideoItemData videoItemData;    //视频信息
+		1 require string bgImageUrl;              //视图的背景图片url
+		2 optional int topMarginRatio;	         //距离顶部的比值，单位百分比,取值 0 -100，如 取值10 代表 10%
+		3 optional int heightToWidthRatio = 100;        //高度除以宽度的比例 单位百分比 
+		4 optional string textColor;             //播放器下方标题颜色
+		5 optional string bgColor; 				 //整体背景色 (iPad 专用)
+		6 optional int styleID;                  //0: 首页普通样式 1:VIPTab 特殊样式 2:非VIPTab杜比
+		7 optional string vipBtnImageUrl;        //开通会员按钮图片地址
+		8 optional Action vipAction;    //开通会员按钮 Action
+		9 optional string priorityBtnImageUrl;   //活动按钮图片地址
+		10 optional Action priorityAction;  // 活动按钮 Action
+		11 optional string isvipBtnImageUrl;   //已经是会员图片地址
+		12 optional Action isvipAction;  // 已经是会员的Action
+		13 optional Action bgImageAction;  //视图的背景点击Action
+		14 optional vector <VideoItemData> loopVideoItemDataList; //轮播视频信息
+	};
+	
+	//竞赛呈现（新样式） 两支队伍左右排列，支持背景配色
+	struct ONACompeteScheduleNew
+	{
+		0 require int status;	        // 0表示未知（表现形式同3）、1表示进行中(正在直播)、2表示已结束（如果有比分，则在已结束上显示比赛名称和时间）、 3表示未开始(关注)	
+		1 require string leftTeamIconUrl;		//左边一支队伍的icon	
+		2 require string leftTeamTitle;		//左边队伍的名称
+		3 require string rightTeamIconUrl;       //右边一支队伍的icon	
+		4 require string rightTeamTitle;      //右边一支队伍队伍的名称
+		5 optional string infoTitle;	//比赛信息（如直播前是开始时间、直播中和直播结束时比分）
+		6 optional string statusTitle;	//比赛状态信息（如直播前是开始时间、直播中是直播中、直播后是直播回放）
+		7 optional Action action;		//点击后的跳转动作
+		8 optional string bgStartColor;     //背景色渐变开始值，默认值：直播中（#478cff）直播前、直播结束（#d0d1d9）
+        9 optional string bgEndColor;		 //背景色渐变结束值，默认值：直播中（#545bff）直播前（#6daaff）直播结束（#bbbdc8）
+		10 optional string reportKey;   // 上报key
+		11 optional string reportParams; //上报参数
+		12 optional string topInfoTitle; //上副标：比赛阶段： 例如A组小组赛，1/8决赛
+		13 optional string statusBgColor;		//比赛状态信息的背景颜色
+	};
+	
+	//支持横滑的赛程列表
+	struct ONAHorizontalList
+	{
+		0 require vector<TempletLine> uiDatas; //数据列表
+		1 optional string reportKey;
+		2 optional string reportParams;
+	};
+	//按钮组合，单行等分排列
+	struct ONAButtonGroup
+	{
+		0 require vector<ActionBarInfo> buttons;	//一组button
+		1 optional string reportKey;
+		2 optional string reportParams;
+	};
+
+	//标签切换组
+	struct ONAGroupSwitch
+	{
+		0 require vector<GroupSwitchItem> groupSwitchList;  //标签组数据
+		1 optional string reportKey;
+		2 optional string reportParams;
+	};
+	
+	//赛事新闻和赛事呈现（新样式）
+	struct ONAMatchScheduleNew
+	{
+		0 require int status;	        // 0表示未知（表现形式同3）、1表示进行中、2表示已结束、3表示未开始
+		1 optional string matchIcon;	//队伍的icon	
+		2 optional string firstText;	//主标题
+		3 optional string secondText;	// 副标题
+        4 optional string statusTitle;	//比赛状态信息（如直播前是开始时间、直播中是直播中、直播后是直播回放）
+		5 optional Action action;		//点击后的跳转动作
+		6 optional string bgStartColor;     //背景色渐变开始值，默认值：直播中（#478cff）直播前、直播结束（#d0d1d9）
+		7 optional string bgEndColor;		 //背景色渐变结束值，默认值：直播中（#545bff）直播前（#6daaff）直播结束（#bbbdc8）
+		8 optional string reportKey;	//上报参数
+		9 optional string reportParams;	//上报参数
+		10 optional string statusBgColor;		//比赛状态信息的背景颜色
+	};
+	//支持展示一组标签的view
+	struct ONALabelList{
+		0 require vector<IconTagText> tags;		//标签文字列表
+		1 optional string reportKey;		//曝光key
+		2 optional string reportParams;		//曝光params
+	};
+	//带有加粗标题的拉动条
+	struct ONABoldStyleEnterTip
+	{
+        0 optional string title;           //加粗的主标题
+        1 optional string subTitle;        //副标题
+        2 optional string imageUrl;        //icon图片链接
+        3 optional Action action;          //此处action负责整个view跳转
+		4 optional string reportKey;       //上报参数
+		5 optional string reportParams;	   //上报参数
+	};
+	
+	struct ONASimpleFeed
+	{
+	    0	require   string		   title;
+	    1   optional  vector<string>   iconImgUrls;                    
+		2   optional  Action           action;		    //点击后的跳转动作    
+		3   optional  string           reportKey;       //曝光上报参数
+		4   optional  string           reportParams;	//曝光上报参数
+	};
+	
+	// 提供一组选择项的view
+	struct ONAOptionalText 
+	{
+		0 optional string title;  
+		1 optional int curIndex; // 当前选项索引
+		2 optional vector<OptionalItem> optionalList; // 可选项数组
+		4 optional string reportKey;       //上报参数
+		5 optional string reportParams;	   //上报参数
+		6 optional string curDataKey;      // 当前列表使用的dataKey
+	};
+	
+		//统一发表样式
+	struct ONAPrimaryFeed 
+	{
+		0 require CirclePrimaryFeed feedInfo;
+	};
+	// 提问帖样式
+	struct ONAQAPrimaryFeed 
+	{
+		0 require QAPrimaryFeed qaFeedInfo;
+	};
+
+	//综艺周频道列表
+	struct ONAWeeklyShowPoster
+	{
+		0 require string currentDataKey;			//当前选中的综艺周id
+		1 optional vector<TVShowWeeklyList> tvshowList;		 //综艺每周秀列表
+		2 optional vector<AttentPoster> currentPosterList;	        //当前选中的综艺周海报列表
+		3 optional string reportParams;		//上报参数
+		4 optional string reportKey;		//上报参数
+		5 optional int uiStyle;		//用于区分横竖海报 0：横图 1：竖图
+	};
+	//SS IP 大海报轮播
+	struct ONAThemeMultiPlayer{
+		0 require ONAVideoListPlayer videoListPlayer;	//轮播视频信息
+		1 optional string bgImageUrl;              //视图的背景图片url
+		2 optional int topMarginRatio;	         //距离顶部的比值，单位百分比,取值 0 -100，如 取值10 代表 10
+		3 optional int heightToWidthRatio = 100;        //高度除以宽度的比例 单位百分比 
+		4 optional Action action;		//点击背景图片的跳转
+		5 optional string bgColor;		//整体背景颜色
+		6 optional string titleColor;	//title色值
+	};
+	//带关注功能的海报
+	struct ONASimpleAttentPoster
+	{
+		0 require AttentPoster poster;      //带关注的海报
+		1 optional string reportKey;
+		2 optional string reportParams;
+	};
+	// 明星item
+	struct ONADokiCommonItem
+	{
+		0 require ActorInfo actorInfo;  
+		1 optional string reportKey;  //上报参数		
+		2 optional string reportParams; 
+		3 optional int uiType; // 0，圆形形状头像 1，方形形状头像
+		4 optional ActionBarInfo rightActionButton;	//右侧功能按钮，优先展示rightActionButton
+	
+	};
+	
+	// 用于占位的onaview，没有实际展示内容
+	struct ONAEmptyPlaceholder
+	{
+		0 require int type;   // 占位类型  0：广场发表
+	};
+   //即将上映模块，竖图
+    struct ONAWillReleaseVertical
+    {
+        0 require vector<WillReleasePoster> willReleasePosterList;    // 横滑控件至少一个数据
+        1 optional string reportParams; //上报参数
+        2 optional string reportKey;    //上报参数
+    };
+
+
+    //即将上映模块，横图
+    struct ONAWillReleaseHorizontal
+    {
+        0 require vector<WillReleasePoster> willReleasePosterList;    // 横滑控件至少一个数据
+        1 optional string reportParams; //上报参数
+        2 optional string reportKey;    //上报参数
+    };
+
+    // 小黄条ONAView
+	struct ONAEnterTipV2
+	{
+		0 require vector<EnterTipItem> itemList;
+		1 optional string tipKey;   //小黄条的Key，在频道页的话填频道页的channelId即可
+	};
+	// 圆形横滑列表，一屏能放下时，居中展示
+	struct ONACirclePosterList
+	{
+		0 require vector<SimplePoster> itemList;
+		1 optional ExtraReportKV report;
+	};
+	// 搜索里面出现的阅读、漫画、商城、游戏的Filterlist视图
+	struct ONASearchFilterList
+	{
+		0 require vector<SearchFilterItem> itemList;	//文学、漫画、游戏、商城的列表
+		1 optional ExtraReportKV report;				//整体视图的数据上报
+	};
+	
+	// 底层页出现的阅读、漫画、商城、游戏的banner视图
+	struct ONARecommendBanner
+	{
+		0 require vector<RecommendItem> itemList;	//推荐的文学、漫画、游戏、商城的列表
+		1 optional ExtraReportKV report;			//数据上报
+		2 optional bool adPlaceholder = false;    	//广告占位，表示视图是否可以被广告替换
+	};
+	
+	// 底层页出现的阅读、漫画、商城、游戏的周边推荐视图
+	struct ONARecommendList
+	{
+		0 require vector<RecommendItem> itemList;	//推荐的文学、漫画、游戏、商城的列表
+		1 require int linesPerColumn = 3;			//每列的行数，默认为3行
+		2 optional ExtraReportKV report;			//数据上报
+	};
+	
+	struct SearchSubjectBannerItem
+ 	{
+  		0 require string url; //banner图片链接
+  		1 require Action action; //跳转scheme
+  		2 optional int height; //专题页高度
+  		3 optional string reportKey;   //上报key
+  		4 optional string reportParams; //上报参数
+ 	};
+
+	// 搜索里面出现专题页界面
+ 	struct ONASearchSubjectBannerList
+ 	{
+  		0 require vector<SearchSubjectBannerItem> itemList;
+ 	};
+
+	// 搜索里面出现的在主题banner下的阅读、漫画、商城、游戏列表
+ 	struct ONASearchSubjectItemList
+ 	{
+  		0 require vector<RecommendItem> recommendList;  //每个tab里面的数据列表
+  		1 optional ExtraReportKV report;     //每个tab子模块数据上报
+ 	};
+
+	// 话题详情页头部信息ONAView结构
+	struct ONATopicHead {
+		0 require TopicHead topicInfo;
+		1 optional string reportParams;	//上报参数
+		2 optional string reportKey;	//上报参数
+	};
+	
+	// 话题详情页自拍视频ONAView结构
+	struct ONASelfVideoFeed {
+		0 require CirclePrimaryFeed feedInfo;
+		1 optional vector<MarkLabel> markLabelList;		//角标列表
+		2 optional ExtraReportKV report;
+	};
+	
+	// 话题详情页自拍视频列表ONAView结构
+	struct ONASelfVideoFeedList {
+		0 require vector<ONASelfVideoFeed> feedList;
+		1 optional string reportKey;
+		2 optional string reportParams;
+		3 optional string reportEventId;
+		4 optional int uiStyle; //0：旧样式，三个铺满全屏，不能横滑；1：可以横滑，最后一个图片上加蒙版，展示剩余个数
+		5 optional int totalNum; //总共的个数，用于uiStyle为1时
+		6 optional Action groupPageAction;	//最后一个图需要跳转到聚合页面
+	};
+	//自拍视频话题卡片列表
+	struct ONAVideoTopicCardList
+	{ 
+		0 optional int sceneType;  //视频话题列表场景参数，0为doki广场页，1为视频底层页
+		1 optional vector<VideoTopicCard> cardList; 
+		2 optional string reportParams; //上报参数
+		3 optional string reportKey; //上报参数
+	};
+	// 频道页小视频页卡，单个小视频ONA
+	struct ONASmallVideoItem {
+		0 optional Poster poster;//小视频封面图
+	};
+
+	// 频道页-小视频页卡单行ONAView
+	struct ONASmallVideoList {
+		0 require vector<ONASmallVideoItem> videoList;
+		1 optional string reportKey;
+		2 optional string reportParams;
+	};
+	
+	// V+个人页，单个竖拍视频ONAView结构
+	struct ONARssVerticalVideo {
+		0 require ONABulletinBoardV2 verticalVideo;
+		1 optional vector<MarkLabel> markLabelList;  //角标列表
+	};
+
+	// V+个人页，单个竖拍视频ONAView结构列表
+	struct ONARssVerticalVideoList {
+		0 require vector<ONARssVerticalVideo> videoList;
+		1 optional string reportKey;
+		2 optional string reportParams;
+	};
+	
+	//底层页竖屏播放视频聚合列表
+	struct ONAImmersionVideoList {
+		0 require vector<ONABulletinBoardV2> videoList;
+		1 optional string dataKey;
+		2 optional string reportKey;
+		3 optional string reportParams;
+	};
+	// 代言人推荐模块
+	struct ONASpokesPersonRecommend
+	{
+		0 require vector<SpokesPersonRecommend> spokesPersonList;
+		1 require vector<ONAPosterTitle> posterTitle;
+		2 require ActionBarInfo changeButton;
+	};
+	// 等级特权
+	struct ONAVIPLevelEntry
+	{
+		0 require vector<VIPLevelEntry> VIPlevelEntrys;
+		1 optional string bgImageUrl;						// 背景图Url
+		2 optional ONAPosterTitle posterTitle;				// 头部
+		3 optional ExtraReportKV reportInfo;				// 整体模块数据上报
+	};
+
+	// 单话题卡片，视频卡片>通用卡片 二选一
+	struct ONATopicCard
+	{ 
+		0 optional CommonTopicCard commonCard;   //通用卡片
+		1 optional VideoTopicCard videoCard; //视频卡片
+		2 optional string reportKey; //上报参数
+		3 optional string reportParams; //上报参数
+	};
+
+	// 通用的话题卡片列表
+	struct ONATopicCardList
+	{ 
+		0 optional vector<ONATopicCard> cardList;  // 卡片列表数据
+		1 optional string reportParams; //上报参数
+		2 optional string reportKey; //上报参数
+	};
+
+
+	// 搜索结果页中单
+	struct ONASearchDokiFeed 
+    {
+        0 require string title; //主标题
+        1 optional IconTagText tagTexts; //帖子作者头像，上传时间等信息
+        2 optional vector<string> imageUrls; //帖子内图片缩略图列表
+        3 optional SimplePoster videoPoster; //帖子内视频海报信息
+        4 optional Action action; 
+        5 optional ExtraReportKV report;
+        6 optional long time; //时间戳
+    };
+	
+	// 包含头像的标题栏
+	struct ONAActorTitle
+	{
+		0 optional ActorInfo actorInfo;         //头像对应的信息
+		1 optional string title;                //主标题
+		2 optional string subTitle;             //副标题，位于主标题下方
+		3 optional string actionTips;           //右侧的跳转文案
+		4 optional Action action;               //跳转文案对应的跳转
+		5 optional bool hasActionArrow;         //是否配置跳转箭头“>”
+		6 optional string reportKey;
+		7 optional string reportParams;
+		8 optional vector<string> actorCircleColors; //头像外圈颜色
+		9 optional int actionArrowPosition;		//跳转箭头">"的位置，0-靠右，1-靠左
+		10 optional string titleColor;			//主标题的颜色
+		11 optional string actionArrowColor;	//跳转箭头">"的颜色
+		12 optional string reportEventId;		//数据上报事件Id
+	};
+
+	// doki轮播日报
+	struct ONADokiDaily 
+    {
+        0 require string iconUrl; //左侧图标url
+        1 optional string splitUrl; //分割线图片f
+        2 optional string mainBgColor; //背景色下发
+        3 optional vector<ActionBarInfo> newsList; //新闻列表
+        4 optional string reportParams; //上报参数
+        5 optional string reportKey;    //上报参数
+        6 optional int uiType;          //0-每日播报 1-团贡献播报
+    };
+	
+	// doki推荐卡片
+	struct ONADokiFeedCard 
+    {
+		0 optional ActorInfo dokiInfo;        //doki信息
+		1 optional ActionBarInfo joinBarInfo; //关注按钮
+        2 optional CirclePrimaryFeed feed;    //帖子内容
+		3 optional ActorInfo author;          //发帖人信息
+		4 optional ActionBarInfo rightAction; //右侧按钮
+		5 optional Action feedAction;         //卡片跳转
+        6 optional string reportParams;       //上报参数
+        7 optional string reportKey;          //上报参数
+        8 optional vector<string> actorCircleColors; //头像外圈颜色
+    };
+	
+	// doki推荐卡片列表
+	struct ONADokiFeedCardList
+    {
+        0 optional vector<ONADokiFeedCard> cardList; //卡片列表
+        1 optional string reportParams; //上报参数
+        2 optional string reportKey;    //上报参数
+    };
+    
+    // doki榜单播报onaview
+    struct ONADokiFollowStarRankBroadcast
+    {
+        0 require PrimaryFeedSpecialContent rankContent; //榜单信息
+        1 optional string reportParams; //上报参数
+        2 optional string reportKey;    //上报参数
+        3 optional int uiType; 			//0:默认样式 1:半屏宽度样式（658开始）
+    };
+	
+    // 热点推荐页，双瀑短视频ONAView结构
+    struct ONAShortVideoItem {
+        0 require ONABulletinBoardV2 basicVideo;     //基础卡片
+        1 optional int itemType; //1.基础火锅卡片 2.运营位卡
+    };
+    //poster样式的帖子横滑列表
+	struct ONADokiFeedPosterList {
+		0 optional vector<DokiFeedPoster> feedList; 
+		1 optional string reportKey; 	//曝光reportKey
+		2 optional string reportParams; //曝光reportParams
+	};
+
+	//仅展示时间信息的title 
+	struct ONAMileStone {
+		0 optional string title;     	// 主日期文字
+		1 optional string subTitle;    	// 文案
+		2 optional string reportKey; 	//曝光reportKey
+		3 optional string reportParams; //曝光reportParams
+	};
+
+    // 今日推荐模块
+    struct ONATodayRecommendPoster     
+    {  
+        0  optional  ONAPosterTitle  title;               //标题 
+        1  optional  vector<Poster>  posterList;          //海报列表；
+        2  optional  vector<string>  bigPosterImageList;  //大图海报url列表;
+        3  optional  string  shareReportKey;              //上报参数
+        4  optional  string  shareReportParams;           //上报参数
+        
+    };
+	// 动漫频道横划海报
+    struct ONAThemeGalleryPoster     
+    {  
+        0  require  ONAGalleryAdPoster galleryPoster;    //海报列表
+        1  optional  string  backgroundImgUrl;           //背景图Url
+        2  optional  string  foregroundImgUrl;           //前景图Url
+        3  optional  string  textColor;                   //文本颜色
+    };
+	
+	// 热门话题滚动
+    struct ONAHotDiscuss  
+    {  
+        0 require vector<ActionBarInfo> list;        //热门讨论列表
+		1 optional string iconImgUrl;                  //图标url
+		2 optional Action action;                     //图标点击的action
+        3 optional string reportParams;               //上报参数
+        4 optional string reportKey;                  //上报参数
+		5 optional string moreImgUrl;                 //更多图标url
+    };
+	
+	// 动漫目录种类
+    struct ONAThemeCataLog 
+    {  
+        0 require vector<ActionBarInfo>  list;        //目录列表
+        1 optional string reportParams;               //上报参数
+        2 optional string reportKey;                  //上报参数
+    };
+	
+	// 带有主题的titie poster
+    struct ONAThemeTitlePoster  
+    {  
+        0 require  string title;                       //标题
+		1 optional string titleColor;                  //颜色
+		2 optional Action action;                     //点击的action
+    };
+
+    // 个人主页 - 大图视频卡片，上边海报，下边文字的展现方式
+    struct ONACoverVideoItem
+    {
+    	0 require Poster poster;		   // 封面图、标题、副标题、时长
+    	1 optional Action action;          // 整个view的跳转
+    	2 optional string reportKey;       // 曝光上报参数
+    	3 optional string reportParams;    // 曝光上报参数
+    };
+
+    // V+火锅等个人主页 - 小视频卡片横滑列表，可以翻页
+    struct ONAShortVideoPosterList
+    {
+        0 require vector<TempletLine> dataList;      //封面列表  返回第一页数据
+        1 optional bool isHaveNextPage;	             //是否还有下一页
+        2 optional string dataKey;                   //翻页请求
+        3 optional string pageContext;               //下一页的pageContext
+        4 optional string reportKey;                 // 曝光上报参数
+        5 optional string reportParams;              // 曝光上报参数
+    };
+
+    // 用户学习模块
+    struct ONAUserStudyPoster
+    {
+    	0 require ONAPosterTitle titleInfo;					// 标题信息
+    	1 require ONAAttentPosterList posterList;			// 内容列表
+    	2 optional map<string,string> extraData;			// 额外内容（单独请求后台时要带上这个参数，app 不需要理解内容）
+    	3 optional ExtraReportKV reportInfo;				// 上报信息
+    };
+
+    // PUGC知识付费的支付条
+	struct ONAKnowledgePayBar
+	{
+		0	require string originPrice;							//视频的H5支付原价，这里只做展示，支付的时候会使用查询播放权限返回的价格
+		1	require string vipPrice;							//视频的H5支付会员价，这里只做展示，支付的时候会使用查询播放权限返回的价格
+		2	require string iapOriginPrice;						//视频的IAP支付原价，这里只做展示，支付的时候会使用查询播放权限返回的价格
+		3	require string iapVipPrice;							//视频的IAP支付会员价，这里只做展示，支付的时候会使用查询播放权限返回的价格
+		4	require string vidCountString;						//视频有多少集。例如：全十集
+		5	optional KnowledgePayBarSingleInfo singleInfo;		//单片付费类型视频，在不同会员状态和登录态下的提示文案
+		6	optional KnowledgePayBarVipOnlyInfo vipOnlyInfo;	//会员only付费类型视频，在不同会员状态和登录态下的提示文案
+		7   optional string reportKey;							//上报使用
+	    8	optional string reportParams;						//上报使用
+	};
+
+	// 简介海报
+	struct ONAIntroductionPoster
+	{
+	    0   require Poster poster;         		  //海报图
+		1   require int heightToWidthRatio;       //高度除以宽度的比例,单位百分比 (0-100)
+		2	optional string dataKey;			  //通过这个key去详情页的主数据里面获取简介信息
+		3   optional string reportKey;		 	  //上报使用
+	    4	optional string reportParams;		  //上报使用
+	};
+
+	// 左图右文的课程简介
+	struct ONAKnowledgeIntroduction
+	{
+	    0   require Poster poster;         		  //海报图
+		1	require string title;   			  //简介主标题
+		2	require string subtitle;    		  //简介副标题
+		3	optional string dataKey;			  //通过这个key去详情页的主数据里面获取简介信息
+		4   optional string reportKey;			  //上报使用	
+	    5	optional string reportParams;		  //上报使用
+	};
+	//V+订阅号和Doki聚合列表
+	struct ONAVRSSDokiList 
+	{
+		0 optional vector<ActorData> dataList;    //聚合列表信息
+		1 optional string reportKey;
+		2 optional string reportParams;
+	};
+	//个人用户页图片列表，点击跳转进入大图预览
+	struct ONACirclePicMoreList
+	{
+		0 require vector<CircleMsgImageUrl> dataList;	//图片列表，最后一个加蒙版，展示(totalNum-dataList.size+1)+
+		1 require int totalNum;							//总共的个数
+		2 optional Action groupPageAction;				//最后一个图需要跳转到聚合页面
+		3 optional ExtraReportKV report;
+	};
+    // 赛道卡片
+    struct ONAYooGameListItem
+    {
+        0 require vector <YooGameCard> cardList;    // 赛道下的卡片列表
+        1 optional string bgImgUrl;                 // 赛道背景图
+        2 optional string headImgUrl;               // 赛道发起人头像
+        3 optional byte headImgType;                // 头像类型: 0-普通圆头像, 1-抠完图的头像
+        4 optional string headImgBorder;            // 头像边框颜色
+        5 optional string gameName;                 // 赛道名称
+        6 optional string gameAuthor;               // 赛道发起人
+        7 optional string gameDescription;          // 赛道描述信息
+        8 optional Action action;                   // 描述区域点击跳转
+        9 optional string reportKey;                // 上报key
+        10 optional string reportParams;            // 上报参数
+    };
+	//将CircleMsgImageUrl包装成ONAView，用于聚合页展示，点击进入大图预览页
+	struct ONACircleMsgImage
+	{
+		0 require CircleMsgImageUrl circleMsgImg;
+		1 optional ExtraReportKV report;
+	};
+	//搜索明星banner
+	struct ONASearchStarBanner
+	{
+		0 require string starName;					//明星名字
+		1 require byte bannerType;					//0:热门明星 1:经典明星 0是展示3456字段 1是展示2字段
+		2 optional string intro;					//经典明星简介
+		3 optional string leftTitle;				//左侧文字文案
+		4 optional string leftNum;					//左侧数字文案
+		5 optional string rightTitle;				//右侧文字文案
+		6 optional string rightNum;					//右侧数字文案
+		7 optional string artAImageUrl;				//A类头像图
+		8 optional string artBImageUrl;				//B类头像图
+		9 optional string backgroundUrl;			//背景图
+		10 optional string buttonUrl;				//按钮背景图
+		11 optional Action action;					//进入的跳转操作
+		12 optional Action rankAction;	        	//点击进入星耀榜跳转
+		13 optional string reportKey;   			//上报key
+  		14 optional string reportParams; 			//上报参数
+	};
+
+	//搜索yoo拉动
+	struct ONASearchYooList
+	{
+		0 require vector<YooGameCard> cardList;    // 赛道下的卡片列表
+		1 optional string reportKey;                // 上报key
+        2 optional string reportParams;             // 上报参数		
+	};
+
+	//图片ONA
+	struct ONAImage
+	{
+		0 require string imageUrl;						//图片地址
+		1 optional int topPadding;			   			//顶部间距
+		2 optional int leftPadding;   					//左侧间距
+		3 optional int bottomPadding;   				//底部间距
+		4 optional int rightPadding;		   			//右侧间距
+		5 optional int heightToWidthRatio = 100;        //图片高度除以宽度的比例 单位百分比 
+		6 optional string reportKey;    		 	    // 上报key
+        7 optional string reportParams;      			// 上报参数		
+	};
+
+	//大海报轮播图
+    struct ONAThemeAdPoster{
+        0 require ONAGalleryAdPoster gallerAdPoster;    //轮播图片信息
+        1 require string bgImageUrl;              //视图的背景图片url
+        2 optional int topMarginRatio;           //距离顶部的比值，单位百分比,取值 0 -100，如 取值10 代表 10%
+        3 optional int heightToWidthRatio = 100;        //高度除以宽度的比例 单位百分比 
+        4 optional string textColor;             //下方标题颜色
+		5 optional string bgColor; 				 //整体背景色 
+    };
+    
+    
+	//大图浏览最后的相关推荐页面，单个图片Item
+	struct ONARelatedRecommendImgItem
+	{
+		0 require vector<CircleMsgImageUrl> imgs;	//图片信息，有可能有多张，如果对应的是帖子维度
+		1 optional string feedId;					//帖子维度下对应的FeedId
+		2 optional string reportKey;				//上报key
+		3 optional string reportParams;				//上报Params
+		4 optional bool imgPreViewHasRecommends;	//进入大图浏览是否再次触发相关推荐
+		5 optional string reportEventId;			//上报事件Id
+	};
+	
+	//大图浏览最后的相关推荐页面，图片列表
+	struct ONARelatedRecommendImgList
+	{
+		0 require vector<ONARelatedRecommendImgItem> imgs;  //包含多个图片Item
+	};
+
+    //短带长ONAView
+    struct ONAShortStripLongBoard
+    {
+        0 require Poster shortVideoPoster; 		    //短视频海报数据
+        1 optional Poster longVideoPoster;	        //长视频海报数据
+        2 optional Action action;				    //底部标题跳转action
+        3 optional VideoItemData shortVideoData;    //用于短视频当前播放
+		4 optional VideoAttentItem attentItem;		//关注
+        5 optional string insertNewLineDataKey;     //实时插一个时用的datakey
+        6 optional int insertNewLineProgress;       //视频播放到这个进度后，实时插入另一个视频 比如 50 代表播放到50%的进度
+		7 optional string reportEventId;			//上报事件Id
+		8 optional string reportKey;				//上报key
+		9 optional string reportParams;				//上报Params	
+    };
+
+	// 一拖二主题专辑海报 ona view
+	struct ONATopicCoverPosterList
+	{
+		0 require vector<TopicCoverPoster> posterList;	    //海报
+		1 require int uiType;               // 海报ui类型，0:横滑 1:铺满样式
+		2 optional string  reportKey;       //上报
+		3 optional string  reportParams;    //上报
+	};
+};

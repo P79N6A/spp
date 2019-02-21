@@ -1,0 +1,40 @@
+##############################################################################
+#定义规范
+#1、所有的头文件目录以 INC_ 开头，连接目录以 LIB_ 开头，比如INC_TEST,LIB_TEST
+#2、尽量将目录路径定义成变量，禁止写绝对路径，尽量复用已经定义好的变量。路径变量以 PATH_ 开头
+#3、如果库涉及到多个版本，比如spp，只需要在外面引用该makefile时，定义相关版本的宏变量，版本宏定义规则：库名_VER_版本号,比如SPP_VER_2.10
+#4、如果库同时存在静态库和动态库，比如ptlogin，如果想引用动态库，只需要在外面引用该makefile时，定义相关动态库开关宏变量，动态库开关规则：
+#	库名_SO_FLAG, 比如PTLOGIN_SO_FLAG
+#示例：
+#INC_TEST         =-I$(PATH_COMM)/test/include
+#LIB_TEST         =-L$(PATH_COMM)/test/lib -ltest
+###############################################################################
+
+#一级路径目录变量的定义
+PATH_PROJ         = $(shell pwd | awk -F'/comm|/commSppTask|/src|/tool' '{print $$1}')
+
+PATH_COMM         = $(PATH_PROJ)/comm
+PATH_COMM_SPPTASK = $(PATH_PROJ)/commSppTask
+
+#具体目录下的变量定义
+#####################Begin define directory####################################
+##通用工具函数
+INC_PROJ_COMM     = -I$(PATH_COMM)/proj_comm
+##协议文件
+INC_JCE_PROTOCOL  = -I$(PATH_COMM)/jce_protocol/include
+##通用spptask和spp宏定义
+INC_COMM_SPPTASK  = -I$(PATH_COMM_SPPTASK)
+
+##以下是只有src_agent使用，spp服务不会使用到的库
+###日志库，只有src_agent在使用，spp服务不会使用到
+INC_VLOG          = -I$(PATH_COMM)/vlog/include
+LIB_VLOG          = -L$(PATH_COMM)/vlog/lib -lVLog
+
+###spp中纯微线程库（sppV3.0.1版本中的mt库），只有src_agent在使用，spp服务不会使用到
+INC_SPP_MT_ALONE  = -I$(PATH_COMM)/spp_mt_alone/include
+LIB_SPP_MT_ALONE  = -L$(PATH_COMM)/spp_mt_alone/lib -lmt
+
+##以下是第三方库###########
+
+
+###################End define directory#######################################

@@ -1,0 +1,66 @@
+# service.yaml
+#
+# 注意缩进，每级缩进为2个空格！！
+#
+# 请相应修改下面配置中的“插件包名”，“插件so”，“插件配置文件”和进程数！！！
+#
+# ------
+# 更多配置项说明：http://km.oa.com/group/657/articles/show/176655
+# 热重启说明：http://km.oa.com/group/657/articles/show/176587
+#
+global:
+  listen:
+    - address: eth1:20180/tcp	# 网卡:端口/协议，0.0.0.0对应的网卡是all
+    - address: eth1:20180/udp
+  timeout: 60	# 可选配置，连接空闲关闭超时时间，默认60秒
+service:
+  - id: 1	# worker1
+    module: ../client/star_timeline_new/lib/libstar_timeline_new.so	# 插件So，请对应改下插件包名和So的名字
+    conf: ../client/star_timeline_new/conf/star_timeline_new.conf # 可选配置，So的配置文件，请对应改下插件包名和配置文件的名字
+    procnum: 8		# 进程数，约定maxprocnum == minprocnum == procnum
+    heartbeat: 60	# 可选配置，默认60秒
+    shmsize: 16		# 可选配置项，对应一组worker的共享内存队列大小，单位是MB，默认是16MB
+    timeout: 1000
+    reload: 1   # 热加载重启，需要框架版本>=2.10.8，参考：http://km.oa.com/group/657/articles/show/176587
+    log:		# 可选配置
+      level: 3		# 日志级别，0-5，值越小记录的日志越多，默认是3
+      maxfilesize: 109715200  # 日志单个大小，单位Byte，100M
+      maxfilenum: 15          # 日志个数
+  - id: 2 # worker2
+    module: ../client/star_timeline_new/lib/libstar_timeline_new.so  # 插件So，请对应改下插件包名和So的名字
+    conf: ../client/star_timeline_new/conf/star_timeline_new.conf # 可选配置，So的配置文件，请对应改下插件包名和配置文件的名字
+    procnum: 1    # 进程数，约定maxprocnum == minprocnum == procnum
+    heartbeat: 60 # 可选配置，默认60秒
+    shmsize: 16   # 可选配置项，对应一组worker的共享内存队列大小，单位是MB，默认是16MB
+    timeout: 1000
+    reload: 1   # 热加载重启，需要框架版本>=2.10.8，参考：http://km.oa.com/group/657/articles/show/176587
+    log:    # 可选配置
+      level: 3    # 日志级别，0-5，值越小记录的日志越多，默认是3
+      maxfilesize: 109715200  # 日志单个大小，单位Byte，100M
+      maxfilenum: 15          # 日志个数
+
+   - id: 3 # worker3
+    module: ../client/star_timeline_new/lib/libstar_timeline_new.so  # 插件So，请对应改下插件包名和So的名字
+    conf: ../client/star_timeline_new/conf/star_timeline_new.conf # 可选配置，So的配置文件，请对应改下插件包名和配置文件的名字
+    procnum: 1    # 进程数，约定maxprocnum == minprocnum == procnum
+    heartbeat: 60 # 可选配置，默认60秒
+    shmsize: 16   # 可选配置项，对应一组worker的共享内存队列大小，单位是MB，默认是16MB
+    timeout: 1000
+    reload: 1   # 热加载重启，需要框架版本>=2.10.8，参考：http://km.oa.com/group/657/articles/show/176587
+    log:    # 可选配置
+      level: 3    # 日志级别，0-5，值越小记录的日志越多，默认是3
+      maxfilesize: 109715200  # 日志单个大小，单位Byte，100M
+      maxfilenum: 15          # 日志个数
+
+- id: 4 # worker3
+    module: ../client/star_timeline_new/lib/libstar_timeline_new.so  # 插件So，请对应改下插件包名和So的名字
+    conf: ../client/star_timeline_new/conf/star_timeline_new.conf # 可选配置，So的配置文件，请对应改下插件包名和配置文件的名字
+    procnum: 1    # 进程数，约定maxprocnum == minprocnum == procnum
+    heartbeat: 60 # 可选配置，默认60秒
+    shmsize: 4   # 可选配置项，对应一组worker的共享内存队列大小，单位是MB，默认是16MB
+    timeout: 1000
+    reload: 1   # 热加载重启，需要框架版本>=2.10.8，参考：http://km.oa.com/group/657/articles/show/176587
+    log:    # 可选配置
+      level: 3    # 日志级别，0-5，值越小记录的日志越多，默认是3
+      maxfilesize: 109715200  # 日志单个大小，单位Byte，100M
+      maxfilenum: 15          # 日志个数

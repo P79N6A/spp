@@ -1,0 +1,764 @@
+module jce
+{
+	enum EONAViewType
+	{
+		EnumONAMultPoster = 0,					//一行单个或者多个海报
+		EnumONAGalleryPoster = 1,				//海报画廊
+		EnumONAPosterTitle = 2,					//海报大标题
+		EnumONASplitLine = 3,					//分割线
+		EnumONAStarList = 4,					//明星投票
+		EnumONANewsItem = 5,					//左海报，右文字的显示方式
+		EnumONAMatchSchedule = 6,				//赛事新闻和赛事呈现
+		EnumONAGrid = 7,						//网格
+		EnumONADetailsVideoCircleShare = 8,		//详情页使用的影视圈分享
+		EnumONADetailsToolbar = 9,				//详情页使用的工具条（包含关注和离线按钮）
+		EnumONADetailsVideoList = 10,			//详情页使用的视频vid列表
+		EnumONADetailsPosterList = 11,			//详情页使用的海报列表
+		EnumONADetailsIntroduction = 12,		//详情页使用的简介
+		EnumONACommentWrite = 13,				//评论列表
+		EnumONAHeadPoster = 14,				    //专题头图
+		EnumONASearchPoster = 15,				//搜索结果条目
+		EnumONANoSearchHit = 16,				//搜索无结果时，头部的提示控件
+		EnumONABulletinBoard = 17,				//短视频列表的item
+		EnumONAAppInfo = 18,					//合作推广的app信息，支持唤起app 或者下载app
+		EnumONAStarIntroduction = 19,			//明星的简介信息
+		EnumONAStarNews = 20,					//明星动态
+		EnumONAQuoteComment = 21,				//豆瓣短评的样式
+		EnumONASummary = 22,					//可指定折叠行的简介
+		EnumONAActorList = 23,					//个性化推荐里面的演员信息
+		EnumONAPictureWall = 24,				//个性化推荐里面的照片墙
+		EnumONAPursuit = 25,				    //个性化推荐里面的关注追赶
+		
+		EnumONALiveTrailerCountdown = 26,		//直播倒计时
+        EnumONALiveAttent = 27,					//直播关注
+        EnumONALiveAttentNumber = 28,			//直播关注人数
+        EnumONALiveVIPRights = 29,				//直播特权信息
+        EnumONALiveIntroduction = 30,			//直播简介
+        EnumONAVoteRank = 31,					//直播的投票竞猜排行
+        EnumONAActorRank = 32,					//直播的用户相关的排行
+		
+		EnumONACompeteSchedule = 33,			//竞赛呈现 
+		
+		EnumONALiveCompeteSchedule = 34,		//直播竞赛呈现  
+		EnumONALiveNewsItem = 35,				//直播竞赛呈现
+		EnumONALiveActorNews = 36,				//直播明星 
+		
+		EnumONAProgramItem = 37,				//直播频道 
+		EnumONAEnterTip = 38,					//功能入口提示
+		EnumONAIntroduction = 39,				//通用简介
+		
+		EnumONAGameDownloadItem = 40,			//游戏单个下载视图
+		EnumONAGameGiftPackItem = 41,			//游戏单个礼包视图
+		EnumONAGameGiftPackNews = 42,			//游戏礼包消息
+		
+		EnumONAPosterList = 43,					//通用海报列表
+		EnumONASplitSpace = 44,					//分割区域
+		
+		EnumONAGalleryAdPoster = 45,			//广告画廊视图
+		
+		EnumONADynamicPanel		= 46,			//动态数据的请求视图
+		EnumONAFanNews 		 	= 47,			//饭团动态
+		
+		EnumONABusinessVoteList	= 48,			//业务的投票列表
+		
+		EnumONAChinaVoiceList	= 49,			//好声音投票列表
+		EnumONAVRSSFeed			= 50,			//V+订阅分组
+		EnumONAPromoteEntry		= 51,			//底层链接引流视图
+		
+		EnumONADiscoveryEntry   = 52,			//精选页游戏、影视圈、我的影院等入口(从第三个tab发现页卡搬过来)
+		
+		EnumONAVRSSGroup   = 53,				//V+订阅号组
+		EnumONAVideoCard	=	54,				//视频名片（影集0个性电影4底层5）
+		EnumONAVideoCinema	=	55,				//视频影院
+		EnumONAVideoIntroduction	=	56,		//视频名片(左图右文)
+		EnumONAVRSSHeadPoster    =  57,         //V+个人主页的头图
+		EnumONAPlaceHolder    =  58,            //V+引导页占位视图
+		EnumONACoverIntroduction    =  59,            //一个专辑的视图
+		
+		EnumONAAppList    =  60,            	//横滑下载列表
+		EnumONAMultAppPoster    =  61,          //下载海报
+		EnumONACommunityEntrance    =  62,		//社区入口
+		EnumONAUserPosterTitle = 63,			//用户态标题
+		EnumONATomLiveBoard = 64,               //直播当前播 
+		EnumONAFanNewsWithImgList = 65,			//体育频道，用于展示带图片列表的News
+		EnumONAVideoListPlayer = 66,			//支持播放列表视频的播放器视图
+		EnumONAVipActionTips = 67,				//好莱坞会员付费拉动提示条站位数据
+		EnumONAFilmPreViewTicket = 68,			//电影预告片视图
+		EnumONAAttentPosterList = 69,			//带关注的海报列表
+		EnumONALivePreviewBoard = 70,			//why me 直播，会看列表视图
+
+		EnumONAFanTuanGrid = 71,				//饭团“我的发表”、“我的消息”入口
+		EnumONAFanTuanRankList = 72,			//饭团“我的排行榜”入口
+		EnumONAFanTuanFeed = 73,				//饭团帖子
+		EnumONAFanTuanRankItem = 74,			//饭团“我的排行榜”二级页面的ona view的类型
+		EnumONAViewShowBox	    = 75,          //包含未知ONA视图的视图，更多视图通过请求后台获取
+		EnumONAReward = 76,						//打赏视图		
+		EnumONAMarketingAttentPosterList = 77,		//营销专区视图
+		
+		EnumONAIpLimitInfo = 78,		//ip受限提示视图
+		EnumONAPromoteList = 79,		//拉动条聚合视图
+		EnumONALoadMoreAction = 80,     //加载更多按钮
+		EnumONAGalleryPosterPager = 81,  //轮播图数据结构，支持广告
+		EnumONASearchMatch = 82, //搜索关键词匹配和相关词
+		
+		EnumONANavPosterList= 83, //筛选+PosterList
+		
+		EnumONADetailsVerticalVideoList = 84,//详情页竖向排列的剧集列表
+		EnumONADetailsVerticalPosterList = 85,//详情页竖向排列的专辑列表
+		
+		EnumONABulletinBoardV2 = 86,		  // 短视频列表的item的ABtest的B方案的模版
+		EnumONAUserActionTitle = 87,          //带有用户action的title
+		EnumONAVerticalPosterList = 88,       //通用竖海报列表(490)		
+		EnumONALastReadPosition = 89,		  // 上次观看位置的视图类型
+		EnumONAFanTuanSignedList = 90,        // 饭团签到列表
+		EnumONATagDataGroup = 91,              // 标签组
+		EnumONAScoreList = 92,               // 奥运金牌榜
+		EnumONANetworkRed = 93,					//网红达人
+		EnumONAScrollTips = 94,			     //功能入口滚动播放
+		EnumONAEnterPictures = 95,			 //功能入口图片展示
+		EnumONAWeiboPoster = 96,			 //微博热议
+		EnumONAFantuanRecommendStarsEntrance = 97,   //饭团推荐明星入口
+		EnumONASearchStarList = 98, //搜索结果同名明星列表
+        EnumONASchoolList = 99, //选择大学和更多大学的显示列表
+        EnumONAMediaPoster = 100, //单个多媒体信息onaView
+        EnumONAMultiMediaPoster = 101, //多图多媒体信息onaView
+        EnumONAStarCommentMediaPoster = 102, //明星评论onaView
+        EnumONAFantuanRecommendStarsGroup = 103, //猜你喜欢明星列表
+        EnumONAStarMeetList = 104, //饭团独家TAB未来直播
+        EnumONAStarAgenda = 105, //饭团明星行程
+        EnumONAStarHotRankInfo = 106, //明星打榜信息
+        EnumONADetailsCommentList = 107, //明星热评列表
+		EnumONAExpandableText = 108,     //支持展开收起的文本视图
+        EnumONAVideoTipsIntro = 109,     //视频更新频次、分类等摘要信息
+        EnumONAFilmComment = 110,        //影评人评论信息
+        EnumONAFanTuanLatestRankInfo = 111,        //饭团排行版入口
+		EnumONAClassificationList = 112,       //直播页分类横划列表
+		EnumONATimeLinePoster = 113,       //带时间线的左图右文海报图
+		EnumONATimeLineTitle = 114,       //带时间线的title
+		EnumONAText = 115,                //纯文本的textView
+		EnumONARankItem = 116,           //排行榜样式的文本
+		EnumONAAdPlaceHolder = 117,        //后台下发用于占位视图
+		EnumONAExploreTagList = 118,           //兴趣探索标签列表
+                EnumONAVRSSInfoFeed = 119,           //V+我的订阅图文新样式
+		EnumONAHorizontalBar = 120,      //左图右文的横条		
+		EnumONAStarHotTopicsInfo = 121,      //明星话题信息
+		EnumONAFocusStarNews = 122,   //关注明星动态
+		EnumONAThemePlayer = 123,     //带主题的播放器
+		EnumONAImageText = 124, //左图右文带右跳转action的通用view
+		EnumONACompeteScheduleNew = 125, //竞赛呈现（新样式） 两支队伍左右排列，支持背景配色
+		EnumONAHorizontalList = 126, //支持横滑的ONAView列表
+		EnumONAButtonGroup = 127,    //按钮组合，单行等分排列
+		EnumONAGroupSwitch = 128,    //标签切换组
+		EnumONAMatchScheduleNew = 129, //非对阵赛程新样式 队伍、标题、button一行排列
+		EnumONALabelList = 130, //全局导航推荐提示
+		EnumONABoldStyleEnterTip = 131, //新增追剧特殊样式：带粗体标题的拉动条
+		EnumONAPrimaryFeed = 132, //帖子view
+		EnumONASimpleFeed = 133, //精简置顶帖view
+		EnumONADokiNewsCard = 134, //明星动态卡片
+		EnumONADokiNewsCardList = 135, //明星动态卡片横滑列表
+		EnumONAAdPoster = 136,    //feed流图片广告view
+		EnumONAVideoAdPoster = 137,   //feed流视频广告view
+		EnumONAOptionalText = 138,   //提供一组选择项的view
+		EnumONAWeeklyShowPoster = 139,//综艺每日推荐
+		EnumONAThemeMultiPlayer = 140, //轮播大IP
+		EnumONASimpleAttentPoster = 141, //单个带关注的海报的view
+		EnumONADokiCommonItem = 142,  // 明星item
+		EnumONAEmptyPlaceholder = 143,  //  用于占位的onaview，没有实际展示内容
+		EnumONADokiMovementCard = 144, // 单张doki动态卡片
+		EnumONADokiMovementCardList = 145, //doki动态卡片横滑列表
+		EnumONADokiMileStoneList = 146, //doki里程碑横滑列表
+		EnumONAEnterTipV2 = 147, // 新样式小黄条onaView
+		EnumONADokiRankBroadcast = 148, //doki广场页明星榜单信息二级浮层ONAView
+		EnumONADokiDynamic = 149, //doki动态
+		EnumONALeftImageRightTextAdPoster = 150, //左图右文广告
+		EnumONACirclePosterList = 151,	//圆形海报横滑图
+		EnumONADokiEntryList = 152, //doki入口，支持横滑
+		EnumONADokiPhotoItem = 153, //单个美图 610新增
+		EnumONADokiPhotoList = 154, //美图列表 610新增
+		EnumONAAppPullAdPoster = 155, //APP换量ONAView 610新增
+		EnumONARecommendBanner = 156, //底层页播放器下方运营位
+		EnumONARecommendList = 157, //周边推荐
+		EnumONATopicHead = 158, //话题详情页头部信息ONAView
+		EnumONASelfVideoFeed = 159, //话题详情页自拍视频ONAView
+		EnumONAVideoTopicCardList = 160, //自拍视频话题卡片列表
+		EnumONASelfVideoFeedList = 161, //话题详情页自拍视频列表ONAView
+		EnumONASearchFilterList = 162, //搜索里面出现的阅读、漫画、商城、游戏的Filterlist视图
+		EnumONASmallVideoItem = 163, //频道页小视频页卡，单元素ONAView
+		EnumONARssVerticalVideo = 164, //V+个人页，单个竖拍视频ONAView结构
+		EnumONARssVerticalVideoList = 165, //V+个人页，单个竖拍视频ONAView结构列表
+		EnumONAImmersionVideoList = 166, //底层页竖屏播放视频聚合列表
+		EnumONASmallVideoList = 167, //频道页-小视频页卡单行ONAView
+		EnumONASearchRecommendAdPoster = 168, //搜索推荐广告ONAView
+		EnumONASpokesPersonRecommend = 169, //代言人推荐 ONAView
+		EnumONAVIPLevelEntry = 170, //等级特权 ONAView
+		EnumONARelatedDokiList = 171, //相关doki ONAView
+		EnumONATopicCard = 172, //话题卡片 ONAView
+		EnumONATopicCardList = 173, //话题卡片列表  ONAView
+		EnumONASearchDokiFeed = 174, //搜索结果页Feed
+		EnumONAAdEmptyOrderPoster = 175, //广告空单占位onaview
+		EnumONADokiWallPaperItem = 176, //单张“壁纸”的ONAView
+		EnumONADokiWallPaperList = 177, //3张“壁纸”的列表ONAView
+		EnumONADokiWallPaperScrollableList = 178, //多张“壁纸”横滑列表ONAView
+		EnumONADokiFeedCard = 179, //doki feed卡片
+		EnumONADokiDaily = 180, //doki播报
+		EnumONADokiFeedCardList = 181, //doki feed 卡片列表
+		EnumONAActorTitle = 182, //带ActorInfo的标题
+		EnumONACommonActorRankList = 183, //通用人物排行榜
+
+		EnumONASearchSubjectBannerList = 184, //搜索结果页中专题banner视图
+		EnumONASearchSubjectItemList = 185, //搜索结果页中专题banner下的拉动列表视图
+		
+		EnumONAYooFollowList = 186, 	//火锅关注频道，顶部关怀用户列表视图
+		EnumONAYooEmpty = 187, 			//火锅关注频道，关注用户为空的卡片视图
+		EnumONAYooRecommendGroup = 188, //火锅关注频道，推荐列表视图
+		EnumONAYooRecommendItem = 189, 	//火锅关注频道，推荐列表单元素
+		EnumONAShortVideoItem = 190, 	//热点推荐页，双瀑短视频ONAView结构
+		EnumONADokiFollowStarRankBroadcast = 191, //doki 排行榜播报
+		EnumONATodayRecommendPoster = 192,    //今日推荐 ONAView
+		EnumONAMileStone = 193,              //十佳贴二级页时间点ONAView
+		EnumONADokiFeedPosterList = 194,    //广场十佳贴ONAView
+		EnumONAThemeGalleryPoster = 195,    //动漫频道横划海报
+		EnumONAHotDiscuss = 196,            //热门话题滚动
+		EnumONAThemeCataLog = 197,          //动漫目录种类
+		EnumONAThemeTitlePoster = 198,      //  带有主题的titie poster
+		EnumONAQAPrimaryFeed = 199,         // 提问帖
+		EnumONACoverVideoItem = 200,   // 个人页新增一种大图视频卡片
+		EnumONAShortVideoPosterList = 201,  // v+个人页新增横滑视图
+		EnumONAThemeUserActionTitle = 202,  // 带有主题样式的用户操作行为的title
+		EnumONAUserStudyPoster = 203,		// 用户学习模块 ONAView
+		EnumONAKnowledgePayBar = 204,//底层页PUGC付费类型视频支付条
+		EnumONAIntroductionPoster = 205,//简介海报
+		EnumONAKnowledgeIntroduction = 206,	//左图右文的课程简介
+		EnumONADokiLiveBroadcast = 207, //doki直播模块
+		EnumONADokiActivityInfo = 208, //doki活动模块
+		EnumONADokiEmoticonItem = 209, //doki表情包
+		EnumONADokiEmoticonList = 210, //doki表情包列表
+		EnumONADokiStarTheme = 211, //doki明星装扮
+		EnumONAVRSSDokiList = 212, //V+订阅号和Doki聚合列表
+		EnumONACirclePicMoreList = 213, //个人用户页图片列表，点击跳转进入大图预览
+		EnumONACircleMsgImage = 214, //用于聚合页展示，点击进入大图预览页
+		EnumONAYooGameListItem = 215, // 热点Tab双流下Yoo赛道卡片
+		EnumONADokiCommonFeedCard = 216, //Doki帖子卡片
+		EnumONADokiStarFeedCard = 217, //Doki明星说类型卡片
+		EnumONADokiStarLiveCard = 218, //Doki明星驾到直播卡片
+		EnumONADokiEntertamentNewsCard = 219, //Doki娱乐资讯卡片
+		EnumONADokiFansVideoCard = 220, //Doki饭拍饭制视频卡片
+		EnumONADokiStarGroupCard = 221, //Doki明星说聚合入口卡片
+		EnumONADokiGalleryGroupCard = 222, //Doki壁纸、表情、饭拍、饭制等多图聚合卡片
+		EnumONADokiTopTenGroupCard = 223, //Doki十佳贴聚合卡片
+		EnumONADokiMoreInfoBar = 224, //Doki查看更多入口
+		EnumONADokiCoverCard = 225, //Doki大IP聚合视频类型卡片
+		EnumONASearchStarBanner = 226,// 搜索大IP明星页卡
+	  	EnumONASearchYooList = 227,//  搜索yoo视频拉动列表
+                EnumONARelatedRecommendImgItem = 228, //大图预览相关推荐单个图片item
+		EnumONARelatedRecommendImgList = 229, //大图预览相关推荐图片列表
+		EnumONADokiVideoCoverCard = 230, //视频、专辑封面卡片样式
+		EnumONANothing1 = 231,   // 废弃不用，补齐
+		EnumONAImage = 232,// 纯图片ONA模块
+		EnumONANothing2 = 233,   // 废弃不用，补齐
+		EnumONAHorizonBulletinBoardFeed = 234, //横屏沉浸式Feed数据结构
+		EnumONABrandVideoAdPoster = 235, //品牌氛围卡片
+		EnumONANothing3 = 236,   // 废弃不用，补齐
+		EnumONADetailsHorizonPosterList = 237, //详情页横滑海报列表(支持多tab和单标题)
+		EnumONAShortStripLongBoard = 238,  //频道页长带短ONAView
+		EnumONAThemeAdPoster = 239, //轮播图大IP
+		EnumONATopicCoverPosterList = 240, //主题专辑海报
+	};
+
+	enum QQVideoJCECmd
+	{		
+		ChannelList = 			0xe892,		//频道列表请求
+		ChannelData = 			0xe893,		//频道内容请求
+		
+		VideoDetails = 			0xe894,		//点播详情页
+		VideoList = 			0xe899,		//视频列表结果页，可以带过滤器
+
+		CircleSharerInfo =  	0xe89c,		//获取影片的分享信息
+		GetVideoAttentList = 	0xe89d,		//获取用户的关注列表
+		VideoAttentOption =		0xe89e,		//操作关注数据项
+		DetailVideoList =		0xe896,		//详情页视频列表
+		DetailCoverList = 		0xe897,		//详情页专辑列表
+		
+		WatchRecordList = 		0xe8a0,		//获取观看列表		
+		WatchRecordUpload =		0xe8a1,		//上传本地的观看列表
+		WatchRecordDelete =		0xe8a2,		//删除指定的观看列表
+		
+		DMPostComment =			0xe8a9,		//发表弹幕
+		DMLike =				0xe8aa,		//弹幕点赞
+		DMCommentList = 		0xe8a8,		//获取点播弹幕消息列表
+		DMLiveCommentList	=	0xe8fd,		//获取直播弹幕消息列表
+		DMGetUserCfg = 			0xe8ab,		//获取弹幕用户配置
+		
+		VipUserInfo = 			0xe8af,		//获取会员信息
+		GetVideoPayInfo = 		0xe8b0,		//查询影片是否已经付费
+		PriceCloud = 			0xe8b1,		//单片购买云支付
+		VipOrderList = 			0xe8b2,		//用户购买历史纪录
+		GetTicketList = 		0xe8b3,		//获取用户可用券的数据
+		TicketTrade = 			0xe8b4,		//用券支付
+		
+		GetLiveGiftList =		0xe8f4,		//获取道具列表
+		ApplyGift = 			0xe8f9,		//使用道具
+
+		GetCacheList =			0xe8b5,		//获取离线缓存相关信息
+		
+		SearchRank = 			0xe8c1,		//搜索的热榜数据
+		SearchSmart = 			0xe8c2,		//搜索的关键词联想
+		Search =				0xe8c0,		//具体的搜索请求
+	
+		StGuidGet = 			0xe180,		//获取GUID
+		
+		STWxRefreshToken = 		0xe8c3, 	//wx账号刷新
+		STLogin = 				0xe8e8,		//登陆
+		STLogout = 				0xe8ea,		//登出
+		
+		STBind = 				0xe912,		//绑定
+		STUnBind = 				0xe8e9,		//解绑
+		InsertOneUser 	= 		0xe160,		//影视圈导入好友关系
+		
+		//新增3个命令字来支持新的登录
+		NewRefreshToken =		0xea53, 	//账号刷新
+		NewLogin = 				0xea52,		//登陆
+		NewLogout = 			0xea54,		//登出
+		
+		VIPPayProductList =		0xe8c4,		//获取会员开通产品信息
+		OperationPage = 		0xe8c5,		//运营页数据
+		StarNewsList =			0xe8c7,		//获取明星的动态信息
+		StarHome =				0xe8c8,		//明星个人主页
+		
+		PersonalizeVideoList =	0xe8cb,		//个性化推荐列表
+		DiscoveryTab = 			0xe8cc,		//发现tab页
+		
+		PostVote = 				0xe8cd,		//点赞
+		GetVote = 				0xe8ce,		//查询点赞数据	
+		
+		PersonalizeDetails	=	0xe8d1,		//个性化详情页
+		PersonalizeVideoReport = 0xe8e5,	//个性化推荐上报
+			
+		ShareCheck = 			0xe8e6,		//检查分享账号是否开通
+		Share = 				0xe8e7,		//分享请求
+		
+		CirclePubMsg =					0xe8dd,		//消息原创
+		CirclePostComment =     		0xe8de,		//发表评论
+		CircleMsgLike =         		0xe8df,		//点赞/取消赞
+		CircleMsgDelete =       		0xe8e0,		//消息删除请求
+		CircleGetVideoSelectList = 		0xe8eb,		//获取发表主题时的分组海报列表
+		CircleGetScreenShots =  		0xe8e4,		//获取大家截的图
+		CircleGetHomeTimeLine = 		0xe8d4,		//请求hometimeLine的信息
+		CircleGetUserTimeLine = 		0xe8d5,		//请求usertimeLine的信息
+		CircleGetVideoTimeLine = 		0xe8d6,		//请求videoTimeLine的信息
+		CircleGetPrimaryFeedDetail = 	0xe8d7,		//请求单条消息详情
+		CircleGetNotifyMessageList = 	0xe8d9,		//获取消息提醒数据
+		CircleGetUnReadMsgCount =	 	0xe8d8,		//取未读计数请求
+		CircleMsgFollow = 				0xe119,		//设置关注
+		CircleGetRelationList = 		0xe8ff,		//获取好友关系链
+		AddOneBlacklist = 				0xe162,		//增加黑名单
+		CircleGetDefBlackList = 		0xe905,		//发表原创时，获取默认黑名单
+		CircleDetectNew =        		0xea3a,		//影视圈的detect new协议
+		CirclePlayerShareTips =  		0xea3b,		//播放器最后五分钟的影视圈气泡提示
+		
+		GetLiveTicketInfo =		0xe8f3,		//获取电子票信息
+		LivePoll =				0xe8f6,		//直播轮询
+		Live = 					0xe8f7,		//直播主协议请求
+		LiveGetRankList = 		0xe8fa,		//获取直播的排行榜信息
+		LiveShowBill = 			0xe900,		//获取直播的节目单
+		LiveVideoList =			0xe914,		//获取直播的战况视频
+		
+		//以下协议是评论相关的所有协议
+		GetCommentList = 		0xe89a,		//获取点播底层页的评论列表
+		GetCommentDetails = 	0xe8f8,		//获取单条评论和其所有回复列表
+		GetLiveCommentList =	0xe8fb,		//获取直播中主持人页卡的评论列表
+		GetPreLiveCommentList = 0xe903,		//获取直播前的评论列表
+		GetChatCommentList =    0xe8fc,		//获取聊天室评论列表
+		PostComment = 			0xe89b,		//发表评论
+		MyCommentList 	= 		0xe8c6,		//获取我的评论列表
+		LivePostVote	=		0xe902,		//直播投票的协议
+		LiveCommentPoll	=		0xe938,		//直播评论列表轮询
+		
+		//以下协议是明星主题相关的所有协议
+		StarThemeGroupList = 	0xe907,		//明星主题一级页面内容
+    	StarThemeGroupMore = 	0xe908,		//明星主题二级页面内容
+    	SingleStarThemeDetail = 0xe909,		//明星主题单个主题详情
+    	StarThemeDetectNew = 	0xe90a,		//明星主题新上架查询
+    	UseTheme = 				0xe90b,		//将已用的明星主题id上报给后台
+
+		//以下协议是游戏相关的所有协议
+		GameUpdate			=		0xe917,	//小红点更新
+		GameHome			=		0xe918,	//游戏主页请求
+		GameDownloadList	=		0xe919,	//游戏下载列表
+		GameGiftPackList	=		0xe91a,	//游戏礼包列表
+		GameMyGift			=		0xe91b,	//我的游戏礼包列表
+		GameDetails			=		0xe91c,	//游戏详情请求
+		GameGiftPackDetails	=		0xe91d,	//游戏礼包领取详情页请求
+		
+		DynamicData			=		0xe91f,	//详情页动态数据请求	
+		VideoTag			=		0xe920,	//视频打点信息请求	
+		BusinessVoteList	=		0xe922,	//业务投票列表
+		GameIOSReportDownload =     0xe926,	//IOS游戏下载的对账上报请求
+		WebAppUpgrade 		= 		0xe93a, // h5离线包业务
+		FollowTV			=		0xe935,	//一周追剧
+		NAC		        	=		0xe937, //NAC请求服务器列表信息
+		FullScreenVideoDetail =		0xe96e,	//热点全屏播放详情
+
+		QQLiveAction	    =	 	0xe981,	//外部拉起信息
+		DynamicItem		    = 		0xe99e, //个人中心动态配置入口
+		CircleMsgReport 	=		0xe9c3,	//举报消息
+		FanNewsList			=		0xe9c5,	//饭团帖子请求参数
+		
+		//代币相关的命令字
+		PropertyMine 		=		0xe9cd,		//代币余额查询
+		DiamondActivity 	=		0xe9ce,		//我的财产页活动描述
+		DiamondBill			=		0xe9cf,		//账单流水列表接口
+		PropertyPay			=		0xe9d0,		//代币消费交易接口
+		DiamondList			=		0xe9d1,		//代币兑换列表页接口
+		CoinList			=		0xe9d2,		//金币兑换列表页接口
+		ActPop				=		0xe9f8,		//代币活动弹窗
+		
+		CircleGetHotTimeLine = 		0xe9d8,		//请求hottimeLine的信息
+		CircleGetCoralTimeLine = 	0xe9d9,		//请求coraltimeLine的信息
+		
+		VRSSHome          =    0xe9e7,           //V+主页数据请求
+		VRssSubscribe     =    0xe9e8,           //V+订阅，查询，取消订阅操作请求
+		GetVRssSubscribe  =    0xe9e9,           //V+获取订阅列表
+		
+		SuperRank			=	0xe9ef,			//排行榜
+		PopularityList		=	0xe9e5,			//投票人气榜
+		MyContributions		=	0xe9f0,			//我的贡献
+		UserVote			=	0xe9f7,			//用户投票数据
+		
+		CommonVideoList		=    0xea01, 			//通用视频加载更多
+		CommonCoverList		=	 0xea02,			//通用专辑加载更多
+
+        VideoSplit      =    0xe983,             //录制视频
+        TransProperty       =    0xe9f3,         //代币转移
+		
+        GetVideoDownloadInfo =   0xea33,         //废弃   查询特殊影片是否可以下载 
+        LiveMultiCameraInfo   =   0xea49,        //直播多机位
+		NavOperatePage		 =	0xea48,			 //运营页卡导航
+		
+		CheckDownloadCopyright = 0xea51,         //查询特殊影片是否可以下载 
+		
+		DislikeVideo = 0xea55,                   //推荐页卡不感兴趣
+		
+		VipConfig = 0xea5a,                      //会员配置文案信息
+		
+		PayedStarThemeGroup = 0xeaa1,            //获取用户已购买礼包礼包
+		StarThemeHistory = 0xeaa2,               //同步用户设置的主题
+		AccountBindInfo = 0xeaa3,                //获取云端用户上次设置的主题
+		
+		VipTipsInfoView = 0xeaca,	             //好莱坞补差价提示条
+		GetVipTips = 0xeac9,		             //获取好莱坞tab的催费文案
+		GetBindPhone = 0xede1,					//对于iap支付失败后，获取当前登录态是否有绑定手机号
+		VideoListVideoInfo = 0xeaf8,             //批量获取视频信息协议
+
+		GiftPolicy  	= 	0xeae7,		//道具掉落策略
+		GiftPresent 	=	0xeae8,		//道具赠送请求
+		MyFansRank		=	0xea41,		//人气值请求
+		PKPopularityList =  0xeaee,		//对战列表
+		LiveSubscribe = 0xeaf6,		    //直播预约列表请求
+		LiveInteract = 0xeaf7,          //why me 直播播放器请求协议
+		LiveRecommend = 0xeae6,         //why me 直播结束推荐协议
+		videoEndRecommend = 0xeaf4,     //视频结束推荐
+		videoEndRecommendV2 = 0xfd58,     //视频结束推荐V2
+		
+		// 饭团命令字
+		FanTuanHome = 0xec15,				//饭团主页
+		FanTuanGetUserId = 0xeb01,			//拉取饭团userid,目前废弃，看app是否需要，因为目前饭团账号全部切成vuid
+		FanTuanMyPost = 0xec16,				//饭团我的原创
+		FanTuanMyComment = 0xec24,			//饭团我的评论
+		FanTuanGetUnReadMsgCount = 0xec25,	//获取饭团未读消息计数
+		FanTuanGetMsgList = 0xec26,			//获取饭团消息
+		FanTuanSetLastReadMsg = 0xec27,		//设置最后读的一条消息
+		FanTuanMyFollow = 0xec28,			//我的饭团二级界面
+		FanTuanQueryFollow = 0xec2a,		//饭团批量查询
+		FanTuanFollow = 0xec29,				//加入饭团
+		FanTuanSign = 0xec2b,				//饭团签到
+		FanTuanFeedDetail = 0xec2c,			//饭团拉取主题详情页
+		FanTuanPublishFeed = 0xec2d,		//饭团发表主贴
+		FanTuanPublishComment = 0xec2e,		//饭团发表评论
+		FanTuanDelete = 0xec2f,				//饭团用户自己删除主题或评论
+		FanTuanUp = 0xec30,					//饭团点赞
+		FanTuanReport = 0xec31 ,			//饭团举报
+		FanTuanList = 0xeca5,                   //饭团列表
+		FanTuanLatest = 0xecbd,                 //饭团更新tab
+		FanTuanRecommendStars = 0xedd8,		//饭团排行榜
+		FanTuanGetNewLine = 0xedd1,			//饭团插入协议
+		
+		IOSSearchIndex = 0xeb1d,            //ios应用内搜索热词命令字
+		
+		InteractPraiseGet = 0xeb22,					//直播点赞数批量获取接口
+		InteractPraisePost = 0xeb23,				//直播点赞写接口
+		InteractUserPraiseGet = 0xeb24,             //获取发布者的点暂数
+		VipCommonMsg = 0xeb40,				        //好莱坞通用文案配置请求
+		AppUpdate = 0xeb36,                         //检查APP版本升级
+
+		CheckGive =  0xeb51,			     //查询赠送影片
+		GiveMovie = 0xeb52,				     //分享影片
+		CheckBindAccount = 0xeb53,		     //查询是否提示绑定帐号登录
+		ShareItemDetail = 0xeb58,		     //分享重构协议命令字
+		
+		NewAttentOption	=	0xeb83,		     //新关注协议：操作关注(添加/删除/清除)
+		NewQueryAttentState	=	0xeb84,		 //新关注协议：查询关注状态
+		NewGetAttentList	=	0xeb85,		 //新关注协议：拉取关注列表
+		LiveWaitPoll = 0xeb88,				 //直播排队轮询协议
+		
+		GetEncrpyKey 	      	  = 0xeb8d,                 //拉取密钥协议key2
+		CheckEncrpy	    	  	  = 0xeb8e,                 //密钥验证接口协议
+		RewardWaterLog   	  	  = 0xeb8f,                 //打赏流水接收协议
+		CheckWhiteIdolAndFansHead = 0xeb90,                 //可打赏白名单验证协议,验证，并且返回打赏信息,并且返回key1
+		GetRewardFansHeadAndNum   = 0xeb91,                 //只返回头像和金额，不返回key1
+		AppRemoteConfig           = 0xeb98,                 //app配置的信息请求
+		
+		UploadCustomizeChannelList	= 0xeb9f,				//上传频道定制后的列表
+		CheckNewPresentRight = 0xeba3,		                //赠送影片小红点协议
+		
+		UploadUnicomPseudoCode		=	0xebb4,		//上传联通伪码
+		GetUnicomPseudoCode		=	0xebb5,			//拉取联通伪码
+		
+		MarketAttent = 0xebaa,				//营销专区预约、取消预约
+		QueryUserMarketAttent = 0xebab,		//营销专区我的预约列表
+		MiniVideoList = 0xebbc,             //小视频timeline列表
+		CommonConfig = 0xebf6,              //获取统一配置数据
+		QueryUserMarketData = 0xec3d,	    //营销专区海报局部刷新
+
+		//私人聊天室命令字
+		CreateSession = 0xeb73,                 //创建聊天室会话
+		JoinInSession = 0xeb76,                 //加入聊天室会话
+		RemoveSessionFriend  = 0xeb77,          //移除聊天室好友
+		GetApolloAuthKey = 0xec40,              //获取Apollo语音系统权限
+		GetUserSessions = 0xeb78,               //获取用户相关的聊天室列表
+		GetSessionUsers = 0xeb79,               //获取聊天室的用户列表
+		CheckUserValidationBatch = 0xeb80,      //批量检查用户合法性
+		PostSessionMessage = 0xec41,            //发表聊天室消息
+		GetSessionMessagesBatch = 0xec42,       //批量获取聊天室消息列表
+		GetSessionPublicInfoBatch = 0xec43,     //批量获取聊天室公共信息
+		ExitSession = 0xec48,                   //退出当前聊天室
+		UpdateSessionPublicInfo = 0xec5a,       //更新会话信息
+		
+		PersonalityPage = 0xec54,               //个性化推荐
+		
+		GetPreCacheItemList = 0xec7b,           //查询预约下载的CacheItem
+		AccountPlayPermission = 0xecef,			//帐号解封协议
+		MiniVideoTimeline = 0xece8,             //小视频timeline请求
+		VideoPreviewAction = 0xecdd,            //推荐预览视频
+		FeedbackAction = 0xecdc,                //推荐正负反馈
+
+        AnchorRankTab = 0xecd9,					//获取主播排行榜的tab页列表
+		AnchorRank = 0xecd1,					//查询主播人气榜列表
+		AnchorFansRank = 0xecd2,				//查询主播粉丝榜列表
+        StagePhoto = 0xecfa,	                //拉取剧照协议命令字
+		GetNewLine = 0xecd6,                    //请求插入新的onaview请求
+		StGetRichData = 0xec92,                 //请求弹幕气泡信息的协议
+		GetUserProfile = 0xed02,                //请求用户资料信息的协议
+		CheckHasPreCacheItem = 0xed24,          //请求是否有预约下载的协议
+		UserCenterVipEntry = 0xed49,          //请求个人中心开通vip配置的协议
+		VipActivityConfig = 0xed4c,          //请求vip大型活动配置的协议
+		LiveReportReason = 0xedce,					//直播举报协议命令字
+		SyncTask = 0xedd3,	                 //实时执行任务
+		SelectedSchool = 0xee24,             //同步用户选择大学信息到后台的协议
+		VipH5GameConfig = 0xee2d,             //vip 4周年活动协议		
+		HomeTabList = 0xee61,                 //首页底部导航
+		OperatorConfig = 0xee71,              //首页启动弹窗运营配置
+		FanTuanNavOperatePage = 0xee74,         //明星页卡子导航栏拉取协议
+		CircleGetStarTimeLine = 0xee76,         //详情页明星评论timeline
+		IOSPushTokenUpload = 0xee84,            // iphone push token 上报协议
+		VideoIntroDetail = 0xee8c,              // 详情页简介页数据请求
+                DetailFeedFlow = 0xeec7,                //详情页feed流数据请求
+        LiveUserProfile = 0xeec9,				//获取直播的嘉宾身份
+        GetLiveHasLotteryTicketInfo =	0xef03,		//获取含有抽奖信息相关的电子票信息
+		FeedDetailVideoList = 0xeefd,			//feeds流专辑列表请求命令字
+		GetVInfo = 0xef21,                      //获取点播视频信息getvinfo请求命令字
+		IapSinglePayCheck = 0xef15,				//iap单片购买check，防止前一次发货失败用户重复购买的问题
+		vipAuthWhiteArea = 0xef37,				//vip购买检测灰度区域
+		//观看历史改版命令字
+		WatchRecordListV1    = 0xef28, //观看历史新-拉取纯数据列表
+		WatchRecordUploadV1     = 0xef29, //观看历史新-上报记录
+		WatchRecordDeleteV1     = 0xef2a, //观看历史新-删除记录
+		WatchRecordPostersV1 = 0xef2b, //观看历史新-获取观看记录UI信息
+		ChannelGetNewLine = 0xef5e, //频道请求插入数据
+		FeedbackActionBatch = 0xef5b,  //feed流负反馈批量上传协议
+		ActivityFansRank = 0xef60, //活动嘉宾粉丝榜
+		GetCaption = 0xefbe, //获取视频台词
+		CaptionCorrect = 0xefbf, //纠正视频台词
+		GetCarrierUserOrder = 0xef88, //运营商免流-查询订购关系
+		GetCarrierIP = 0xef8d, //运营商免流-查询IP
+        GetCarrierSign = 0xef95,  //运营商免流-获取签名
+		GameSubscibe = 0xefbc,    //游戏的预约信息
+		MessagePushSwitchState = 0xf003, //推送开关状态上传
+		LiveStoreRedDot = 0xf041,  //showRoom商城红点轮询
+		MCGetNewMsgInfo = 0xf080,  //未读消息计数
+		MCGetMsgList = 0xf07f, //获取消息列表
+        MCDeleteMessage = 0xf07e, //删除消息		
+		
+		FeedDetail = 0xf082, //统一发表帖子详情页
+		PubMsg = 0xf0ae, //统一发表
+		PostCommentMsg = 0xf0af, //统一发表回复
+		MsgDelete = 0xf0b0, //统一发表点赞
+		MsgLike = 0xf0b1, //统一发表点赞
+		MsgReport = 0xf0b2, //统一发表举报
+		CircleGetHomeTimeLineV2 = 0xf0b5,		//统一发表展现，请求hometimeLine的信息
+		CircleGetUserTimeLineV2 = 0xf0b4,		//统一发表展现，请求usertimeLine的信息
+		PubTopicList = 0xf0c9,   // 统一发表框获取话题列表
+		TopicDetail = 0xf0cb,    //话题详情页
+		PropertyPayAndApply = 0xf0ab,  //道具即买即送
+		DMRegistTargetIdMore = 0xe927, //弹幕注册和拉取配置  该命令字有重复  秉承jce协议只增加不删除的原则 保持存在重复    
+		FanTuanHomeFeed = 0xf0d8,	//粉丝留言
+		LiveAd = 0xf081,     //广告请求走jce通道
+		CheckKeyBoardEntrance = 0xf12d,     // 统一发表请求图片、小视频、话题入口
+		DokiCommentTimeline = 0xf130, //明星评论聚合页
+		OperatorTip = 0xf13e, //运营商免流提示
+		TVK_GetInfo = 0xf152, //GetVinfo
+		GetRelatedQuery = 0xf1b3,				//搜索结果页实时插入
+		FanTuanHomeFeedV2 = 0xf1bd,				//后援会tab(原粉丝留言)
+		DokiDegreeTask = 0xf1ca,				//Doki任务激励请求
+		GetUserDegree = 0xf1c0,					//用户等级徽章列表
+		FeedDetailOperate = 0xf1cc,				//置顶删帖禁言请求
+		GetTVShowWeeklyList = 0xf1ec,			//单个综艺周数据请求
+		CheckDownloadCopyrightList = 0xf1f8,	//批量下载鉴权列表
+		HasReadMsg = 0xf206,					//通知已读请求，用于实现未读计数(数字非红点)，一般在页面曝光后发起
+		CommonSearch = 0xf2a8, // doki单业务搜索结果页数据请求
+		CommonSearchSmartBox = 0xf2aa, //doki搜索智能联想
+		DokiCombineList = 0xf2ab, // 聚合doki列表请求（590用于发表选择doki，已关注和热门doki）
+		DetailsFlowData = 0xf2ba, //详情页请求主协议之外的评论数据（剧集doki评论）
+		CircleGetCoralTimeLineV2 = 	0xf2bb,		//请求coraltimeLine的信息 新命令字from590
+		GrowthSystemTask = 0xf30b,			//成长体系任务上报和提示请求
+		GetQueryAppList = 0xf357,             //获取需要查询app是不是安装的列表
+		GetChatSessionInfo = 0xf384,          // 获取会话信息
+		GetChatSessionList = 0xf385,          //获取会话列表
+		GetChatMessage = 0xf393,              // 获取聊天消息
+		SendChatMessage = 0xf386,             // 发送聊天消息
+		DeleteChatSession = 0xf3a8,           // 删除聊天会话
+		ChannelInsertFeedback = 0xf3bb,       //频道插入反馈上报
+		Follow = 0xf3a9,                      //个人关注协议
+		QueryFollowVpps = 0xf3b0,             //查询关注列表
+		QueryFansList = 0xf3b1,               //查询粉丝列表
+		CheckFollowRelation = 0xf3ad,         //查询关注关系
+		MyRelationPage = 0xf3c9,              //关注关系链二级页页面协议
+		GetApkInstallConfig = 0xf3d2,         // 获取apk拦截安装对抗策略配置 
+        SubFloatingONAPage = 0xf3d4,          //二级浮层运营页
+		GetQAGameUserInfo =  0xf3e4,//本场游戏目前用户信息
+		PostQAGameUserOption =  0xf3e3,//用户提交选项
+		QAGameUserStatistics =  0xf3e7,//用户统计信息（累积信息）
+		ChatSessionOperate = 0xf414,   // 聊天会话信息属性修改
+		ImmersiveList = 0xf4ce,        			//沉浸式播放列表
+		MyFeedOperationGroup = 0xf4d0,        	//用户相关管理操作组
+		FeedOperationList = 0xf4d1,        		//单个帖子管理操作列表
+
+		ResourceUpgrade = 0xf3fa,			  //资源升级
+		ResourceUpgradeV2 = 0xff8e,			  //670 资源升级后台迁移
+		BookFollow = 0xF4D8,			//收藏书籍/动漫
+		GetBookFollowStatus = 0xF4D9,		//书籍/动收藏状态
+		GetBookHistory = 0xF4DF,	//获取观看历史书籍/动漫
+		UploadBookHistory = 0xF4E0,		//上传书籍/动漫观看历史
+		GetChapterList = 0xF4FF,	//获取部分/全部章节信息
+ 		GetChapterChargeStatus = 0xF509,	//获取书籍是否可读状态
+ 		GetBookInfo = 0xF525, 				//获取书籍信息
+		UserRelationship = 0xf5d6,   //获取活动用户关系链
+		TopicDetailONAViews = 0xf5d9, //ONAView模式的话题详情页
+		GetCaptureConfig = 0xf5ef,      //查询拍摄配置
+		MediaTabInfoList = 0xf5f0,   //查询媒体列表 
+		MediaList = 0xf5f1,          //查询媒体列表详情
+		UserHomeSelfVideoONAViews = 0xf5f2,   //个人页自拍tab ONAView
+		RssVerticalVideoONAViews = 0xf706, 		//V+个人页竖排视频列表
+		GetChatBlackList = 0xf6ec,   			//私信黑名单列表
+		GetBookCoupon = 0xf738,					//获取阅文书券
+		DMReport = 0xf717,                      //App侧弹幕举报
+		PendantTable = 0xf718,       // 拉取挂件列表
+        PendantList = 0xf719,        // 拉取挂件详情
+		VipCommonConfig = 0xf773,    // Vip通用配置协议
+		DetailsCommonFlowData = 0xf7a7, //详情页请求主协议之外的评论数据（非剧集doki评论,和DetailsFlowData共用同一个request/response）
+		TopicCardUserRelationship = 0xF75B, //话题卡片
+		TopicCardUserRelationshipChannel = 0xF775, //话题卡片-频道页
+		DokiWelfareNav = 0xf813, //Doki福利社的导航栏主协议
+		DokiWallPaperPage = 0xf814, //Doki福利社，壁纸页，精选壁纸聚合页协议
+		WallPaperQuery = 0xf815, //向后台查询dataKey对应的壁纸数据
+		CaptureReddot = 0xf829, // 竖拍页小红点
+		FilterTabList = 0xf82a, // 滤镜列表
+		FilterItemList = 0xf82b, // 滤镜详情
+		GetCloudBucketConfig = 0xf7fa, //请求AB云端配置
+		DetailRecommendBanner = 0xf835, //详情页banner数据更新协议
+		UserCenterOperation = 0xf83e, // 个人中心运营协议
+		StarPopularRank = 0xf892,  // 直播应援弹幕人气榜读取
+		AdPause = 0xf8ac, // 框内暂停广告协议
+		AdInsideConfig = 0xf8ad, // 框内广告配置协议
+		GetYooFollowList =  0xf901,  // 获取火锅关注用户列表
+		DokiHomePageExtendData = 0xf83f, //明星主页-安利视频请求命令字
+		PreDownloadApkList = 0xf911, //游戏预下载白名单
+		UploadYuewenHistory = 0xf8ed,		//阅文上传观看历史
+		DeleteYuewenHistory = 0xf8ee,		//删除阅文观看历史
+		DeleteComicHistory = 0xf8b5,		//删除漫画观看历史
+		GetYuewenHistoryList = 0xf8ef,		//获取小说观看历史列表
+		GetComicHistoryList = 0xf8b4,		//获取漫画观看历史列表
+		GetBooksUiData = 0xf914,			//小说漫画阅读历史ui查询
+		GetBooksRecommend = 0xf915,			//获取小说漫画推荐数据
+		WallPaperList = 0xfa04,             //获取壁纸列表
+		DokiTopTenFeedList = 0xfa0f,        //APP十佳饭贴二级页
+		ChatUserOperate = 0xfa23,           //私信用户信息设置接口
+        AdCommonConfig = 0xf9e9,		//闪屏广告拉配置
+		SplashAdPreload = 0xf8ff,		//闪屏广告预拉取
+		SplashAdRealtimePoll = 0xf9e8, 	//闪屏广告实时选单
+		CacheDMEmoji = 0xfa5e, //请求所有表情包预缓存
+		GetVoiceSearchRecommendWords = 0xfaa6, //语音搜索推荐词
+		PubQAMsg =  0xfa5a, // 问答帖发表请求
+		QAFeedDetail = 0xfa5b,  // 问答帖详情页请求
+		GetGpsAddress = 0xfb18, // 竖拍根据位置获取地址列表
+		QAFeedDelete = 0xfb41, // 提问删除
+		QAFeedReport = 0xfb42, //提问举报
+		CircleGetUserTimeLineV3 = 0xfb43, // 640个人页改用ona
+		CheckPublishStatus = 0xfb65, // 检测是否可以正常发表
+		QueryDokiFollowList = 0xfb80, //查询某个doki的关注列表请求
+		AdInsideVideo = 0xf8fe,           //框内贴片广告协议
+		AdInsideLiveCorner = 0xfb28,  //直播中打点伴随广告协议
+		VideoPlayTimeReport = 0xfb0c,		//上报观看时长（目前只针对 pugc 视频）
+		UserStudyList = 0xfb0d,				//用户学习模块单独拉取协议
+		KnowledgeVideoStudyTime = 0xfb1f,	//单独拉取当前cid的学习时长文案
+		DokiHomeFeed = 0xfc17,  //648后援会协议
+		DokiEmoticonGroupPage = 0xfc16,  //表情二级页
+		DokiAdminOperate = 0xfc42, //Doki管理者身份操作
+		DokiAdminFeedList = 0xfc3f, //doki精品贴审核列表
+		DokiAdminData = 0xfc3e, //doki管理员审核入口数据
+		PubQASmartBox = 0xfcee, // 发表提问SmartBox请求
+		LoadThirdApkList = 0xfd63, // 获取扫描app列表
+
+		GetPromotionAppDetail = 0xfd02,  // 播放器上拉动第三方App详情
+		GetPointStoreTipsInfo = 0xfd22,		// 个人中心积分商城提示
+		GetPickInfo = 0xfd4c,               // 沉浸式底层获取pick数据
+		GetPickTaskInfo = 0xfd4f,           // 获取pick任务列表接口
+		DoPickTask = 0xfd50,                // 执行Pick加票接口
+		SubmitPick = 0xfd51,                // 火锅提交pick接口
+		PicPreView = 0xfd7e,				//预览图片信息二次拉取
+		PicLike = 0xfd7f,					//单图点赞
+		AdInsideAnchor = 0xfce1,		    //框内打点广告协议
+		AdInsideAnchorUpdate = 0xfce2,		//框内打点广告批量更新协议
+		ExclusivePrivilegePayVideoPlay = 0xaf05, //lv7专属特权视频播放上报
+		DokiMainNav = 0xfdf0,        		//拉取用户doki广场导航
+		ONADokiGroupDataPage = 0xfdf6, 		//广场推荐模块二级页
+		DokiCommonReport = 0xfe0c,          //doki通用通知后台协议
+		EmoticonTabList = 0xfd8e,				//表情编辑器素材推荐tab列表
+		EmoticonPageData = 0xfd8f,					//表情编辑器素材分页数据
+		EmoticonCommit = 0xfd90,				//创建新表情
+		EmoticonInfo = 0xfd91,					//根据表情ID查询表情
+		UserProfilePage = 0xfe8e,			//个人资料信息读取
+		UserProfileUpload = 0xfe8d,			//个人资料编辑提交
+		UploadUserReadMode = 0xfe96,		//用户上报漫画翻页模式
+		GetPictureList =  0xfd8c, 			//获取漫画介质内容
+		GetPosterShareConfig = 0xfea7,      //获取视频分享海报图的配置
+	    FavoritesTopBar = 0xfeaa, // 收藏页导航栏
+	    FavoritesQAList = 0xfead, // 收藏页问题tab列表
+	    FavoritesFeedList = 0xfeae, // 收藏页帖子tab列表
+	    FavoritesOperation = 0xfeaf, // 收藏操作
+	    NetSpeedDetect = 0xfed3, //网络测速
+	    DiamondPay = 0xfe5c, // 钻石单片购买
+	    AdDetail = 0xff11,  //详情页广告
+        DokiEmotionTabPage = 0xff2e,  //表情包tab页面
+        RelatedRecommendImgPage = 0xff4e,  //图片结束推荐页面
+        DokiVerticalBrushFeeds = 0xff79, //竖屏沉浸式播放新协议
+	};
+	
+	//-----------------------------------------------------------------------------------------------------------------------------------------
+	//后台视图模版
+	enum EONAServerViewType
+	{
+		EnumServerONAPlugin = 1080001,   //服务端的插件ONAView类型，终端不感知
+		EnumServerONAFilter = 1080002,   //服务端的过滤ONAView类型，终端不感知
+	};
+};

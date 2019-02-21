@@ -1,0 +1,165 @@
+
+module NewsAppPro
+{
+	//弹幕的消息
+	struct DMComment
+	{
+		0 optional long ddwCommentId;          // 弹幕消息id, 全局唯一
+        1 optional long ddwTargetId;           // 视频/直播流 通过评论注册接口返回的主贴id
+        2 optional string sContent;            // 评论文本
+        3 optional long ddwUin;                // 发表者的uin
+        4 optional int dwIsFriend;             // 是否是好友,此字段暂时没有启用
+        5 optional int dwIsOp;                 // 是否是运营号,0普通弹幕,1运营号弹幕,2代表明星弹幕,3内部的rtx发表,4道具弹幕,5表示外团,6表示不可控明星,7系统公告弹幕,8导播弹幕
+        6 optional int dwIsSelf;               // 是否自己,1表示自己
+        7 optional int dwTimePoint;            // 发表时的播放时间点, 秒为单位
+        8 optional int dwUpCount;              // 被赞次数
+        9 optional long ddwPostTime;           // 发表时间, unix时间戳
+
+		//运营号信息
+		//当dwIsOp=1|2时，这两个字段填充对应数据
+		10 optional string strNickName;        //昵称
+		11 optional string strHeadUrl;         //头像url
+
+
+		//当是自己发表的弹幕时，即dwIsSelf=1,通过此字段返回用户头像
+		12 optional string strQQHeadUrl;
+
+		//当dwIsOp=4时，填充为道具图片的url
+		13 optional string strGiftUrl;
+
+		14 optional int dwFirstTag;       //表示是否是首次拉取的第一条特殊弹幕，0不是，1是
+		15 optional string highlightColor;      //高亮颜色
+
+		 //气泡弹幕新增字段
+        //16 optional string strHlwLevelPic;      //好莱坞会员级别图片
+        //17 optional string strBubbleId;         //弹幕气泡id
+        //18 optional string strDanmuBackPic;     //弹幕背景图片
+        //19 optional string strDanmuBackColor;   //弹幕气泡背景色
+        //20 optional string strDanmuBackHeadPic; //弹幕背景人物头像图片url
+
+        //21 optional int    dwHoldTime; //导播弹幕停留时间，目前只有企鹅直播录制端使用
+	};
+
+	//发表弹幕相关
+	//cmd:0xee0c
+	struct DMPostCommentRequest
+    {
+        0 require string DMContentKey;		//弹幕相关的业务key
+        1 optional string sContent;        	//评论文本
+        2 optional long dwTimePoint;        // 发表时的播放时间点, 秒为单位
+        3 optional string strRichId; 		//弹幕富媒体id （弹幕气泡id）
+        4 optional string strNickName ;     // 发表者昵称
+        5 optional string strHeadUrl ;      // 发表者头像
+    };
+
+    struct DMPostCommentResponse
+    {
+    	0 require int errCode;				//业务错误码
+        1 require DMComment stComment;		//发表的消息体
+    };
+
+    //弹幕赞动作
+	//cmd:0xe8aa
+    struct DMLikeRequest
+    {
+        0 require string DMContentKey;			//弹幕相关的业务key
+        1 require long ddwCommentId;			// 弹幕消息id
+    };
+
+    struct DMLikeResponse
+    {
+    	0 require int errCode;			//业务错误码
+        1 require DMComment stComment;	//发表的消息体
+    };
+
+    //请求弹幕的消息列表
+	//cmd(点播):0xe8a8,(直播)0xe8fd
+    struct DMCommentListRequest
+    {
+    	0 require string DMContentKey;	//弹幕相关的业务key，由服务器下发，客户端原封不动透传即可；
+    	1 require long dwStartTime;		//1）点播场景下，为当前视频播放的时间点；2）直播场景下，服务器上一次请求返回的时间戳，第一次请求请填写1,int型将来会不够表达时间戳的长度，建议改成long
+
+		//是否首次拉取，需要返回特殊弹幕，0否，1是,如果需要返回特殊弹幕，那么回包中第一条就是
+		2 optional int dwFirstReq;
+		3 optional int dwDMRowOfNormal;	//普通弹幕轨道数
+		4 optional int dwDWRowOfSpacer; //间隙弹幕轨道数
+		5 optional string strSessionKey;//用来保证直播运营消息必现，首次调用时传空，其他情况下将svr上次回包对应字段填充即可
+        6 optional int dwVersion ;      // 版本号，0x72表示企鹅直播
+        7 optional int dwStyle;         // 0横屏弹幕，1竖屏弹幕
+    };
+
+    struct DMCommentListResponse
+    {
+    	0 require int errCode;						//业务错误码
+    	1 require int dwNextTimeDur;				//下次请求时间间隔,点播用到的字段
+    	2 optional vector<DMComment> commentList;	//返回的消息列表
+		3 optional long ddwLastStamp;    //直播需要该字段,点播不需要关心该字段；下一次请求填充的时间戳，用于填写dwStartTime参数；
+		4 optional int dwLoopInterval;   //直播需要该字段，下一次的轮询的时间间隔;点播无需关心
+		5 optional int bContinued;         //app是否可以继续拉取直播弹幕，0表示可以继续，1表示停止隐藏开关，2表示停止关闭开关,该字段暂未启用
+		6 optional string strSessionKey; // 保证直播运营消息必现字段，app无需关系具体含义
+	};
+
+    //弹幕获取用户的开关信息
+	//cmd:0xe8ab
+    struct DMGetUserCfgRequest
+    {
+    	0 require string DMContentKey;
+    	1 require int optionType;		//操作类型 0 表示查询，1 表示设置
+    	2 require int userStaus;		//用户当前的弹幕状态  1 表示开启， 0 表示关闭
+    };
+
+    struct DMGetUserCfgResponse
+    {
+    	0 require int errCode;
+		1 optional short wUserStaus;//该视频弹幕对单个uin的开启状态，1表示开启，0表示关闭，用户级别的行为
+	};
+
+
+	//为app新增一条协议，批量换取targetid
+	//0xe927
+	struct DMRegistExtData
+	{
+		0 optional string strCid;
+		1 optional string strLid;
+	};
+
+	struct DMRegistTargetIdMoreRequest
+	{
+		0 require int wRegistType;//注册类型，1代表直播，2代表点播
+		1 require vector<string> vecIdList;//要拉取的id列表
+        2 optional int wSpeSource ; // Special source, 1 for whyme, 0 for other
+        3 optional map<string,DMRegistExtData> mapExtData; //key为vid
+	};
+
+	struct DMRegistResultInfo
+	{
+		0 optional string strDanMuKey;
+		1 optional int wOpened;//该视频是否有弹幕模块，1表示有，0和2表示没有
+		2 optional int wDisplay;//该视频的弹幕模块默认状态，1表示默认打开，其他值表示默认关闭
+		3 optional int iIsBubbleFlg;//该视频是否有弹幕气泡 1==>有 0==>无
+	};
+
+	struct DMRegistTargetIdMoreResponse
+	{
+		0 require int errCode;//0表示成功，非零表示失败
+		1 optional map<string,DMRegistResultInfo> stMap;
+	};
+
+
+	//提供pid/vid批量换取弹幕总数的协议(暂时只提供vid查询弹幕数的接口)
+	//目前一次最多只支持10个，多余的会丢弃
+	//0xead0
+	struct DMGetPubTotalRequest
+	{
+		0 require int dwType;//1表示pid，2表示vid
+		1 require vector<string> vecIdList;//待查询的idlist
+	};
+
+	//建议调用者在使用回包时不要关注errCode字段
+	//而是去map中查找(调用find函数)映射关系就行,协议只会尽最大可能将发表计数换取回来
+	struct DMGetPubTotalResponse
+	{
+		0 require int errCode;//0成功，非零有问题
+		1 optional map<string,long> pubTotalMap;//id对发表弹幕总数的映射
+	};
+};

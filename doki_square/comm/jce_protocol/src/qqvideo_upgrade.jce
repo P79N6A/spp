@@ -1,0 +1,201 @@
+#include "qqvideo_common.jce"
+
+module jce
+{	
+	struct WebAppH5Version
+	{
+		0 require string packageId;//h5包id
+		1 require string version;//h5包version
+	};
+	struct WebAppUpgradeItem
+	{
+		0 require string packageId;//h5包id
+		1 optional string packageVersionDesc;//版本描述
+		2 optional string packageVersion;//目标升级到的version
+		3 optional string packageHash;//文件校验值，当前使用MD5算法
+		4 optional string packageUrl;//下载URI
+		5 optional int unixtime;//时间戳
+		6 optional int updateIntervalTime;//更新时间间隔
+	};
+
+	struct WebAppUpgradeRequest
+	{
+		0 require vector<WebAppH5Version> version;//批量的h5包信息列表
+		1 optional int isJailBreak;//1表示越狱或root，0表示否
+		2 optional int unixTime;//客户端当前时间
+	};
+	struct WebAppUpgradeResponse
+	{
+		0 require int errCode;
+		1 optional vector<WebAppUpgradeItem> h5Item;//升级信息
+	};
+	
+	//APP退出弹框配置
+	struct AppExitDialogData
+	{
+		0 require string content;             //弹框内容
+		1 require Action action;              //弹框跳转链接
+		2 optional long internval;            //弹框时间间隔，单位（天）
+		3 optional int condition;             //弹框条件：0-APP启动后无观看历史
+	};
+	
+	//启动页运营配置的信息
+	struct OperationConfigItem
+	{
+		0 require string id;                                 //配置的id
+		1 require Action action;			                 //启动页的action
+	    2 require long startTime;                            //开始的时间 单位：秒
+		3 require long endTime;                              //结束的时间 单位：秒
+		4 require int displayLimit;                          // 最多展示的次数 默认为1次
+		5 optional vector<WebAppH5Version> h5VersionList;    // 如果页面是H5 需要下载的资源包
+		6 optional AppExitDialogData appExitDialogData;      //APP退出弹框配置
+	};
+	
+	//app配置的信息
+	struct AppRemoteConfigItem
+	{
+		0 optional vector<OperationConfigItem> operationConfigItems;  //启动页运营配置的信息列表  
+	};
+	
+	//app配置的信息请求
+	struct AppRemoteConfigRequest
+	{
+		0 optional int version;                         //jce的数据结构不能为空
+	};
+	
+	//app配置的信息响应
+	struct AppRemoteConfigResponse
+	{
+		0 require int errCode;
+		1 optional AppRemoteConfigItem appRemoteConfigItem;
+	};
+	
+	//app互相拉起配置信息
+	struct AssistAppInfo
+	{
+		0 require string appPackageName;  // 包名
+		1 require string serviceComponent;    // 拉起的serviceComponent
+		2 optional string serviceScheme;     // 拉起的serviceScheme
+		3 optional string activityComponent;    // 拉起的ActivityComponent
+		4 optional string activityScheme;           // 拉起的activityScheme
+		5 optional string action;       // 拉起intent的action
+		6 optional string category;      // 拉起intent的category
+	};
+
+	//获取assist app的的返回(序列化后的数据放在CommonConfigResponse的map中)
+	struct AssistAppConfig
+	{
+		0 require int assistEnable;	// 开关，0为关闭，1为开启
+		1 require long assistMinInterval; // 最小拉起间隔时间，最小5分钟，单位为秒
+		2 require int assistMaxRetry; // 重试次数，最多4次
+		3 require long assistStopInterval; // 失败后间隔时间，最小4小时，单位为秒
+		4 require int assistMultiProcessor; // 是否使用多种拉起方案，0为否，1为是
+		5 require string assistDefaultProcessor; // 如果不使用多种拉起方案，则指定的默认的拉起方案
+		6 require vector<AssistAppInfo> appList; // 需要拉起的应有列表
+	};
+	
+	//获取统一配置的请求
+	// 业务id：1_assist_app_conf, app相互拉起；2_bucket_id，ABTest；3_tip_off, 拉举报文案；
+	//        4_operator_info，运营商启动弹框；5_log_report_config，日志上报的配置；
+	//        6_settings_config，设置选项配置信息；7_apk_install_policy，安装策略配置；
+	//        8_bind_phone_number，拉起绑定手机号配置
+	struct CommonConfigRequest
+	{
+		0 require vector<string> modelIds;	
+	};
+
+	//获取统一配置的返回
+	struct CommonConfigResponse
+	{
+		0 require int errCode;			// 错误码 0:成功
+		1 require map<string,vector<byte>> datas;    //数据流
+	};
+	
+	//通用配置：安装策略的配置，KEY：7_apk_install_policy
+	struct ApkInstallConfig
+	{
+		0 optional int installPolicy;	//0,所有场景安装，1，非播放场景安装 2，非全屏播放场景安装
+	};
+	// 通用配置：拉举报文案配置， KEY：3_tip_off
+	struct TextConfigInfo
+	{
+		0 require vector<string> textList;				    //文案
+	};
+
+	//弹框信息
+	struct AlertInfo
+	{
+		0 require string message;				    //弹框文案
+		1 require string leftTitle;		    	    //左按钮标题
+		2 require string rightTitle;				//右按钮标题
+		3 optional Action leftAction;		    	//左按钮action,跳转url为空时不跳转
+		4 optional Action rightAction;		    	//右按钮action,跳转url为空时不跳转
+		5 optional string imageUrl;                 //弹窗背景图片
+	};
+
+	//播放器上文案信息
+	struct PlayerTipsInfo
+	{
+		0 require string strTips;					//播放器上tips总文案
+		1 optional string highlightMsg;				//需要高亮的字段
+		2 optional Action highlightAction;			//高亮字段跳转action	
+		3 optional string tipsId;					//文案id
+		4 optional string reportKey;  				//上报key
+		5 optional string reportParams;				//上报param
+	};
+	//运营商信息
+	struct OperatorInfo
+	{
+		0 require int operatorStyle;				//需要弹框的运营商类型，0：未知，1:移动，2联通，3:电信，4:铁通
+		1 optional int netWorkType;		    	    //弹框在哪个网络下显示，0:不显示，1:运营商网络下显示，2:wifi下显示，3:全部网络显示
+		2 optional int interval;				    //弹框显示间隔，以小时为单位
+		3 optional AlertInfo alertInfo;             //弹框信息
+		4 optional int orderState;					//订购状态，0:不显示，1:全部，2:已订购，3:未订购
+		5 optional string alertId;					//弹框id
+		6 optional int maxCanceledTimes;	        //弹框最大取消次数，如果取消该类弹框达到最大次数，则不弹框
+		7 optional PlayerTipsInfo tipsInfo;			//播放器上文案信息
+	};
+
+
+	// 通用配置：运营商配置信息， KEY：4_operator_info
+	struct OperatorsConfigInfo
+	{
+		0 require vector<OperatorInfo> operatorInfos;				//运营商信息
+	};
+	// 通用配置：日志上报配置，KEY：5_log_report_config
+	struct LogReportConfigInfo{
+		0 optional int jceLogSampleRate = 10;                     //jce请求成功的流水日志上报抽样率  取值范围[0 -- 100]
+		1 optional int localLogAutoReport = 0;                    //本地日志是否自动上报
+	};
+
+	//	请求当前需要曝光的运营商信息
+	struct OperatorTipRequest {
+		0 require int operatorStyle;				//用户本机的运营商类型，0：未知，1:移动，2联通，3:电信，4:铁通
+		1 require string tipsId;                    //已曝光的文案id
+		2 require int  exposureCount;				//已曝光次数
+	};
+
+	//	当前需要曝光的运营商信息应答
+	struct OperatorTipResponse {
+		0 require int errCode;
+		1 require OperatorInfo operatorTipInfo; //提示信息
+	};
+	
+	 // 通用配置：设置选项，KEY：6_settings_config
+    struct SettingsConfig
+    {
+        0 optional bool useVnUserCenter = true;   //是否使用VN的个人中心页面。   true=使用VN个人中心，false=使用native个人中心
+    };
+ 	// 通用配置：手机绑定拉动选项，KEY：8_bind_phone_number
+    struct BindPhoneNumberConfig
+    {
+        0 require bool needBindSwitch = false;   //是否需要拉动绑定手机页面的总开关。 true=需要拉动绑定手机，false=不需要
+		1 optional int tipsType = 0;     		//提示用户的弹框类型。默认值为0，0=抽奖活动弹框，1=功能弹框
+		2 optional string tipsTitle;     		//提示用户弹框的主标题。为空则用app兜底内置的
+		3 optional string tipsMessage;   		//提示用户弹框的文案。为空则用app兜底内置的
+		4 optional string loginBindH5Url;     		//登录绑定手机界面的URL地址。为空则用app兜底内置的
+		5 optional string downloadBindH5Url;     	//离线缓存绑定手机界面的URL地址。为空则用app兜底内置的
+		6 optional int downloadTipsInterval = 7; 	//离线缓存弹框的频控时间，单位为天
+    };
+    
+};

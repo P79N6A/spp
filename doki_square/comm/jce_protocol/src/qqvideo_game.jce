@@ -1,0 +1,173 @@
+/*
+游戏相关的协议
+*/
+#include "qqvideo_ona.jce"
+#include "qqvideo_common.jce"
+
+module jce
+{
+///////////////////////基础数据////////////////////////////////////////	
+	
+	//游戏礼包数据结构
+	struct GameGiftPackItemData
+	{
+		0 require Poster poster;	//为了支持可扩展imageUiType填3（表示正方形），此处action用来跳转礼包详情页
+		1 require int state;		//领取状态 0未领取 1已领取 100已被领完
+		2 optional Action action;	//整个view需要执行的动作（基本是进入游戏详情页）
+	};
+
+///////////////////////ONAView////////////////////////////////////////	
+	//游戏单个下载视图
+	struct ONAGameDownloadItem
+	{
+		0 require GameDownloadItemData gameItem;				
+		1 optional Action action;			//此action暂时不用
+	};
+	
+	//游戏单个礼包视图
+	struct ONAGameGiftPackItem
+	{
+		0 require GameGiftPackItemData gameItem;				
+		1 optional Action action;			//此action暂时不用
+	};
+	
+	//游戏礼包消息
+	struct ONAGameGiftPackNews
+	{
+		0 require string content;	        //文字
+		1 require int state;				//领取状态	
+		2 optional string iconUrl;	        //图标		
+		3 optional Action action;			//点击后需要执行的动作
+	};
+	
+///////////////////////Request & Response////////////////////////////////////////	
+	//小红点更新请求
+	struct GameUpdateRequest
+	{
+		0 require string pageContext;	//上下文，即时间戳需要本地记录
+	};
+	
+	//小红点更新返回
+	struct GameUpdateResponse
+	{
+		0 require int errCode;				
+		1 require bool isNew;			//是否有更新
+		2 optional Poster poster;		//显示数据,本地是否有该poster,进入清除
+		3 optional string pageContext;	//上下文，即时间戳需要本地记录	
+	};
+	
+	//游戏主页请求
+	struct GameHomeRequest
+	{
+		0 optional string pageContext;		//翻页上下文
+	};
+	
+	//游戏主页返回
+	struct GameHomeResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional vector<TempletLine>	uiData;				//用来显示的数据
+		2 optional string pageContext;						//翻页上下文
+		3 optional bool hasNextPage;				        //是否有下一页
+	};
+	
+	//游戏下载列表请求
+	struct GameDownloadListRequest
+	{
+		0 require string dataKey;
+		1 optional string pageContext;			//翻页上下文
+	};
+	
+	//游戏下载返回
+	struct GameDownloadListResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 optional vector<TempletLine>	uiData;		//用来显示的数据
+		2 optional string pageContext;				//翻页上下文
+		3 optional bool hasNextPage;				//是否有下一页
+	};
+	
+	//游戏礼包列表请求
+	struct GameGiftPackListRequest
+	{
+		0 require string dataKey;
+		1 optional string pageContext;			//翻页上下文
+	};
+	
+	//游戏礼包返回
+	struct GameGiftPackListResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional vector<TempletLine>	uiData;				//用来显示的数据
+		2 optional string pageContext;			            //翻页上下文
+		3 optional bool hasNextPage;				        //是否有下一页
+	};
+	
+	//我的游戏礼包请求
+	struct GameMyGiftRequest
+	{
+		0 require string dataKey;
+		1 optional string pageContext;			//翻页上下文
+	};
+	
+	//我的游戏礼包返回
+	struct GameMyGiftResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional vector<GameGiftPackItemData>	ItemData;	//数据
+		2 optional string pageContext;			            //翻页上下文
+		3 optional bool hasNextPage;				        //是否有下一页
+	};
+	
+	//游戏详情请求
+	struct GameDetailsRequest
+	{
+		0 require string dataKey;		//gameId or packageName
+		1 optional string pageContext;	//翻页上下文
+	};
+	
+	//游戏详情返回
+	struct  GameDetailsResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional vector<TempletLine>	uiData;				//用来显示的数据
+		2 optional string pageContext;			            //翻页上下文
+		3 optional bool hasNextPage;				        //是否有下一页
+	};
+	
+	//礼包详情请求
+	struct GameGiftPackDetailsRequest
+	{
+		0 require string dataKey;		//gameId or packageName
+	};
+	
+	//礼包详情返回
+	struct  GameGiftPackDetailsResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 require string cdKey;						//激活码
+		2 optional vector<KVItem> kvItemList;		//激活码页面文案数据
+		3 optional vector<HyperlinksKeyWord> keyWordList;	//跳转关键字
+		4 optional string tips;						//此提示会在激活码为空时显示来提示用户
+	};
+	
+	//IOS游戏下载的对账上报请求
+	struct GameIOSReportDownloadRequest
+	{
+		0 require string dtstatdate; //时间
+		1 require string vgameappid; //游戏的appid,即手Q appid
+		2 require string gamename;    //游戏名称
+		3 require string splattye;   //操作系统，判断当前系统是ios还是android
+		4 require string idfa;       //苹果用户为 idfa , 安卓用户为imei
+		5 require string downloadTime; //下载时间
+		6 require string entry;        //下载入口，主要用于区分不同页面和推广位
+		7 optional string remark1;     //保留字段
+		8 optional string remark2;     //保留字段
+	};
+	
+	//IOS游戏下载的对账上报返回
+	struct GameIOSReportDownloadResponse
+	{
+		0 require int errCode;
+	};
+};

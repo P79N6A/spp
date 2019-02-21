@@ -1,0 +1,246 @@
+#include "qqvideo_common.jce"
+
+module jce
+{
+	//我的财产对象
+	struct PropertyItemData
+	{
+		0 require int propertyType;		// 1:钻石   2：金币  10：代金券
+		1 require string propertyName; 	//财产名称
+		2 require long propertyCount; 	//财产数量
+		3 optional string propertyActivity;	//当前活动描述（目前仅ipad使用）
+		4 optional string propertyUrl;		//跳转到具体财产H5的地址，目前仅代金券类型用到
+	};
+	
+	//账单列表数据结构
+	struct DiamondBillItemData
+	{
+		0 require string date;           //消费日期
+		1 require string consumeDesc;    //消费类型描述
+		2 require string consumeDescColor;  //消费描述的颜色  格式：#23eadf
+	};
+
+	// 钻石商品数据结构
+	struct DiamondConsumeItem
+	{
+		0 require string iapProductID; //米大师申请物品id(仅供ios端使用)
+		1 require int count;           //钻石数量
+		2 require string Description;  //购买描述
+		3 require float price;		   // 价格
+		4 optional string imgUrl;	   //钻石显示的图片
+	};
+	
+	// 兑换金币页数据展现
+	struct CoinConsumeItem
+	{
+		0 require string strActivityId; //运营活动会与相应的activityid对应，activityid对应的配置约定计算规则。activityid由后台下发
+		1 require int count;           //金币数量
+		2 require string Description;    //购买描述
+		3 require int price;    		// 对应的钻石数量
+		4 optional string imgUrl;	   //金币显示的图片
+	};
+	
+	// 道具等虚拟物品相关信息
+	struct ProductItem
+	{
+		0 require string strProductId;		//虚拟物品ID，ID由后台下发
+		1 require int iProductNum;					//虚拟物品数量
+	};
+	
+	//我的财产页活动描述
+	struct DiamondActivityRequest
+	{
+		0 optional string optionalKey;			//站位符
+	};
+	
+	struct DiamondActivityResponse
+	{
+		0 require int errCode;					//业务错误码
+		1 require string activityDesc;  	 	//活动描述
+	};
+
+	//我的财产（获取余额）
+	struct PropertyMineRequest
+	{
+		0	require  string   strPf;			 //pf平台来源，前端从midas sdk获取，并填上自定义字段
+		1	require  vector<int> vecCoinType;         //1 钻石 2 金币 10 代金券
+		2 optional bool bCheckLogin;				//是否根据cookie设置验证登录，默认为true，ios平台设置为false时为强制游客态验证
+	};
+
+	struct PropertyMineResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 require vector<PropertyItemData> myProperty;   //我的财产
+		2 optional string ts;					//系统时间戳
+	};
+
+	//账单流水列表接口（付费流水）
+	struct DiamondBillRequest
+	{
+		0 require string pageContext;	//翻页上下文
+	};
+
+	struct DiamondBillResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional vector<DiamondBillItemData> billList;   	//账单列表
+		2 require bool hasNextPage;							//是否有下一页
+		3 require string pageContext;						//翻页上下文
+	};
+
+	//代币消费请求（金币兑换，首登赠送金币等）
+	struct PropertyPayRequest
+	{
+		0	require  string    		strPf;			  //pf平台来源，midas处非xxx的部分，例如qq_m_qq-2001-android-2011-xxxx传qq_m_qq-2001-android-2011
+		1 	require  int       		iSceneType;       //结算场景类型 例如：100001表示腾讯视频
+		2 	require  int       		iSceneSubType;    //结算场景子类型，场景子类型，1 点播道具 2 直播道具 3 人气榜
+		3	require  string    		strActivityId;    //运营活动会与相应的activityid对应，activityid对应的配置约定计算规则。activityid由后台下发
+		4	optional  int      		iProductType;       //虚拟物品种类，1：道具 2：服务 3：积分 ，这个是具体的情况，没有这个字段就填0
+		5	optional  vector<ProductItem>      vecProduct;     //虚拟物品列表
+		6 optional string strRef;	//来源扩展字段，用于统计，如vid=1133&cid=4455&lid=2444；4.9.0版本新增actorId和idType参数，用于后台结算分成
+	};
+
+	struct PropertyPayResponse
+	{
+		0	require  int  errCode;		 //结果返回码 -10006 钻石不足 ,-10007 金币不足
+		1	require string msg;         //支付结果描述
+		2	optional string   billno;    //订单号
+	};
+	
+	//钻石兑换页列表接口
+	struct DiamondListRequest
+	{
+		0 require int showType;		//扩展参数，默认填0
+	};
+
+	struct DiamondListResponse
+	{
+		0 require int errCode;
+		1 require int totLine;   // 总行数
+		2 require vector<DiamondConsumeItem> diamondList; //钻石列表
+		3 optional string activityDesc;   //活动描述
+	};
+	
+	//金币兑换页列表接口
+	struct CoinListRequest
+	{
+		0 require int showType;		//扩展参数，默认填0
+	};
+
+	struct CoinListResponse
+	{
+		0 require int errCode;
+		1 require int totLine;   // 总行数
+		2 require vector<CoinConsumeItem> coinList; //金币列表
+	};
+	
+	//ios财产转移接口，将guid下的财产转移到qq或者微信账户，根据主登录态状态进行转换
+	struct TransPropertyRequest
+	{
+		0 require string tk;
+		1 require string ts;
+		2 require  vector<int> vecCoinType;         //1 钻石 2 金币
+		3	require  string    		strPf;			  //pf平台来源，midas处非xxx的部分，例如qq_m_qq-2001-android-2011-xxxx传qq_m_qq-2001-android-2011
+		4 require  int       		iSceneType;       //结算场景类型 例如：100001表示腾讯视频
+		5 require  int       		iSceneSubType;    //结算场景子类型，场景子类型，1 点播道具 2 直播道具 3 人气榜 4 guid财产转移
+	};
+	
+	struct TransPropertyResponse
+	{
+		0 require int errCode;
+		1 optional string msg;
+	};
+	
+	struct ActPopItemData
+	{
+		0 optional	string strShowTxt;	//弹框文字
+		1 optional	string strLeftTxt;	//左按钮文字
+		2 optional	string strRightTxt;	//右按钮文字
+		3 optional	string strActivityId;	//支付id
+		4 optional  	string strImageUrl;	//弹窗背景图片
+	};
+	
+	struct ActPopRequest
+	{
+		0 require	int iSenceId;	//场景id, 1:个人中心的代币余额页，2:好声音投票页
+		1 require	long lLastShowTime;	//上次显示兑换框的事件,单位秒
+	};
+	
+	struct ActPopResponse
+	{
+		0 require int errCode;	//错误码
+		1 require bool bShow;	//是否弹框,true展示，false不展示
+		2 optional ActPopItemData oPopData;	//弹框相关的信息
+		3 optional long lShowTime;	//协议返回的时间
+		4 optional string sEffectUrl; //赠送成功后展示的h5效果，为空则不展示。
+		5 optional string sSuccessTxt; //分享成功的url。
+		6 optional string sFailTxt; //分享失败的url。
+	};
+	
+	struct GiftNode
+    {
+    	0 require string id;  //道具ID
+    	1 require int num;  //数量
+    	2 optional LiveGiftItem info; 	//详细信息
+    	3 optional int givetime;		//赠送时间，单位为秒。
+    };
+	
+	
+    //掉落请求策略请求包
+    struct GiftPolicyRequest
+    {
+		 0 require  string sceneKey ;     	//后天下发的场景key，包含keytype和id，优先以这里为准。
+		 1 require  int keytype ; 			//0直播，1vid，2cid，3lid，4频道id，5v+账号
+		 2 require  string id;				//节目id,for keytype
+		 3 optional long  curTimeStamp;		//当前播放时间戳，直播为当前时间戳（可以不填），点播表示当前的播放时间,单位秒.
+    };
+    
+    //掉落请求策略回包
+    struct GiftPolicyResponse
+    {
+    	0 require int retcode;			//0成功，其他失败
+    	1 require vector<GiftNode> policyList;  //请求策略，里面包含请求的道具，时间点，数量等。
+    };
+    
+    // 赠送请求包
+    struct GiftPresentRequest 
+	  {
+		 0 require  string sceneKey ;     	//后天下发的场景key，包含keytype和id，优先以这里为准。
+		 1 require  int keytype ; 			//0直播，1vid，2cid，3lid，4频道id，5v+账号
+		 2 require  string id;				//节目id,for keytype
+		 3 require  int type;				//操作类型，1检查是否可送,2赠送
+		 4 require	GiftNode gift;			//本次要赠送的道具信息
+		 5 optional long flag;      //透传字段，标识道具
+    };
+	
+	 //赠送回包
+    struct GiftPresentResponse
+	 {
+		 0 require int retcode;				//0成功，其他失败
+		 1 require	GiftNode gift;			//本次要赠送的道具信息
+		 2 optional long flag;          //透传字段，标识道具
+		 
+    };
+    
+    struct PropertyPayAndApplyRequest 
+    {
+         0  require  string propsDataKey;  // 场景key (透传后台下发的datakey, 包含场景类型和场景id, 如果后台下发为空，前端默认带curid&curType)
+         1  require  int    requestType;   // 请求类型: 2=仅使用 3=即买即用
+         2  require  string productId;     // 道具id
+         3  require  long   productNum;    // 道具赠送数量
+         4  require  int    idType;        // 受赠人类型: 4=媒资人名库id 6=个人直播主播vuid
+         5  require  string actorId;       // 受赠人id
+         6  optional int    model;         // 表示拉起道具列表的来源上报，1直播的竖屏、2直播的全屏、3点播的竖屏、4点播的横屏，5频道页的排行榜，6二级页的排行榜，7直播人气榜页卡 
+         7  optional int    productType;   // 踢榜超越类型: 0=普通赠送 1=踢榜 2=超越 
+         8  optional int    overRank;      // 踢榜超越目标名次                                    
+    };
+
+    struct PropertyPayAndApplyResponse 
+    {
+         0 require  int          errCode;      // 错误码 
+         1 optional string       msg;          // 错误文案
+         2 optional LiveGiftItem giftItem;     // 道具详细信息 (包括剩余数量等)
+         3 optional int          productType;  // 踢榜超越类型: 0=普通赠送 1=踢榜 2=超越        
+         4 optional long         rank;         // 固定值-1                                                                    
+    };
+};

@@ -1,0 +1,70 @@
+	/*
+	//测试L5: 520769:9109504
+	//正式L5: 940801:65536
+	*/
+
+
+module jceUserInfo
+{
+     //命令字
+    enum Command
+    {
+        CMD_USER_GET_INFO  = 0xf3a2,   //查询用户信息
+    };
+
+
+		//明日之子信息
+		struct stFutureStar
+		{
+				0		require	int dwCategory;     					//赛道信息 明日之子第二季 4：盛世美颜   5:盛世魔音  6:盛世独秀
+				1		optional	string	strDesc;						//赛道描述
+				2		optional	string	strLabel;   				//个人厂牌
+				3		optional	string	strLivingAddr;   		//现居地
+				4		optional	string	strConstellation; 	//星座
+				5		optional  long		ddwSubDokiId;       //映射的子Doki id
+				6		optional  string	strChooseSrc;       //选送渠道
+		};
+
+		//用户参与活动信息
+		struct	stActivity
+		{
+				0		require		int	ddwActivityId;   					//活动ID
+				1		optional	string	strActDesc;							//活动描述
+				2		optional  stFutureStar	stFutureInfo;			//明日之子资料
+				3		optional	long	ddwDokiId;								//映射的Doki Id
+		};
+
+
+		//用户信息
+		struct stUserInfo
+		{
+				0	require long vuid;  										//用户VUID
+				1 require string head;  									//用户头像
+				2 require string nick;  									//用户昵称
+				3 optional string introduction; 					//用户简介
+				4 optional int    identity;     					//用户身份		0:普通用户  1:明星  2:明日之子
+				5	optional vector<stActivity>	vecActInfo;   				//用户活动信息
+				6 optional string strTel;														//用户手机号
+				7 optional string strIdCard;                        //用户身份证号
+				8	optional int		certifyStatus;										//用户认证状态  0:未认证  1:已认证   
+		};
+		
+
+
+		//查询用户信息		
+		struct stQueryUserInfoReq
+		{
+				0 	require	vector<long>	vecVuid;	//用户Vuid
+				1		optional int  dwFlag;			      //查询标志位	0:基本信息(头像、昵称)   1:用户简介+基本信息  2:用户活动信息 + 基本信息
+		};
+		struct stQueryUserInfoRsp
+		{
+				0		require int iErrCode;
+				1		optional string strErrMsg;
+				2		optional map<long, stUserInfo> mapUserInfo;   //用户信息
+		};
+		
+		
+};
+
+

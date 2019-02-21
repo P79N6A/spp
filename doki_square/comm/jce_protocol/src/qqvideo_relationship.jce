@@ -1,0 +1,65 @@
+/*
+ * 视频关系链协议，定义为jce格式
+ * 
+ * 作者：colinjing
+ * 变更时间：2014年3月14日
+ * 版本变更：
+	1）创建jce文件；
+ * 变更时间：2015年01月04日
+ * 版本变更：
+	1）关系链重构，请求与回包协议兼容老版本
+	2）stRsPerson存储去掉了个人信息字段
+	3）协议增加了支持VQQ选项
+	4）stRsPerson增加字段，支持标识关系链来源和备注
+*/
+
+module jce
+{
+
+	enum RSCmd
+    {
+        CMD_GET_RS_LIST = 0xe155,								//获取单个用户的关系链
+        CMD_GET_COMM_RS_LIST = 0xe156,							//获取一个用户和其他n个用户的公共好友
+        CMD_INSERT_ONE_USER = 0xe160,							
+        CMD_UPDATE_UIN_LIST = 0xe161,							
+        CMD_ADD_BLACK_LIST = 0xe162,
+    };
+	
+	struct STWxToken
+	{
+		1	require string strOpenId;		//微信openid
+		2	require string strAccessToken;	//微信票据
+	};
+	
+	struct STPtLoginToken
+	{
+		1	require long ddwUin;			//用户uin
+		2	require string strSkey;			//ptlogin票据
+		3	require unsigned int dwKeyType;
+		4	require unsigned int dwAppid;	
+	};
+   
+	
+	//插入单个用户的关系链请求
+	struct InsertOneUserRequest
+	{			
+		1	require int   dwVersion;
+		2	require long  dwUserId;									//user id
+		3	require unsigned byte cFrom = 0;						//0,表示更新微信关系链，1,表示更新qq关系链。
+		4	optional unsigned byte cType = 0;						//0,表示老用户；1，表示新用户。
+		5	optional STWxToken stWxToken;							//微信票据	
+		6	optional STPtLoginToken stPtLoginToken;					//qq票据
+	};	
+	
+	//插入单个用户的关系链返回
+	struct InsertOneUserResponse{
+		0 require int	errCode;
+		1 optional long dwUserId;							        //请求用户的userid
+		2 optional string strErrMsg;
+	};
+	
+	
+	
+
+};
+	

@@ -1,0 +1,79 @@
+module jce 
+{
+	struct PushRegisterRequest
+	{
+		0 require string guid;
+		1 require string qq;
+		2 require string netState;
+		3 require string bid;
+		4 optional string appVer = "0";
+		5 optional string pushOn = "1";
+		6 optional string omgId = "0";
+		7 optional string systemPushOn = "1";
+		8 optional map<string,string> deviceInfoMap;
+	};
+	
+	struct PushRegisterResponse
+	{
+		0 require int status;
+	};
+	
+	struct ThirdPushRequest
+	{
+		0 require  int code;
+        1 require  long seq;
+        2 require  string msgid;
+	};
+	
+	struct ThirdPushResponse
+	{
+		  0 require string bundleId;
+		  1 require string guid;
+          2 require string msgid;
+          3 require string title;
+          4 require string content;
+          5 require string appIcon;
+          6 require string actionUrl;
+          7 require string msg;
+          8 require string flag;
+	};	
+
+	// iPhone/iPad 端上报 push token 协议
+	struct UploadPushTokenRequest
+	{
+		0 require string token;		// push token
+		1 require int pushState;	// push 的状态 0 None, 1 Operate, 2 Moment, 4 Attention
+		2 optional string deviceid; // 设备 id
+		3 optional int platform;	// 设备平台信息
+		4 optional string appVer;   // app 版本号
+		5 optional string sysVer;   // 设备系统信息
+		6 optional int netType;     // 
+	};
+
+	struct UploadPushTokenResponse
+	{
+		0 require int status;
+	};
+	
+	struct PushHeartRequest
+	{
+		0 require map<string,string> heartInfo;
+	};
+
+	struct PushHeartResponse
+	{
+		0 require int status;
+	};
+	 //消息通知开关状态请求
+	struct MessagePushSwitchStateRequest
+	{
+	    0 require int switchState; // 开关状态, 支持叠加, 0-全关, 1（0001）-运营, 2（0010）-签到, 4（0100）-赞我的提醒, 8（1000）-回复我的提醒
+	};
+	
+	//消息通知开关状态回包
+	struct MessagePushSwitchStateResponse
+	{
+	    0 require int errCode; // 错误码
+	};
+};
+

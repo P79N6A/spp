@@ -1,0 +1,68 @@
+#include "qqvideo_common.jce"
+
+module jce
+{
+	
+	//粉丝直播排行榜tab页请求
+	struct AnchorRankTabRequest
+	{
+		0 optional string type;					//请求类型，在子类请求中如果需要标识请求类型，使用本字段
+		1 optional string dataKey;				//请求参数，可用作占位
+	};
+	
+	struct AnchorRankTabResponse
+	{
+		0 require int errCode;									//业务错误码
+		1 require vector<LiveTabModuleInfo> moduleList;			//需要加载的模块列表，modType：（粉丝直播节目：111-主播人气榜，112-主播粉丝榜；综艺节目：101-排行榜，102-我的贡献，103-PK排行榜）
+		2 optional ShareItem shareItem;							//用于分享
+		3 optional vector<string> optFlags;						//由后台下发，0表示未操作标识，1表示已操作标识，无下发默认用本地
+		4 optional string unit;									//单位，没有下发默认为“人气”
+		5 optional string desc;									//后台下发业务描述
+	};
+	
+	// 主播人气榜列表请求
+	struct AnchorRankRequest
+	{
+		0 require string dataKey;						//请求条件
+		1 require string pageContext;					//翻页上下文
+	};
+	
+	struct AnchorRankResponse
+	{
+		0 require int errCode;						//业务错误码
+		1 optional string errMsg;
+		2 require vector<ActorInfo> anchorList;		//用户数据
+		3 optional string propsDataKey;				//由后台下发作为请求道具或者其他的参数
+		4 optional int totalAnchorCount;			//总主播数，可以用户计算总页数
+		5 optional string pageContext;				//翻页上下文
+		6 optional bool isHaveNextPage;				//是否有下一页
+	};
+	
+	struct AnchorFansItem
+	{
+		0 require int rankNum;						//从1开始，排名
+		1 require int userType;						//userID的类型，1-QQ，7-commid
+		2 require string userID;						
+		3 require int giftNum;						//赠送道具的数量
+		4 optional string nick;						//昵称
+		5 optional string headUrl;					//头像
+		6 optional string giftImgUrl;				//礼物图标，若不填，前端用默认图片
+		7 optional Action action;					//跳转action
+		8 optional int uiType;						//0-默认粉丝，1-未来之子粉丝
+	};
+	
+	
+	// 主播粉丝榜列表请求
+	struct AnchorFansRankRequest
+	{
+		0 require string dataKey;					//请求条件
+		1 require int topCount;						//top个数,若为0则默认20个
+	};
+	
+	struct AnchorFansRankResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 optional string errMsg;						//错误信息
+		2 optional vector<AnchorFansItem> items;		//用户数据
+	};
+};

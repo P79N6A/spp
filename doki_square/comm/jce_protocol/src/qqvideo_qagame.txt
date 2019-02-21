@@ -1,0 +1,113 @@
+﻿出题callback json字符串
+type : 消息类型(int类型)，1 出题
+content : 消息体
+sessionKey :后台校验字段（透传）
+Q_idx : 题序（后台保证递增）(int类型，从1开始)
+Q_timing : 读秒时长(int类型)（最大不超过10s）
+Q_forbidRevive:此题是否禁用复活卡(0不禁用，1禁用)
+Q_content：题目
+Q_answers: 选项，json数组
+A_idx: 选项序号(int类型，从1开始)
+A_content：选项内容
+格式
+{
+	"callback": {
+	    "type": 1,
+        "sessionKey":"xxxxxxx",
+		"content ": {
+		    "Q_idx ": 1,
+			"Q_forbidRevive" : 0,
+			"Q_timing ": "10",
+			"Q_content": "太平洋中间是什么？",
+			"Q_answers": [{
+					"A_idx": 1,
+					"A_content": "我不知道"
+				},
+				{
+					"A_idx": 2,
+					"A_content": "你猜"
+				},
+				{
+					"A_idx": 3,
+					"A_content": "是平"
+				}
+			]
+		}
+	}
+}
+整体encode+加密
+
+
+公布答案 callback json字符串
+type : 消息类型(int类型)，2 公布答案
+Q_idx : 题序（后台保证递增）(int类型)
+Q_content：题目
+Q_right : A_idx 正确选项
+Q_forbidRevive:此题是否禁用复活卡(0不禁用，1禁用)
+Q_answers: json数组
+A_idx: 选项序号(int类型)
+A_content：选项内容
+A_count：选择本题答案的人数
+格式:
+{
+	"callback": {
+	     "type": 2,
+		" content ": {
+			"Q_idx ": 1,
+			"Q_timing ": "10",
+			"Q_content": "太平洋中间是什么？",
+			"Q_count": 2000000,
+            "Q_forbidRevive" : 0,
+	        "Q_right": 3,
+			"Q_answers": [{
+					"A_idx": 1,
+					"A_content": "我不知道",
+					"A_count": 0
+				},
+				{
+					"A_idx": 2,
+					"A_content": "你猜",
+					"A_count": 1000000
+				},
+				{
+					"A_idx": 3,
+					"A_content": "是平",
+					"A_count": 1000000
+				}
+			]
+		}
+	}
+}
+
+状态callback
+type : 3 (答题结束)
+G_totalBonus : 总奖金
+G_winMenCounts:获奖人数
+G_averageBonus:本场游戏平均每人奖励
+G_showH5Range:收到流中结束标记，在range范围内散列显示H5（单位s）
+G_maxQuestionIdx:最大题序（0会被抛弃，使用直播主协议中）
+格式：
+{
+	"callback": {
+		"type": 3,
+		"G_totalBonus":"500万+5万张vip",
+		"G_winMenCounts":10000,
+		"G_averageBonus":"5元"
+		"G_showH5Range": 10,
+		"G_maxQuestionIdx":12,
+	}
+}
+
+定时callback
+type : 4 (定时数据下发)
+G_onlineMenCounts : 当前在线总人数
+G_nextLoopDelay: 下一次下发时间延时（单位毫秒）
+格式：
+{
+	"callback": {
+		"type": 4,
+		"G_onlineMenCounts":125000,
+		"G_nextLoopDelay":5000,
+		"G_serverTime":12323423423
+	}
+}

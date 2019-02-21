@@ -1,0 +1,670 @@
+/*
+影视圈相关协议
+*/
+
+#include "qqvideo_common.jce"
+#include "qqvideo_user_info.jce"
+
+module jce
+{	
+	/*------------------------------------------------------------------------------------
+	 *  一、用户操作协议
+	 *  	1、原创发表主贴 CirclePubMsgRequest
+	 *		2、评论发表 CirclePostCommentRequest
+	 *		3、点赞/取消赞 CircleMsgLikeRequest
+	 *		4、举报 CircleMsgReportRequest
+	 *		5、删除 CircleMsgDeleteRequest
+	 *		6、关注 CircleMsgFollowRequest
+	 *
+	 *	二、timeline协议
+	 *		1、播放器底层页评论列表协议 CircleGetCoralTimeLineRequest
+	 *		2、影视圈主页timeline协议 CircleGetHomeTimeLineRequest
+	 *		3、影视圈主人页/客人页timeline协议 CircleGetUserTimeLineRequest
+	 *		4、单条feed的详情页timeline协议 CircleGetPrimaryFeedDetailRequest
+	 *		5、热门timeline协议 CircleGetHotTimeLineRequest
+	 *		6、【已废弃】此协议用在详情页影视圈好友分享列表跳转到分享视频页面时调用 CircleGetVideoTimeLineRequest
+	 *
+	 *
+	 *
+	 *
+	--------------------------------------------------------------------------------------*/
+	
+	/*---结构体定义------------------------*/	
+	
+	//通知消息结构体
+	struct CircleNotifyMessage
+	{
+		0 require string seqid;
+		1 require string rootFeedId;
+		2 require CircleCommentFeed commentFeed;
+		3 optional string imageUrl;
+		4 optional byte type;						 	//消息类型：0，普通消息；1，点赞消息；2，视频妹消息
+		5 optional string rootContent;	
+		6 optional Action action;	 					//当前项点击后执行的跳转动作，actionUrl参数说明：1、h5url，跳转到h5的url；2、rankIndex，今日第一为“1”
+	};
+	
+	//主消息列表的复合结构
+	struct PrimaryFeedList
+	{
+		0 require string feedTitle;
+		1 require vector<CirclePrimaryFeed> feedList;
+	};
+	
+	//关系链好友的用户信息
+	struct RelationUserInfo
+	{
+		0 require ActorInfo user;
+		1 optional int newFlag;					//是否为新增加的好友；1 表示新增
+		2 optional string actorNameAddition;	//账户附加信息，angelo(QQ:钟辉),actorName是angelo,actorNameAddition为(QQ:钟辉)
+		3 optional int status;					//当前好友的状态：0，正常状态 1，屏蔽状态
+	};
+	
+	
+	//发表的长视频结构体，目前发表逻辑层会带上；用于web侧；
+	struct CircleLongVideo
+	{
+		0 require string vid;               //视频vid           
+		1 require string duration;          //播放时间
+		2 require string title;             //标题
+		3 require string pic;               //海报url
+		4 optional string playUrl;          //播放url，备用字段^M    
+		5 optional string playright;        //播放权限 
+		6 optional string secondtitle;      //次标题
+		7 optional long isFromFlag;         //=0x01：来自微视；=0x02：来自ugc；
+	};
+
+	//方便饭团数据的扩展
+	struct FtExtInfo 
+	{
+		0 optional string ftMsgid;			//饭团消息id
+		1 optional int ftFloor;				//饭团楼层；
+		2 optional string ftId;				//饭团id；
+		3 optional string ftTitle;			//饭团标题;最大的长度50个汉字
+		4 optional int ftCreateTime;		//饭团的主贴和评论真实发表时间
+		5 optional int ftFlags;	   		//饭团内容的标志位,0x01：图文混排；0x02：内容超过4K
+		6 optional BasicVideoInfo ftVideoInfo;  //发表到饭团时关联的视频信息  561新增
+	};
+	//关注体系展示在个人页的doki数量，关注数量，粉丝数量的信息
+	struct FollowActionBarsInfo 
+	{
+		0 optional ActionBarInfo dokiBar;			//加入doki数量Bar
+		1 optional ActionBarInfo followBar;			//关注数量Bar
+		2 optional ActionBarInfo fansBar;			//粉丝数量Bar
+		3 optional ActionBarInfo favoratesBar;		//收藏数量Bar
+	};
+	
+	/*------协议定义------------------------------*/
+	
+	//消息原创
+	/*------由于历史的原因，这个协议里面的第10个字段没有了，以后也不要使用第10个字段，新增字段在后面添加-------*/
+	struct CirclePubMsgRequest
+	{
+		0  require string dataKey;								//跟视频相关的数据key，取自shareInfo的circheShareKey
+		1  optional string content; 							//发表的内容
+		2  optional vector<CircleUploadImageUrl>  imageList;	//视频截图；
+		3  optional vector<string> blackList;					//不允许谁看的列表，是由一个用户id组成的列表
+		/***
+		*
+		* 如果是从详情页发表，取自shareInfo中的相关字段，规则如下：
+	    * （1）、shareSingleTitle不为空，则赋值给title并返回，否则，走2
+	    * （2）、将shareTitle和shareSubtitle的拼接，不为空则返回，否则，走3
+	    * （3）、取VideoItemData.poster.firstline，VideoItemData是当前播放视频对应的结构体
+		*
+		****/
+		4  optional string title; 								//该feed的title
+		5  optional string vid; 								//视频vid
+		6  optional string seq; 								//sequence，防止终端重复提交
+		7  optional vector<CircleShortVideoUrl>  videoList;	    //截取小视频；
+		8  optional string commentId;      						//【终端不关心】评论消息id，终端无需关心此参数
+		
+		//左图右文的海报图信息，在发表中只需要填Ur这个字段，其取值为：当前播放视频对应结构体VideoItemData. horizontalPosterImgUrl
+		9  optional CirclePosterInfo videoInfo;   				
+
+		// 由于历史的原因，这个协议里面的第10个字段没有了，以后也不要使用第10个字段，新增字段在后面添加，以避免影响到现网版本
+		11 optional string targetId;							//【终端不关心】评论的targetid，终端无需关心此参数
+		12 optional int checktype;								//【终端不关心】评论的审核类型，终端无需关心此参数
+		
+		13 optional int shareMask;                              //标记需要同时发表/同步到哪些平台，1是影视圈 2是Qzone 4是腾讯微博 8是新浪微博 16是SSO拉起分享
+		/***
+		*
+		* 	如果是从详情页发表，其获取逻辑如下（可以参见DetailToolsController.getFillShareItem方法）：
+		*	（1）、VideoItemData.shareItem不为空，则返回，否则走2
+		*	（2）、根据VideoItemData.shareUrl, VideoItemData.shareTitle, VideoItemData.shareSubtitle, VideoItemData.shareImgUrl, VideoItemData.circleShareKey等组装ShareItem，如果不为空，则返回，否则，走3
+		*	（3）、CoverItemData.shareItem不为空，则返回，否则，走4
+		*	（4）、ColumnItemData.shareItem不为空，则返回，否则，走5
+		*	（5）、返回ONADetailsToolbar.shareItem
+		*
+		****/
+		14 optional ShareItem shareInfo;                        //同步到Qzone/微博需要附加的分享信息，不一定会全部字段使用，取决于后台逻辑需要，终端尽量带齐
+		15 optional ShareToken shareToken;                      //同步专门需要使用的票据，只有新浪access_token，微信和QQ因为有jce公共字段支持，这里不用冗余携带
+		16 optional int cfrom = 0;								//【终端不关心】来源字段，默认值为0，表示发表影视圈消息,0x01:发表到影视圈；=0x02:发表到饭团；=0x03:发表到影视圈和饭团；
+		// 由于历史的原因，这个协议里面的第17个字段没有了，以后也不要使用第17个字段，新增字段在后面添加，以避免影响到现网版本								
+		18 optional vector<CircleLongVideo> longVideoList;		//【终端不关心】长视频结构体，目前用于web侧饭团使用
+		19 optional FtExtInfo ftExtInfo;        //【终端不关心】方便饭团数据的扩展;
+
+		20 optional vector<ApolloVoiceData>  voiceList;	        //录制语音
+		21 optional string dmContentKey;                        //弹幕dataKey，跟着vid变，优先取videoItemData的DMContentKey；
+		22 optional STStarInfo userStarInfo;                    //指定发表用户明星属性，optional的，用于写索引、屏蔽用户(明星)的真实资料；
+		23 optional int dwTimePoint;                            //发表时的播放时间点, 秒为单位，同步到弹幕等需求有用
+		24 optional string wxScore;                               //微信小程序评分
+		25 optional FeedVoteInfo voteInfo;							//投票信息
+		26 optional vector<FanInvolveItem> fanRelateList;		//相关饭团列表
+        27 optional FeedOMInfo omInfo;							//OM资讯文章信息
+	};
+
+	struct CirclePubMsgResponse
+	{
+		0 require int errCode; 									//0表示发表成功，其他表示失败；
+		1 optional CirclePrimaryFeed feed;						//返回发表成功的当前节点及其以下所有数据
+		2 optional string seq; 									//请求中的seq字段
+		
+		3 optional int shareErrCode;                            //发表接口支持同步到其它平台时的结果code
+		4 optional string shareCircleUrl;                       //发表接口支持同步到其它平台时生成的H5着陆页面
+	};
+
+	//发表评论
+	struct CirclePostCommentRequest
+	{
+		0   require string  feedId; 							//被评论的消息ID
+		1   require string  content; 							//评论的消息内容；
+		2   optional string seq; 		 						//sequence，防止终端重复提交
+		/*** 
+		*	后台用于标记feed的来源，需要透传给影视圈发评论接口，取值如下：
+		*	对主贴进行评论：CirclePrimaryFeed. dataKey
+		*	对评论进行评论：CircleCommentFeed. dataKey
+		***/
+		3   optional string dataKey;                           	
+		4  	optional string commentId;      					//【终端不关心】评论消息id，终端无需关心此参数
+		5 	optional string targetId;							//【终端不关心】评论的targetid，终端无需关心此参数
+		6 	optional int checktype;								//【终端不关心】评论的审核类型，终端无需关心此参数
+		7 	optional int cfrom = 0;								//【终端不关心】来源字段，默认值为0，表示发表影视圈消息
+// 由于历史的原因，这个协议里面的第17个字段没有了，以后也不要使用第8个字段，新增字段在后面添加，以避免影响到现网版本
+								
+		9   optional vector<CircleUploadImageUrl>  imageList;	//【终端不关心】发表上传的图片;	
+		10	optional FtExtInfo ftExtInfo;	 //【终端不关心】方便饭团数据的扩展;
+		11  optional STStarInfo userStarInfo;                   //指定发表用户明星属性，optional的，用于写索引、屏蔽用户(明星)的真实资料；
+	};
+
+	struct CirclePostCommentResponse
+	{
+		0 require int errCode; 									//0表示发表成功，其他表示失败；
+		1 optional CircleCommentFeed comment;					//评论
+		2 optional string seq; 									//请求中的seq字段
+	};
+
+	//点赞/取消赞
+	struct CircleMsgLikeRequest
+	{
+		0   require string feedId; 		                        //主贴id
+		1   require byte likeFlag; 		                        //1：表示赞；2：表示取消赞；
+		2  	optional string seq; 		                        //sequence，防止终端重复提交
+		3   optional string dataKey;                            //后台用于标记feed的来源，需要透传给影视圈发点赞接口，取值为CirclePrimaryFeed. dataKey
+		4 	optional int cfrom = 0;								//【终端不关心】来源字段，默认值为0，表示发表影视圈消息
+		// 由于历史的原因，这个协议里面的第17个字段没有了，以后也不要使用第6个字段，新增字段在后面添加，以避免影响到现网版本
+		6	optional FtExtInfo ftExtInfo;						//【终端不关心】方便饭团数据的扩展;
+		7   optional STStarInfo userStarInfo;                   //指定发表用户明星属性，optional的，用于写索引、屏蔽用户(明星)的真实资料；
+	};
+	
+	struct CircleMsgLikeResponse
+	{
+		0 require int errCode; 			//0表示发表成功，其他表示失败；
+		1 optional string seq; 			//请求中的seq字段
+	};
+	
+	//举报
+	struct CircleMsgReportRequest
+	{
+		0   require string feedId; 		                        //主贴id
+		1   optional int reportType; 		                    //举报的类型；
+		2   optional string  description; 						//用户输入的描述
+		3  	optional string seq; 		                        //sequence，防止终端重复提交
+		4   optional string dataKey;                            //后台用于标记feed的来源，需要透传给影视圈发举报接口
+		5 	optional int cfrom = 0;								//【终端不关心】来源字段，默认值为0，表示发表影视圈消息，取值为CirclePrimaryFeed. dataKey
+		// 由于历史的原因，这个协议里面的第17个字段没有了，以后也不要使用第6个字段，新增字段在后面添加，以避免影响到现网版本
+		7	optional FtExtInfo ftExtInfo;						//【终端不关心】方便饭团数据的扩展;
+	};
+
+	struct CircleMsgReportResponse
+	{
+		0 require int errCode; 			//0表示发表成功，其他表示失败；
+		1 optional string seq; 			//请求中的seq字段
+	};
+
+	//消息删除请求
+	struct CircleMsgDeleteRequest
+	{
+		0 require string feedId; 		//删除的消息ID；
+		1 optional string seq; 		    					//sequence，防止终端重复提交
+		/*** 
+		*	后台用于标记feed的来源，需要透传给影视圈发评论接口，取值如下：
+		*	对主贴进行评论：CirclePrimaryFeed. dataKey
+		*	对评论进行评论：CircleCommentFeed. dataKey
+		***/
+		2 optional string dataKey;  						
+		3 optional int modifyType;							//【终端不关心】modifyType=0或者不存在，表示删除消息；=1：表示审核不通过；2：表示审核通过；=3：由正常状态设置为审核状态；
+		4 optional int cfrom = 0;							//【终端不关心】来源字段，默认值为0，表示发表影视圈消息
+		// 由于历史的原因，这个协议里面的第17个字段没有了，以后也不要使用第5个字段，新增字段在后面添加，以避免影响到现网版本
+		6 optional FtExtInfo ftExtInfo;						//【终端不关心】方便饭团数据的扩展;
+	};
+
+	struct CircleMsgDeleteResponse
+	{
+		0 require int errCode; 			//0表示发表成功，其他表示失败；
+		1 optional string seq; 			//请求中的seq字段
+	};
+	
+	//获取发表主题时的分组海报列表
+	struct CircleGetVideoSelectListRequest 
+	{
+		0 optional int flag;				//纯占位，无意义
+		1 optional string pageContext;		//翻页上下文
+	};
+
+	struct CircleGetVideoSelectListResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional vector<TempletLine>	uiData;				//频道内容数据，每一个结点，都是一行数据
+		2 optional map<string,CoverDataList> coverDataMap;	//专辑类数据集合（往期，推荐等）
+		3 optional string pageContext;						//翻页上下文
+		4 optional bool hasNextPage;						//是否有下一页数据
+	};
+
+	//获取大家截的图
+	struct CircleGetScreenShotsRequest 
+	{
+		0 require string dataKey;
+		1 optional string pageContext;
+		2 optional string vid;
+		3 optional int type;                                //默认0表示截图，1表示新增的小视频
+	};
+	
+	struct CircleGetScreenShotsResponse 
+	{
+		0 require int errCode;								//业务错误码
+		1 optional vector<CircleMsgImageUrl> imageList;		//后台吐回来的图片列表
+		2 optional string pageContext;						//翻页上下文
+		3 optional bool hasNextPage;						//是否有下一页
+		4 optional vector<CircleShortVideoUrl> videoList;   //后台吐回来的小视频列表
+	};
+		
+	//请求hometimeLine的信息
+	struct CircleGetHomeTimeLineRequest
+	{
+		0 optional string pageContext;
+		1 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+	};
+	
+	//获取hometimeLine的回包
+	struct CircleGetHomeTimeLineResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 optional vector<CirclePrimaryFeed> feedList;	//主贴列表
+		2 optional string pageContext;					//翻页上下文
+		3 optional bool hasNextPage;					//是否有下一页
+		4 optional ActorInfo userInfo;					//用户信息
+		5 optional vector<DegreeLabel> labelList;		//等级标签列表(比如粉丝等级(徽章)，VIP等级)
+		6 optional Action degreeAction;		            //等级列表页跳转
+		7 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+	};
+	
+	//请求hottimeLine的信息
+    struct CircleGetHotTimeLineRequest
+    {   
+        0 optional string pageContext;   
+		1 optional string refreshContext;	
+		2 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中		
+    };   
+	
+	//获取hottimeLine的回包
+	struct CircleGetHotTimeLineResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 optional vector<CirclePrimaryFeed> feedList;	//主贴列表
+		2 optional string pageContext;					//翻页上下文
+		3 optional bool hasNextPage;					//是否有下一页
+		4 optional ActorInfo userInfo;					//用户信息
+		5 optional string refreshContext;				//刷新数据上下文
+		6 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+	};
+	
+	//请求coraltimeLine的信息
+	struct CircleGetCoralTimeLineRequest
+	{
+		0 require string dataKey;						// 详情页评论视图对应结构体ONACommentWrite. commentKey
+		1 optional string vid;
+		2 optional string pageContext;	
+		3 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+	};
+	
+	//获取coraltimeLine的回包
+	struct CircleGetCoralTimeLineResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 optional vector<CirclePrimaryFeed> feedList;	//主贴列表
+		2 optional string pageContext;					//翻页上下文
+		3 optional bool hasNextPage;					//是否有下一页
+		4 optional ActorInfo userInfo;					//用户信息
+		5 optional CoralSummaryInfo coralSummaryInfo;	//底层页的评论总数信息，类似评论的汇总信息，显示在底层页的播放器下面，目前带一个评论总数和头像
+		6 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+	};
+
+	//请求明星timeLine的信息
+	struct CircleGetStarTimeLineRequest
+	{
+		0 require string dataKey;						// 详情页评论视图对应结构体ONACommentWrite. commentKey
+		1 optional string vid;
+		2 optional string pageContext;	
+		3 optional byte scene = 0;          //业务场景  默认 0-明星评论浮层页  1-明星评论二级页  两种页面需要下发不同的跳转链接，所以需要作区分		
+		4 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+	};
+	
+	//获取明星timeLine的回包
+	struct CircleGetStarTimeLineResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 optional vector<CirclePrimaryFeed> feedList;	//主贴列表
+		2 optional string pageContext;					//翻页上下文
+		3 optional bool hasNextPage;					//是否有下一页
+		4 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+	};
+	
+	//请求usertimeLine的信息
+	struct CircleGetUserTimeLineRequest
+	{
+		0 require string userId;				//要查看的用户id
+		1 optional string pageContext;			//翻页上下文
+		2 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+		3 optional int type;  //0默认为请求用户的头部信息，1为只请求用户所有的帖子，2为请求用户所有的视频帖子，3为个人中心的请求，只请求followActionBars(doki+关注+粉丝)，labelList（不需要 Vip 徽章）以及 degreeAction
+	};
+	
+	struct CircleGetUserTimeLineResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 optional vector<CirclePrimaryFeed> feedList;	//主贴列表
+		2 optional string pageContext;					//翻页上下文
+		3 optional bool hasNextPage;					//是否有下一页
+		4 optional int isFriend;						//是否是好友，返回值为0代表非好友，为1代表好友，如果是好友要在标题右上角显示屏蔽按钮
+		5 optional ActorInfo userInfo;					//用户信息，有用信息为好莱坞数据信息
+		6 optional vector<DegreeLabel> labelList;		//等级标签列表(比如粉丝等级(徽章)，VIP等级)
+		7 optional Action degreeAction;		            //等级列表页跳转
+		8 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+		9 optional FollowActionBarsInfo followActionBars;     // 关注体系展示在个人页的doki数量，关注数量，粉丝数量的信息	
+		10 optional int followStatus;     // 关注关系(0-没关注 1-已关注 2-相互关注)
+		11 optional int followedNum;      // app登录用户当前已关注粉丝数
+		12 optional int maxFollowNum;     // app登录用户最大可关注粉丝数
+		13 optional vector<TextAction> actionList;		//用于下发头图顶部...里面的操作定义，如编辑资料，达人认证等
+		14 optional map<string, DegreeLabel> medalMap;	//用于下发各种勋章，前后台需要约定key，会员：vip，达人：certification
+	};
+	
+	//请求usertimeLine的信息(640新增，将个人页动态和视频ona view化)
+	struct CircleGetUserTimeLineV3Request
+	{
+		0 require string userId;				//要查看的用户id
+		1 optional string pageContext;			//翻页上下文
+		2 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+		3 optional int type;  //1为只请求用户所有的帖子，2为请求用户所有的视频帖子
+	};
+	
+	struct CircleGetUserTimeLineV3Response
+	{
+		0 require int errCode;							//业务错误码
+		1 optional vector<TempletLine> uiData;			//主贴列表
+		2 optional string pageContext;					//翻页上下文
+		3 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+		4 optional bool hasNextPage;					//是否有下一页
+	};
+	
+	//【已废弃】请求videoTimeLine的信息，此协议用在详情页影视圈好友分享列表跳转到分享视频页面时调用
+	struct CircleGetVideoTimeLineRequest
+	{
+		0 require string dataKey;			//用来标示消息列表
+		1 optional string pageContext;		//翻页上下文
+		2 optional string vid;				//vid
+	};
+	
+	//【已废弃】获取videoTimeLine的信息的回包
+	struct CircleGetVideoTimeLineResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional vector<PrimaryFeedList> resultList;		//这里会返回多组数据
+		2 optional bool hasNextPage;						//是否有下一页
+		3 optional string pageContext;						//翻页上下文
+	};
+	
+	//请求单条消息详情
+	struct CircleGetPrimaryFeedDetailRequest
+	{
+		0 require string feedId;					//主消息id，解析actionUrl得到
+		1 optional string pageContext;				//翻页上下文
+		3 optional string dataKey;                  //后台用于标记feed的来源，需要透传给影视圈发点赞接口
+		4 optional string commentId;                //【详情页跳转不关心】这个id对应CircleNotifyMessage里面CircleCommentFeed的feedId
+		5 optional long commentTime;              	//【详情页跳转不关心】这个time对应CircleNotifyMessage里面CircleCommentFeed的time
+		6 optional int type;              			//【详情页跳转不关心】0，消息列表点赞消息点击进入；1，消息列表评论消息点击进入；2，主feed点击更多评论进入
+		7 optional int rankIndex;					//【终端不关心】rankIndex，今日第一为“1”
+	};
+	
+	struct CircleGetPrimaryFeedDetailResponse
+	{
+		0 require int errCode;							//业务错误码
+		1 optional CirclePrimaryFeed primaryFeed;		//消息对应的单feed
+		2 optional string pageContext;					//翻页上下文
+		3 optional bool hasNextPage;					//是否还有下一页
+		4 optional bool hasPreviousPage = false;				//是否还有前一页，用来判断当前评论是否在评论列表的第一页
+	};
+	
+	//获取消息提醒数据
+	struct CircleGetNotifyMessageListRequest
+	{
+		0 require int type;					// 0 所有消息，1 未读消息
+		1 require bool isReadOption;		// 是否是真实的阅读动作
+		2 optional string lastSeqId;		// 本地最新一条通知消息id
+		3 optional string pageContext;		// 翻页上下文
+	};
+	
+	// 消息列表响应
+	struct CircleGetNotifyMessageListResponse
+	{
+		0 require int errCode;								//业务错误码
+		1 optional bool hasNextPage;						//是否有下一页
+		2 optional string pageContext;						//取下一页会带这个字段上去
+		3 optional int total;								//消息总数
+		4 optional vector<CircleNotifyMessage> msgList;		//消息集合	
+	};
+	
+	//取未读计数请求
+	struct CircleGetUnReadMsgCountRequest
+	{
+		0 require string lastSeqId;			// 本地最新一条通知消息id
+	};
+	
+	// 取未读计数响应
+	struct CircleGetUnReadMsgCountResponse
+	{
+		0 require int errCode;				//业务错误码
+		1 optional int num;					//未读消息数，包括普通消息和新增好友
+		2 optional string headUrl;			//未读消息小黄条上应该显示的头像
+		3 optional int showType;			//消息类型，1 全是普通的消息 2 不全是新增好友的消息	
+	};
+	
+	//影视圈分享请求
+	struct CircleSharerInfoRequest
+	{
+		0 require string readKey;		//随 ONADetailsVideoCircleShare 控件下发
+		1 optional int type;			//1:请求个性化分享数据
+		2 optional string vid;			//vid
+	};
+	
+	//分享信息返回结果
+	struct CircleSharerInfoResponse
+	{
+		0 require int errCode;								//服务器返回的错误码
+		1 require int shareCount;							//分享总人数
+		2 optional string strWording;						//如果用户列表为空，需要展示的文本内容
+		3 optional vector<ActorInfo> userList;				//分享人信息，请求个性化分享时最多返回2个；非个性化时最多返回3个
+		4 optional CirclePrimaryFeed lastSharedFeed;		//最后一个分享人和他发表的feed，在请求个性化分享时返回本条数据
+	};
+	
+  //设置关注请求
+	struct CircleMsgFollowRequest
+	{
+		0	require unsigned byte cVersion;			//协议版本号，默认填1
+		1	require long ddwUserid;					//内部vuserid
+		2	require long ddwMsgid;					//消息id
+		3	optional unsigned int dwTime;			//关注时间
+	};
+	
+	//设置关注返回结果
+	struct CircleMsgFollowResponse
+	{
+		0	require unsigned byte cResult;			//返回码
+		1	optional string strErrMsg;				//出错的原因描述
+	};
+    
+	
+	
+	//获取单个用户的关系链列表请求
+    struct CircleGetRelationListRequest
+    {   
+		0 optional string pageContext;              //请求的上下文； dwTime=xxxx:表示当前更新时间；
+		1 optional int type;                        //0 所有好友， 6:主人设置不想看的， //7.主人设置不让看的
+		2 optional string userId;				    //要查看的用户id，如果要查所有的，就传""
+    };  
+       
+    //获取单个用户的关系链列表返回
+    struct CircleGetRelationListResponse
+    {   
+		0 require int errCode;								//业务错误码
+		1 require vector<RelationUserInfo> vecUserList;     //关系链列表
+		2 optional bool hasNextPage;						//是否有下一页
+		3 optional string pageContext; 						//请求的上下文；
+    };  
+    
+    //发表原创时，获取默认黑名单请求
+    struct CircleGetDefBlackListRequest
+    {   
+		0 optional int flag;				//纯占位，无意义
+		1 optional string pageContext;		//翻页上下文
+    };  
+       
+    //发表原创时，获取默认黑名单返回
+    struct CircleGetDefBlackListResponse
+    {   
+		0 require int errCode;								//业务错误码
+		1 require vector<RelationUserInfo> vecUserList;     //关系链列表
+		2 optional bool hasNextPage;						//是否有下一页
+		3 optional string pageContext; 						//请求的上下文；
+    };  
+    
+    //增加黑名单请求
+	struct AddOneBlacklistRequest{
+		0 require int iVerson;
+		1 require long ddwUin;										//主用户uin(A)
+		2 require map<long, int> mapBlacklistUin;					//被操作用户uin列表(B)
+	};
+	
+	//增加黑名单返回
+	struct AddOneBlacklistResponse{
+		0 require int iVerson;
+		1 require int ddwUin;										//主用户uin(A)
+		2 require int iRetCode;
+		3 optional string strErrMsg;		
+	};
+	
+	//检测影视圈的更新请求协议
+	struct CircleDetectNewRequest
+	{
+		0 optional string flag;			//纯占位，无意义
+	};
+	
+	//检测影视圈的更新响应协议
+	struct CircleDetectNewResponse
+	{
+		0 require int errCode;
+		1 require string feedId;
+		2 require long feedTime;
+	};
+	
+	//播放器最后五分钟的影视圈气泡提示
+	struct CirclePlayerShareTipsRequest
+	{
+		0 require string dataKey;			    // 这个dataKey用详情页ONADetailsVideoCircleShare的readKey	
+	};
+	
+	//播放器最后五分钟的影视圈气泡提示
+	struct CirclePlayerShareTipsResponse
+	{
+		0 require int errCode;
+		1 require long timeIntervalToEnd;		// 单位为毫秒，离播放结束的时间间隔
+		2 require string showTips;				// 显示的气泡文案
+	};
+	
+	//获取小视频timeline列表请求
+	struct MiniVideoListRequest
+	{
+		0 require string lid;
+		1 require string cid;
+		2 require string vid;
+		3 optional string pageContext;
+		4 optional string fantuanId;    // 饭团id
+		5 optional string dataKey;      // 用于饭团中筛选特定的小视频列表，比如今日更新的、1月30号的小视频等
+		6 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+	};
+	
+	//获取小视频timeline列表返回
+	struct MiniVideoListResponse
+	{
+		0 require int errCode; 							//0表示发表成功，其他表示失败；
+		1 optional vector<CirclePrimaryFeed> feedList;	//视频列表
+		2 optional string pageContext;					//翻页上下文
+		3 optional bool hasNextPage;					//是否有下一页
+		4 optional string reportContext;     // 后台返回用于请求参数，表示是第几次请求，区分上、下拉刷新，后台填充到列表数据reportParams字段中
+	};
+	// 个人页自拍tab ONAViews请求协议
+	struct UserHomeSelfVideoONAViewsRequest
+	{
+		0 require string dataKey;        // user id 
+		1 optional string pageContext;   //翻页上下文
+	};
+
+	// 个人页自拍tab ONAViews应答协议
+	struct UserHomeSelfVideoONAViewsResponse
+	{
+		0 require int errCode;
+		1 optional vector<TempletLine> uiData;  //内容数据，每一个结点，都是一行数据
+		2 optional string pageContext;   //翻页上下文
+		3 optional bool hasNextPage;   //是否有下一页
+		4 optional string title; 	//标题
+	};
+	//大图预览 二次拉取业务数据
+	struct PicPreViewRequest
+	{
+		0 require string dataKey;		
+	};
+	struct PicPreViewResponse
+	{
+		0 require int errCode;				//错误码
+		1 require string feedId;			//帖子id
+		2 optional ActorInfo actorInfo;		//用户信息
+		3 optional ShareItem shareItem;		//分享信息
+		4 optional string content;			//帖子内容
+		5 optional int commentCount;        //feed评论的总数量，仅仅做文案显示，不做其他逻辑运算
+		6 optional int likeCount;           //图的赞的总数量
+		7 optional Action feedAction;		//对应帖子的跳转
+		8 optional string picLikeDataKey;	//单图点赞
+		9 optional bool isLike;				//是否点过赞
+		10 optional vector<ActionBarInfo> actionBars;	//更多操作
+	};
+
+	//单图点赞
+	struct PicLikeRequest
+	{
+		0 require string feedId;		//帖子id
+		1 require string dataKey;		//单图信息
+		2 require bool isLike=false;			//T：点赞 F：取消点赞
+		4 optional string seq; 		    //sequence，防止终端重复提交，和MsgLike一样的处理方式
+	};
+	struct PicLikeResponse
+	{
+		0 require int errCode;			//错误码
+	};
+};

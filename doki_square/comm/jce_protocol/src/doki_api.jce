@@ -1,0 +1,246 @@
+/*z
+@brief: doki api接口协议
+auth：beepeng
+time：2018.03.29
+*/
+
+module jce
+{
+ 	/*
+	@brief:    机器环境信息 -- 旧L5
+	           101活动明星列表使用以下L5信息
+			   非101活动使用新L5
+	测试L5:    879425:65536  
+	测试IP:    10.175.108.238:20177
+	线上L5:    891841:65536
+	*/
+	
+ 	/*
+	@brief:    机器环境信息 -- 新L5
+			   非101活动使用以下L5
+	测试L5:    891841:131072  
+	测试IP:    
+	线上L5:    1017281:65536
+	*/
+	
+	enum ECmd
+	{
+		CMD_GET_ACTIVITY_DOKI_LIST    = 0xf52d,   // 读取指定活动的doki列表信息
+		CMD_GET_USR_DOKI_LIST         = 0xf65b,   // 获取用户关注的DOKI ID列表
+		CMD_GET_DOKI_BASIC_INFO       = 0xf753,
+		CMD_GET_USR_IN_DOKI_INFO      = 0xf752,
+	};
+	
+	enum EGetType
+	{
+		E_GET_BY_DOKIID        = 1,  //读取单个doki id的信息
+		E_GET_BY_VID           = 2,  //web端根据vid的相关人员信息 读取doki列表信息
+		E_GET_BY_ACTIVITY      = 3,  //读取该活动所有选手列表信息
+		E_GET_BY_DOKIID_BRIEF  = 4,  //读取单个doki id的信息 - 只读取简介和头像信息
+	};	
+	
+	// 活动id -- 与媒资talent_show_id保持一致
+	enum EActivityId
+	{
+	    E_ACT_ID_101           = 1657369,  //101
+		E_ACT_ID_FUTURE_STAR   = 1672668,  //明日之子第二季
+		E_ACT_ID_CHAOYIN_BATTLE = 1674445, //潮音战纪
+	};
+	
+	// doki头像信息
+    struct stDokiImgInfo
+	{
+		0 optional  string  strHeadImg;   //头图
+        1 optional	string  strBackImg;   //背景图
+		2 optional  string  strColorImg;  //抠图
+	};
+	
+	// ----------------------------------------------
+	// mpExtData -- 扩展参数注释
+	
+	// 101活动
+	// 分组信息 - Group
+	// 淘汰状态 - PlayerStat
+	// 个性签名 - Siga
+	// 介绍视频竖版 - VVid
+    // 卡片竖图 - VPic
+	// 卡片标签 - Label
+	// 是否封票期 - CanVote - 值0：否 值1：是
+	// 上期排名 - LastRank
+	// 上上期排名 - LLastRank
+	// 是否投票 - VoteStat - 值0：否  值1: 是 
+	// 置顶顺序 - Top     
+	// 简介     - Intra     -- 单个doki出，批量读取不出
+	// 简介视频横版 -HVid
+	
+    // 明日之子活动
+	// 选送渠道 - channel
+	// 选手表排序 - rank
+	// 赛道     - class
+	// 相关专辑 - cid_vid
+    // 选手标签 - label
+	// 个性签名 - sign
+	// 介绍视频 - vid2
+	// OPPO明星ID - oppo_starid
+	// 新浪微博ID - weibo_starid
+	// 微视明星ID - weishi_starid 
+	
+	// 媒资数据
+	// 点赞状态 - vote_stat  --  可点赞、不可点赞
+	// 选手状态 - player_stat -- 晋级、待定、淘汰、决赛
+	
+	// 其它活动 （所有其它活动均与以下同）
+	// ----------------------------------------------
+	// 选送渠道 - channel
+	// 选手表排序 - rank
+	// 赛道     - class
+	// 相关专辑 - cid_vid
+    // 选手标签 - label
+	// 个性签名 - sign
+	// 介绍视频 - vid2
+	// OPPO明星ID - oppo_starid
+	// 新浪微博ID - weibo_starid
+	// 微视明星ID - weishi_starid 
+	
+	// 媒资数据
+	// 点赞状态 - vote_stat  --  可点赞、不可点赞
+	// 选手状态 - player_stat -- 晋级、待定、淘汰、决赛	
+	
+	
+	// doki信息
+	struct stDokiInfo
+	{
+		0 require long lDokiid;                  //dokiid
+		1 optional long lStarId;                 //明星ID, 非可见明星，譬如剧集doki, dokiid等于star id
+		2 require int  iCategory;                //doki类别  0:明星  1:剧集 2:兴趣
+		3 optional stDokiImgInfo   stImgInfo;    //doki头像信息
+		4 optional string strName;               //doki名称，剧集名称
+		5 optional long  lFansNum;               //粉丝数
+		6 optional byte bFlwStat;                //关注状态 0 - 未关注  1 - 已关注
+		
+		7 optional map<string, string> mpExtData; //扩展信息 - 对活动中的doki而言，存在额外的配置信息
+		8 optional int iSortVal;                  //排序字段
+	}; 
+
+	struct stGetDokiInfoReq
+	{
+	    0 require byte   bGetType;       // 获取类型，见EGetType
+		1 optional string strDokiid;     //
+		2 optional string strVid;        //
+		3 optional int    iActivityId;   // 活动id，101活动 - 101， 用于扩展数据拉取或选手列表读取
+		4 optional byte   bGetExt;       // 是否读取扩展数据 0：不获取； 1：获取，此时 iActivityId 必须填写 
+		                                 // - 不同活动类型 获取不同扩展信息
+										 
+										 // 本字段废弃！！！！！  
+										 // 活动明星，默认到无极读取配置的数据，具体下发的字段由
+										 // 前后端统一约定，非约定字段不下发
+										 
+		5 require  byte   bFrom;         //1: web 2: h5
+	};		
+	
+	//  
+	struct stGetDokiInfoRsp
+	{
+		0 optional int errCode;
+		1 optional vector<stDokiInfo> vecDokiList; //doki 列表信息
+	};
+	
+
+	// 用户关注的doki id列表
+	// 命令字 - CMD_GET_USR_DOKI_LIST
+	struct stGetUsrDokiListReq
+	{
+	    0 require string strVuid;
+		1 optional int   iFlag;         //0: 读取id列表  1: 获取关注数
+		
+		// 0: 全量  1：明星  2：剧集 3：兴趣doki  -- 实际doki类型 + 1, 4: 游戏 -- 4以后的类型与实际类型保持一致
+		2 optional int   iDokiType;     //根据类型过滤 -- 只在iFlag = 0时生效
+		3 optional int   iSortFlag;     //0：时间自大到小（新到旧）排序  1：时间自小到大（旧到新）排序
+	};
+	
+	struct stGetUsrDokiListRsp
+	{
+		0 optional int errCode;
+		1 optional vector<string> vecDokiList; //doki 列表信息
+		2 optional int iCount;         //
+	};	
+	
+		
+	// 获取DOKI基本信息
+	struct DokiImageInfo
+	{
+		0  	optional  string  strHeadImg;   //头图
+		1	optional  string  strBackImg;   //背景图
+		2	optional  string  strColorImg;  //抠图
+	};
+	
+	// 剧集doki
+	struct VideoDokiInfo
+	{
+		0 optional string strLids;  //栏目Id集
+		1 optional string strCids;  //专辑ID集
+		2 optional string strKeyWords; //剧集关键词
+		3 optional string strLabel;    //剧集标签
+		4 optional int    dwStatus;   //剧集状态
+	};
+	
+	struct DokiBaseInfo
+	{
+		0 require long lDokiId;      //ID
+		1 optional long lStarId;     //明星ID
+		2 require int  iDokiType;    //类别  0:明星  1:剧集 2:兴趣
+		3 optional string strName;   //饭团名称，剧集名称
+		4 optional long  lFansNum;   //粉丝数
+		5 optional int   iDelFalg;   //0-未删除(有效)，1-删除(无效)
+		
+		6 optional DokiImageInfo  stFtImageInfo;   //饭团头像信息
+		7 optional VideoDokiInfo  stVideoDokiInfo;  //剧集Doki信息
+		
+		// iFlag & 0x01 
+		// 设置了扩展数据flag才下发 -- 
+		8 optional long  lPostCount;   //明星下后援会帖子数
+		
+		// iFlag & 0x02 
+		9 optional long  lWeekFansNum; //周新增粉丝数
+	}; 
+	
+	// 命令字:
+	// 		CMD_GET_DOKI_BASIC_INFO       = 0xf753
+	// 获取DOKI基本信息
+	struct GetDokiInfoReq
+	{
+		0 require string strDokiid;
+		
+		// 按位设定
+		// 0x01: 获取帖子数 0x02：获取周粉丝数
+		1 optional int iFlag;        
+		
+		// 场景： 1 - 火箭少女小程序
+		2 optional  int iFrom;       
+	};
+	 
+	struct GetDokiInfoRsp
+	{
+		0  require int errCode;
+		1  optional string strErrMsg;
+		2  optional DokiBaseInfo  stDokiInfo;  //DOKI基础数据
+	};
+	
+	
+	// 命令字:
+	// 		CMD_GET_USR_IN_DOKI_INFO      = 0xf752
+	// 获取用户在doki下的信息
+	struct GetUsrUnderDokiInfoReq
+	{
+		0 require string strDokiid;
+		1 require string strVuid;
+	};
+	 
+	struct GetUsrUnderDokiInfoRsp
+	{
+		0  require int errCode;
+		1  optional string strErrMsg;
+		2 optional long lAttentTime;   //关注时间
+		3 optional long lRank;         //用户在明星粉丝榜下的排行
+	};	
+};

@@ -1,0 +1,353 @@
+/*
+* 私人聊天室相关协议
+*/
+
+#include "qqvideo_common.jce"
+
+module jce
+{
+	//聊天室会话类型
+	enum SessionType
+	{
+		TYPE_PID = 1, //直播场景
+	};
+	
+	//聊天室会话状态
+	enum SessionStatus
+	{
+		CREATED = 1,              //已创建
+		DISMISSED = 2             //已解散
+	};
+	
+	//用户类型
+	enum UserType
+	{
+		ANONYMOUS_USER = 1,       //匿名用户
+		NORMAL_USER = 2,          //普通用户
+		ADMIN_USER = 4,           //管理员用户
+		CREATE_USER = 8           //创建者用户
+	};
+	
+	//通知类型
+	enum NotificationType
+	{
+		MSG_TYPE = 1,            //普通消息通知
+		SYS_TYPE = 2             //系统指令通知
+	};
+	
+	enum MessageType
+	{
+		TEXT_TYPE = 1,           //文本消息
+		VOICE_TYPE = 2,          //语音消息
+		SYSTEM_TYPE = 3,         //系统消息
+		LOGIN_TYPE = 4,          //拉动登录
+		SHARE_TYPE = 5,           //拉动分享
+		CMD_TYPE = 6             //信令消息，如pid切换或者解散，可以通过消息机制推送到前台
+	};
+
+    enum ShowType
+    {
+        SHOW_ALL = 1,
+        SHOW_OWNER_ONLY = 2,
+        SHOW_CLIENT_ONLY = 3,
+        SHOW_CREATOR_ONLY = 4,
+        SHOW_NOT_CREATOR_ONLY = 5
+    };
+	
+	struct SessionInfo
+	{
+	    0 require string sessionId;       //聊天室会话id 
+		1 optional int sessionType;       //聊天室会话类型，参考SessionType
+		2 optional string boundId;        //绑定的id，如直播，则填写聊天室对应的pid
+		3 optional int sessionStatus;     //聊天室会话状态，参考SessionStatus
+	};
+	
+	//通用的基础的用户信息结构体
+	struct UserInfo
+	{
+		0 require string userId;                 //用户id
+		1 optional int userType;                 //用户类型，参考UserType
+		2 optional string nickname;              //用户昵称
+		3 optional string headUrl;               //用户头像
+		4 optional int userNumber;               //透传后台
+		5 optional long joinTime;                //加入时间
+	};
+	
+	struct MessageInfo
+	{
+		0 require string msgId;                          //消息id，保证唯一且不断递增
+		1 optional long createTime;                      //创建时间
+		2 optional UserInfo userInfo;                    //用户信息
+		3 optional int msgType;                          //取值来自MessageType
+		4 optional string textContent;                   //消息文本内容
+		5 optional ApolloVoiceData voiceData;            //语音消息音频数据
+		6 optional string seqId;                         //客户端发表序列id，单个客户端唯一
+		7 optional long playTime;                        //当前播放时间戳
+		8 optional int showType;                         //see enum ShowType
+		9 optional string cmdContent;                    //cmdContent
+	};
+
+	//聊天室的私有信息，后台内部接口使用
+	struct SessionPrivateInfo
+	{
+		0 require SessionInfo sessionInfo;       //聊天室会话信息
+		1 optional string lastMsgId;             //用户在当前会话中拉取的最新msgid
+		2 optional string firstMsgId;            //用户刚进来的msgid
+		3 optional UserInfo joinOperator;        //加入者用户信息
+		4 optional long joinTime;                //加入时间
+		5 optional UserInfo leaveOperator;       //离开操作者用户信息
+		6 optional long leaveTime;               //离开时间
+	};
+	
+	//聊天室的公共信息
+	struct SessionPublicInfo
+	{
+		0 require SessionInfo sessionInfo;       //聊天室会话信息
+		1 optional UserInfo creator;             //创建者用户信息
+		2 optional long createTime;              //创建时间
+		3 optional string sessionName;           //聊天室名称
+		4 optional string sessionPic;            //聊天室头像
+		5 optional string description;           //聊天室简介或者备注
+		6 optional string msgKey;                //消息列表key，可以直接通过该key唯一定位到当前的消息列表
+		7 optional int userCount;                //聊天室当前人数
+		8 optional ShareItem shareItem;          //聊天室分享信息
+		9 optional int userNumber;               //透传后台
+		10 optional int canGuestShare;           //客人是否可分享，0为不可以，1为可以
+	};
+	
+	// 用户会话信息结构体,标识一个用户和他所在的聊天室
+	struct UserSessionInfo
+	{
+		0 require SessionPublicInfo publicInfo;
+		1 require UserInfo userInfo;
+	};
+	
+	/*-----创建会话接口-----*/
+	//CreateSession = 0xeb73
+	struct CreateSessionRequest
+	{
+		0 require int sessionType;               //取值为SessionType
+		1 require string boundId;                //对应的id，如果iSessionType为1则为pid，为2则为cid，为3则为vid，为4则为lid
+		2 optional string sessionName;           //聊天室的名称
+	};
+	
+	struct CreateSessionResponse
+	{
+		0 require int errCode;			                  //错误码
+		1 require string errMsg;		                  //出错信息
+		2 optional UserInfo userInfo;                     //用户信息
+		3 optional SessionPublicInfo publicInfo;          //聊天室的公共信息
+	};
+	/*-----创建会话接口-----*/
+
+	/*-----加入会话接口-----*/
+	//JoinInSession = 0xeb76
+	struct JoinInSessionRequest
+	{
+		0 require string sessionId;                      //聊天室会话id
+	};
+	
+	struct JoinInSessionResponse
+	{
+		0 require int errCode;                           //错误码
+		1 require string errMsg;                         //出错信息
+		2 optional UserInfo userInfo;                    //用户信息
+		3 optional SessionPublicInfo publicInfo;         //聊天室的公共信息
+	};
+	/*-----加入会话接口-----*/
+	
+	/*-----退出会话接口-----*/
+	//JoinInSession = 0xec48
+	struct ExitSessionRequest
+	{
+		0 require string sessionId;                      //聊天室会话id
+	};
+	
+	struct ExitSessionResponse
+	{
+		0 require int errCode;                           //错误码
+		1 require string errMsg;                         //出错信息
+	};
+	/*-----退出会话接口-----*/
+
+	/*-----移除好友接口（自己退出或者移除他人）-----*/
+	//RemoveSessionFriend = 0xeb77
+	struct RemoveSessionFriendRequest
+	{
+		0 require string userId;         //被删除用户的id
+		1 require string sessionId;      //对应的会话id
+	};
+	
+	struct RemoveSessionFriendResponse
+	{
+		0 require int errCode;          //错误码
+		1 require string errMsg;        //错误消息
+	};
+	/*-----移除好友接口（自己退出或者移除他人）-----*/
+	
+	/*-----Apollo的authkey续期接口-----*/
+	//GetApolloAuthKey = 0xec40
+	struct GetApolloAuthKeyRequest
+	{
+	    0 optional string sessionId;
+	};
+	
+	struct GetApolloAuthKeyResponse
+	{
+		0 require int errCode;                                  //错误码
+		1 require string errMsg;                                //错误消息
+		2 require long mainSvrId;                             	/*   主svrid，用于记录日志 */
+		3 require long mainSvrUrl1;                           	/*   主svrip */
+		4 require long mainSvrUrl2;                           	/*   主svrip */
+		5 require long slaveSvrId;                            	/*   从svrid，用于记录日志 */
+		6 require long slaveSvrUrl1;                          	/*   从svrip */
+		7 require long slaveSvrUrl2;                          	/*   从svrip */
+		8 require int expireIn;                              	/*   过期时间 */
+		9 require string authKey;
+		10 require vector<byte> authKeyData;                    /*    二进制的key,因为后台转成string在app的jce无法解开 */
+	};
+	/*-----Apollo的authkey续期接口-----*/
+	
+	/*-----拉取用户的所在的会话列表-----*/
+	//GetUserSessions = 0xeb78
+	struct GetUserSessionsRequest
+	{
+		0 require int isOnlyMine;                                 //是否只拉取我创建的，1表示是，0表示否
+	};
+	
+	struct GetUserSessionsResponse
+	{
+		0 require int errCode;                                    //错误码
+		1 require string errMsg;                                  //错误消息
+		2 optional vector<UserSessionInfo> userSessionInfos;      //聊天室的公共信息(创建)
+	};
+	/*-----拉取用户的所在的会话列表-----*/
+	
+	/*-----拉取会话参与者列表-----*/
+	//GetSessionUsers = 0xeb79
+	struct GetSessionUsersRequest
+	{
+		0 require string sessionId;                          //聊天室会话id
+	};
+	
+	struct GetSessionUsersResponse
+	{
+		0 require int errCode;                               //错误码
+		1 require string errMsg;                             //错误信息
+		2 optional SessionPublicInfo publicInfo;             //聊天室的公共信息
+		3 optional vector<UserInfo> users;                   //聊天室的用户列表
+	};
+	/*-----拉取会话参与者列表-----*/
+	
+	/*-----检查成员关系合法性接口-----*/
+	struct UserValidationReqInfo
+	{
+		0 require string userId;                      //聊天室的用户id
+		1 require string sessionId;                   //聊天室会话id
+	};
+	
+	struct UserValidationResInfo
+	{
+		0 require int errCode;                        //错误码
+		1 require string errMsg;                      //错误信息
+		2 require int isValidationd;                  //是否合法
+	};
+	
+	//CheckUserValidationBatch = 0xeb80
+	struct CheckUserValidationBatchRequest
+	{
+		0 require vector<UserValidationReqInfo> reqs; //批量请求
+	};
+	
+	struct CheckUserValidationBatchResponse
+	{
+		0 require int errCode;                                   //错误码
+		1 require string errMsg;                                 //错误信息
+		2 require map<string, UserValidationResInfo> rsps;       //批量返回
+	};
+	/*-----检查成员关系合法性接口-----*/
+	
+	/*-----消息发表接口-----*/
+	//PostSessionMessage = 0xec41
+	struct PostSessionMessageRequest
+	{
+		0 require string sessionId;                         //聊天室会话id
+		1 optional int msgType;                             //取值来自MessageType
+		2 optional string textContent;                      //消息文本内容
+		3 optional ApolloVoiceData voiceData;               //消息音频数据存放此字段
+		4 optional string seqId;                            //客户端发表序列id，单个客户端唯一
+		5 optional long playTime;                           //当前播放时间戳
+	};
+	
+	struct PostSessionMessageResponse
+	{
+		0 require int errCode;                              //错误码
+		1 require string errMsg;                            //错误信息
+		2 optional MessageInfo msgInfo;                     //消息内容
+	};
+	/*-----消息发表接口-----*/
+	
+	/*-----消息拉取接口-----*/
+	struct SessionMessagesReqInfo
+	{
+		0 require string sessionId;                        //聊天室会话id
+		1 optional string pageContext;                     //上次拉取到的消息id，列表头尾的消息id，返回消息中不包含次消息
+		2 optional int isUpward;                           //是否向上拉取，0表示向下拉取，1表示向上拉取
+		3 optional string lastReadId;                      //已读的最后一条消息id
+		4 optional long playTime;                          //当前播放时间戳
+		5 optional long pushTime;                          //Push推送时间透传
+	};
+	
+	struct SessionMessagesResInfo
+	{
+		0 require int errCode;                             //错误码
+		1 require string errMsg;                           //错误消息
+		2 optional vector<MessageInfo> msgList;            //返回的消息列表
+        3 optional string pageContext;                     //返回列表头尾的消息id
+		4 optional bool hasNextPage;					   //是否有下一页数据
+		5 optional int unReadCount;                        //未读消息计数
+		6 optional int nextMsgReqIntervalTime;             //下一次消息轮询的时间间隔
+		7 optional MessageInfo unReadMsgInfo;              //未读消息中最新一条消息的内容
+		8 optional vector<MessageInfo> extMsgList;         //返回的Ext消息列表，存放CMD_TYPE类型的消息
+	};
+	
+	//GetSessionMessagesBatch = 0xec42
+	struct GetSessionMessagesBatchRequest
+	{
+		0 optional vector<SessionMessagesReqInfo> reqs;             //批量请求
+	};
+	
+	struct GetSessionMessagesBatchResponse
+	{
+		0 require int errCode;                                      //错误码
+		1 require string errMsg;                                    //错误信息
+		2 optional map<string, SessionMessagesResInfo> rsps;        //key为sessionId
+	};
+	/*-----消息拉取接口-----*/
+	
+	/*-----聊天室公共信息批量拉取接口-----*/
+	struct GetSessionPublicInfoBatchRequest
+	{
+		0 require vector<string> sessionIds;                            //会话id列表
+	};
+	
+	struct GetSessionPublicInfoBatchResponse
+	{
+		0 require int errCode;                                          //错误码
+		1 require string errMsg;                                        //错误信息
+		2 optional map<string, SessionPublicInfo> publicInfos;          //key为sessionId
+	};
+	/*-----聊天室公共信息批量拉取接口-----*/	
+
+    struct UpdateSessionPublicInfoRequest
+    {
+        0 require SessionPublicInfo publicInfo;
+    };
+
+    struct UpdateSessionPublicInfoResponse
+    {
+        0 require int errCode;
+        1 require string errMsg;
+        2 optional SessionPublicInfo publicInfo;
+    };
+};

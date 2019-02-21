@@ -1,0 +1,128 @@
+/*
+	潮音战纪榜单相关协议
+  ######## 测试L5: 520769:12779520
+  ######## 正式L5：
+
+            接口						#   命令字    	#       请求包					#cgi
+  ##     	粉丝贡献榜					#   	0xf794    #  stFansRankReq			# 
+			http://debugaccess.video.qq.com/doki/fvc_fansrank?vappid=70078273&vsecret=104bc2f8439c12fb8240669f26f2739450420294d2c68f46&iTimeType=0&lRankTime=0&iNum=10&iPage=0
+
+  ##     	明星排行榜					#   	0xf795    #  stStarRankReq			#
+			http://debugaccess.video.qq.com/doki/fvc_starrank?vappid=70078273&vsecret=104bc2f8439c12fb8240669f26f2739450420294d2c68f46&iReqTime=0&iReqType=0
+
+  ##     	明星页投票流水				#   	0xf79a    #  FansVoteFLowDataReq	#
+			http://debugaccess.video.qq.com/doki/fvc_voteflow?vappid=70078273&vsecret=104bc2f8439c12fb8240669f26f2739450420294d2c68f46&strStarId=1673369
+*/
+
+#include "user_info.jce"
+module FashionVoiceRank
+{
+	struct stStarInfo
+	{
+		0 require long lStarId;						
+		1 require long lDokiId;							
+		2 require string strStarName;	
+		3 require string strFaceImgUrl;	// 头像
+	};
+
+	// 人气榜粉丝信息
+	struct STFansInfo
+	{
+		0 require jceUserInfo::stUserInfo stFansData;
+		1 require int		   		iVoteNum;			// 投票数/贡献值
+		2 require int		   		iRank;				// 排名
+		3 optional string	   		strPersonalLink;	//粉丝个人页
+		5 optional stStarInfo	    stFavoriteStar;		//"我支持的"明星
+		6 optional int	     		iReceiveNum; 		//分享页面领取票数
+	};
+
+	// 背景图
+	struct BannerImg
+	{
+		0 require string strStarBg;						//人物背景图
+		1 require string strRankBg;						//榜单背景图
+		2 require string strRankName;					//榜单名字图
+		3 require string strStarName;					//明星名字
+	};  
+
+	//粉丝贡献榜 请求结构
+    struct stFansRankReq
+    {
+    	0 require  int iTimeType;					// [0日榜] [1周榜] [2总榜] [4好友投票榜]
+        1 optional long lRankTime;					//请求时间戳（为0）则默认为最新一期
+        2 optional unsigned int iReqNum;			//每页数量
+        3 optional unsigned int iPage;				//页数（从0开始）
+		4 optional long lStarId;                  //明星ID [iTimeType=4 时必填明星id]
+    };
+    
+    //粉丝贡献榜 响应结构
+	struct stFansRankRsp
+	{
+		0 require int iErrCode;				 						//业务错误码
+		1 optional string strErrMsg;								//业务错误原因
+		2 optional unsigned int iPeriod;							//当前期数
+		3 optional BannerImg stBannerImg;							//排行榜头部图，page=0返回
+		4 optional vector<STFansInfo> vecUserInfo;		 			// 粉丝数据
+        5 optional unsigned int iNextPage;							//是否还有下一页（0：没有 1：有）
+    };
+
+	// 明星个人信息
+	struct STStarInfo
+	{
+		0 optional string strStarId;          //明星id
+		1 optional string strDokiId;          //Doki id
+      	2 optional string strName;              //明星名字
+        3 optional string strHeader;            //头像  
+        4 optional string strChannel;            //赛道
+        5 optional string strActStatus;            //晋级状态 
+        6 optional string strFrom;            //来源
+        7 optional int    iVoteStatus;            //点赞状态 [0不可点赞] [1可点赞]
+        8 optional bool   bPush;            //厂牌星推
+	};
+
+	// 明星数据信息
+	struct STStarData
+	{
+		0 optional long		  lScore;	// 点赞数
+		1 optional long		  lVoteFansNum;	// 投票人数
+		2 optional long		  lVoteCnt;	// 投票次数
+		3 optional int		  iRank;	// 排名
+		4 optional string	  strBattle; //战斗次数
+		5 optional vector<int> vecPastRank; // 往期排名
+	};
+
+	struct STStarRankInfo
+	{
+		0 optional STStarInfo		  stInfo;	// 个人信息
+		1 optional STStarData		  stData;	// 数据
+	};
+
+    //明星排行榜 请求结构
+    struct stStarRankReq
+    {
+    	0 require  int iReqTime;							// 请求时间戳
+    	1 require  int iReqType;							// [0明星排行榜列表] [1明星在排行榜中个人信息]
+        2 optional string strStarId;       					// iReqType=1 时务必填写
+    };
+    
+    //明星排行榜 响应结构
+	struct stStarRankRsp
+	{
+		0 require int iErrCode;				 						//业务错误码
+		1 optional vector<STStarRankInfo> vecStarInfo;		 		//明星数据
+    };
+
+		// 点赞跑马灯
+    struct FansVoteFLowDataReq
+	{
+		1 require string strStarId;					// 单个请求starid
+	};
+    
+	//返回数据
+    struct FansVoteFLowDataRsp
+	{
+		1 require int iErrCode;				 									//业务错误码
+		2 optional string strErrMsg;											//业务错误原因
+		3 optional vector<STFansInfo> vecUserInfo;								// 粉丝贡献值跑马灯数据 size <= 50
+	};
+};

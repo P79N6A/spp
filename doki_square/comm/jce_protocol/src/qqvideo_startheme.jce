@@ -1,0 +1,180 @@
+/*
+ * 明星主题相关结构和协议
+*/
+
+#include "qqvideo_common.jce"
+
+module jce
+{	
+		struct StarThemeVipData
+		{
+			0 optional int isVipTheme;								 //是否vip主题标识。0-非vip，1-vip
+			1 optional vector<ActionBarInfo> vipExpireDialogInfos;   //会员过期提示弹框文案
+			2 optional int dataType;   //0：正常的明星主题数据，1：包含未过期弹框文案数据  2：包含已过期弹框文案数据
+		};
+		
+		//单个明星主题详情数据
+		struct SingleStarThemeData
+		{
+			0 require string startThemeId;					//主题id
+			1 require int state;							//主题状态 : 1-上架 2-强制下架
+			2 optional string name;							//明星姓名
+			3 optional string source; 						//主题来源
+			4 optional string userNum; 						//用户数	
+			5 optional int isNewFlag; 						//是否新上架 0-否 1-是
+			6 optional vector<MarkLabel> markLabelList;		//脚标列表			
+			7 optional string cover_effect_img;				//场景:
+			8 optional string cover_star_img;				//场景:
+			9 optional string player_effect_img;			//场景:
+			10 optional string pull_effect_img;				//场景:
+			11 optional string pull_star_img;				//场景:
+			12 optional string recommend_effect_img;		//场景:
+			13 optional string recommend_star_img;			//场景:
+			14 optional string setting_star_img;			//场景:
+			15 optional string tab_img_1;					//场景:
+			16 optional string tab_img_2;					//场景:
+			17 optional string tab_img_3;					//场景:
+			18 optional string tab_img_4;					//场景:
+			19 optional string star_theme_bgColor;			//明星背景色
+			20 optional string groupId;						//模块id或者组id，以防止请求详情的时候，明星的模块id发生了变化
+			21 optional string star_weibo_name;				//明星主题对应的微博帐号的名称
+			22 optional Action action;                       //H5跳转地址
+			23 require int payType;                         //明星主题是否需要付费：1-免费，2-付费
+			24 optional StarThemeVipData vipData;			//明星主题VIP相关数据
+		};
+		
+		//明星主题一组数据的定义
+		struct StarThemeGroupItem
+		{
+			0 require string groupId;								//组id
+			1 optional int total;									//该组内主题总数
+			2 optional string title;								//组标题
+			3 optional vector<SingleStarThemeData> starThemeList;	//一级页面可见主题列表
+			4 optional Action action;								//如果此字段有效，进入二级页面时就跳转到该字段对应的h5页面
+		};
+		
+		//明星主题付费已购买内容请求
+    	struct PayedStarThemeGroupRequest
+    	{   
+			0 require int test;		//占位符
+    	};  
+       
+    	//明星主题付费已购买内容响应
+    	struct PayedStarThemeGroupResponse
+    	{   
+			0 require int errCode;
+			1 optional StarThemeGroupItem payedGroupItem;
+    	}; 
+		
+		//明星主题一级页面内容请求
+    	struct StarThemeGroupListRequest
+    	{   
+			0 require string pageContext;		//翻页上下文
+    	};  
+       
+    	//明星主题一级页面内容响应
+    	struct StarThemeGroupListResponse
+    	{   
+			0 require int errCode;									//业务错误码
+			1 optional vector<VideoImage> bannerImageList;     		//顶部banner图片url列表，点击可以跳转
+			2 optional vector<StarThemeGroupItem> groupList; 		//分组列表
+			4 optional bool hasNextPage;							//是否有下一页
+			5 optional string pageContext; 							//请求的上下文；
+    	};  
+		
+    	//明星主题二级页面内容请求
+    	struct StarThemeGroupMoreRequest
+    	{   
+			0 require string groupId;			//组id
+			1 optional string filterValue;		//过滤条件字符串，首次进入二级页面时填空字符串
+			2 optional string pageContext;		//翻页上下文
+			3 optional int payedGroupType;      //分组付费类型：0-免费，1-付费已购买
+    	};  
+		
+    	//明星主题二级页面内容响应
+    	struct StarThemeGroupMoreResponse
+    	{   
+			0 require int errCode;									//业务错误码
+			1 optional VideoFilter filter; 							//过滤器 
+			2 optional vector<SingleStarThemeData> starThemeList; 	//主题列表
+			3 optional bool hasNextPage;							//是否有下一页
+			4 optional string pageContext; 							//请求的上下文；
+    	}; 
+    
+    	//明星主题详情请求
+    	struct SingleStarThemeDetailRequest
+		{
+			0 require string startThemeId;		//主题id
+		}; 
+		
+		//明星主题详情响应
+    	struct SingleStarThemeDetailResponse
+		{
+			0 require int errCode;						//业务错误码
+			1 require SingleStarThemeData detail;		//详情数据
+		}; 
+		
+		//明星主题新上架查询请求
+    	struct StarThemeDetectNewRequest
+		{
+			0 optional string updateKey;		//表示最后一次查询的时间，首次为空字符，下次用前一次响应的updateKey
+		}; 
+		
+		//明星主题新上架查询响应
+    	struct StarThemeDetectNewResponse
+		{
+			0 require int errCode;				//业务错误码
+			1 require string updateKey;			//本地保存，下次发起查询请求时用到
+			2 optional bool hasNew;				//是否有新主题上架
+			3 optional string headImgUrl;		//个人中心处提示的头像
+			4 optional string startThemeId;		//主题id
+		}; 
+		
+		//将已用的明星主题id上报给后台的请求
+    	struct UseThemeRequest
+		{
+			0 require string startThemeId;		//主题id
+		}; 
+		
+		//将已用的明星主题id上报给后台的响应
+    	struct UseThemeResponse
+		{
+			0 require int errCode;				//业务错误码
+		}; 
+				
+		//历史主题Item
+		struct StarThemeHistoryItemData
+		{
+			0 require string starThemeId; //主题ID
+			1 require long starThemeUsedTime; //主题使用时长
+			2 optional int syncType; //开始：1 or 结束：2
+			3 optional string openId;  //主题所关联的账号， 用于退出登录时通知后台结束使用主题
+		};
+				
+		//本地历史记录同步云端账号的请求
+		struct StarThemeHistoryRequest
+		{
+			0 require StarThemeHistoryItemData historyItemData;
+		};
+		
+		//本地历史记录同步云端账号的响应
+		struct StarThemeHistoryResponse
+		{
+			0 require int errCode; //业务错误码
+			1 require long starThemeUsedTime; //主题使用时长
+		};
+		
+		//查询账号下绑定数据的请求
+		struct AccountBindInfoRequest 
+		{
+			0 require int test;        //占位符
+		};
+		//查询账号下绑定数据的响应，可扩展多重信息
+		struct AccountBindInfoResponse 
+		{
+			0 require int errCode; //业务错误码
+			1 optional SingleStarThemeData themeItem; //返回主题信息
+			2 optional long starThemeUsedTime; //主题使用时长
+			
+		};
+};
